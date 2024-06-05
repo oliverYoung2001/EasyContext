@@ -1,0 +1,210 @@
+================== g4001 ==================
+nvidia_fs             249856  0
+nvidia_uvm           1351680  36
+nvidia_drm             65536  0
+nvidia_modeset       1302528  1 nvidia_drm
+nvidia              56692736  2886 nvidia_uvm,nvidia_fs,nvidia_modeset
+drm_kms_helper        184320  4 ast,nvidia_drm
+drm                   495616  7 drm_kms_helper,drm_vram_helper,ast,nvidia,nvidia_drm,ttm
+
+
+
+================== g4002 ==================
+nvidia_fs             249856  0
+nvidia_uvm           1351680  64
+nvidia_drm             65536  0
+nvidia_modeset       1302528  1 nvidia_drm
+nvidia              56692736  3964 nvidia_uvm,nvidia_fs,nvidia_modeset
+drm_kms_helper        184320  5 ast,nvidia_drm,nouveau
+drm                   495616  8 drm_kms_helper,drm_vram_helper,ast,nvidia,nvidia_drm,ttm,nouveau
+
+
+
+================== g4003 ==================
+nvidia_fs             249856  0
+nvidia_uvm           1351680  34
+nvidia_drm             65536  0
+nvidia_modeset       1302528  1 nvidia_drm
+nvidia              56692736  2425 nvidia_uvm,nvidia_fs,nvidia_modeset
+drm_kms_helper        184320  4 ast,nvidia_drm
+drm                   495616  7 drm_kms_helper,drm_vram_helper,ast,nvidia,nvidia_drm,ttm
+
+
+
+================== g4004 ==================
+nvidia_fs             249856  0
+nvidia_uvm           1351680  36
+nvidia_drm             65536  0
+nvidia_modeset       1302528  1 nvidia_drm
+nvidia              56692736  2912 nvidia_uvm,nvidia_fs,nvidia_modeset
+drm_kms_helper        184320  4 ast,nvidia_drm
+drm                   495616  7 drm_kms_helper,drm_vram_helper,ast,nvidia,nvidia_drm,ttm
+
+
+
+================== g4005 ==================
+nvidia_fs             249856  0
+nvidia_uvm           1351680  10
+nvidia_drm             65536  0
+nvidia_modeset       1302528  1 nvidia_drm
+nvidia              56692736  1594 nvidia_uvm,nvidia_fs,nvidia_modeset
+drm_kms_helper        184320  5 ast,nvidia_drm,nouveau
+drm                   495616  8 drm_kms_helper,drm_vram_helper,ast,nvidia,nvidia_drm,ttm,nouveau
+
+
+
+================== g4006 ==================
+nvidia_fs             249856  0
+nvidia_uvm           1351680  34
+nvidia_drm             65536  0
+nvidia_modeset       1302528  1 nvidia_drm
+nvidia              56692736  2809 nvidia_uvm,nvidia_fs,nvidia_modeset
+drm_kms_helper        184320  4 ast,nvidia_drm
+drm                   495616  7 drm_kms_helper,drm_vram_helper,ast,nvidia,nvidia_drm,ttm
+
+
+
+================== g4007 ==================
+nvidia_fs             249856  0
+nvidia_uvm           1351680  34
+nvidia_drm             65536  0
+nvidia_modeset       1302528  1 nvidia_drm
+nvidia              56692736  2809 nvidia_uvm,nvidia_fs,nvidia_modeset
+drm_kms_helper        184320  5 ast,nvidia_drm,nouveau
+drm                   495616  8 drm_kms_helper,drm_vram_helper,ast,nvidia,nvidia_drm,ttm,nouveau
+
+
+
+================== g4008 ==================
+nvidia_fs             249856  0
+nvidia_uvm           1351680  34
+nvidia_drm             65536  0
+nvidia_modeset       1302528  1 nvidia_drm
+nvidia              56692736  2910 nvidia_uvm,nvidia_fs,nvidia_modeset
+drm_kms_helper        184320  5 ast,nvidia_drm,nouveau
+drm                   495616  8 drm_kms_helper,drm_vram_helper,ast,nvidia,nvidia_drm,ttm,nouveau
+
+
+
+================== g3021 ==================
+nvidia_peermem         16384  0
+nvidia_fs             253952  0
+nvidia_uvm           1216512  0
+nvidia_drm             61440  0
+nvidia_modeset       1241088  1 nvidia_drm
+nvidia              56344576  465 nvidia_uvm,nvidia_peermem,nvidia_modeset
+ib_core               348160  10 rdma_cm,ib_ipoib,ko2iblnd,nvidia_peermem,iw_cm,ib_umad,rdma_ucm,ib_uverbs,mlx5_ib,ib_cm
+drm_kms_helper        184320  4 ast,nvidia_drm
+drm                   495616  7 drm_kms_helper,drm_vram_helper,ast,nvidia,nvidia_drm,ttm
+
+
+
+================== g3022 ==================
+nvidia_peermem         16384  0
+nvidia_fs             253952  0
+nvidia_uvm           1216512  0
+nvidia_drm             61440  0
+nvidia_modeset       1241088  1 nvidia_drm
+nvidia              56348672  465 nvidia_uvm,nvidia_peermem,nvidia_modeset
+ib_core               348160  10 rdma_cm,ib_ipoib,ko2iblnd,nvidia_peermem,iw_cm,ib_umad,rdma_ucm,ib_uverbs,mlx5_ib,ib_cm
+drm_kms_helper        184320  4 ast,nvidia_drm
+drm                   495616  7 drm_kms_helper,drm_vram_helper,ast,nvidia,nvidia_drm,ttm
+
+
+
+================== g3023 ==================
+nvidia_peermem         16384  0
+nvidia_fs             253952  0
+nvidia_uvm           1216512  0
+nvidia_drm             61440  0
+nvidia_modeset       1241088  1 nvidia_drm
+nvidia              56348672  465 nvidia_uvm,nvidia_peermem,nvidia_modeset
+ib_core               348160  10 rdma_cm,ib_ipoib,ko2iblnd,nvidia_peermem,iw_cm,ib_umad,rdma_ucm,ib_uverbs,mlx5_ib,ib_cm
+drm_kms_helper        184320  4 ast,nvidia_drm
+drm                   495616  7 drm_kms_helper,drm_vram_helper,ast,nvidia,nvidia_drm,ttm
+
+
+
+================== g3024 ==================
+nvidia_peermem         16384  0
+nvidia_fs             253952  0
+nvidia_uvm           1216512  0
+nvidia_drm             61440  0
+nvidia_modeset       1241088  1 nvidia_drm
+nvidia              56348672  465 nvidia_uvm,nvidia_peermem,nvidia_modeset
+ib_core               348160  10 rdma_cm,ib_ipoib,ko2iblnd,nvidia_peermem,iw_cm,ib_umad,rdma_ucm,ib_uverbs,mlx5_ib,ib_cm
+drm_kms_helper        184320  4 ast,nvidia_drm
+drm                   495616  7 drm_kms_helper,drm_vram_helper,ast,nvidia,nvidia_drm,ttm
+
+
+
+================== g3025 ==================
+nvidia_uvm           1036288  28
+nvidia_drm             57344  0
+nvidia_modeset       1196032  1 nvidia_drm
+nvidia              35270656  5073 nvidia_uvm,nvidia_modeset
+drm_kms_helper        184320  4 ast,nvidia_drm
+drm                   495616  7 drm_kms_helper,drm_vram_helper,ast,nvidia,nvidia_drm,ttm
+
+
+
+================== g3026 ==================
+nvidia_uvm           1036288  16
+nvidia_drm             57344  0
+nvidia_modeset       1196032  1 nvidia_drm
+nvidia              35270656  3204 nvidia_uvm,nvidia_modeset
+drm_kms_helper        184320  4 ast,nvidia_drm
+drm                   495616  7 drm_kms_helper,drm_vram_helper,ast,nvidia,nvidia_drm,ttm
+
+
+
+================== g3027 ==================
+nvidia_uvm           1036288  34
+nvidia_drm             57344  0
+nvidia_modeset       1196032  1 nvidia_drm
+nvidia              35270656  4595 nvidia_uvm,nvidia_modeset
+drm_kms_helper        184320  4 ast,nvidia_drm
+drm                   495616  7 drm_kms_helper,drm_vram_helper,ast,nvidia,nvidia_drm,ttm
+
+
+
+================== g3028 ==================
+nvidia_uvm           1036288  56
+nvidia_drm             57344  0
+nvidia_modeset       1196032  1 nvidia_drm
+nvidia              35270656  6860 nvidia_uvm,nvidia_modeset
+drm_kms_helper        184320  4 ast,nvidia_drm
+drm                   495616  7 drm_kms_helper,drm_vram_helper,ast,nvidia,nvidia_drm,ttm
+
+
+
+================== g3029 ==================
+nvidia_uvm           1036288  16
+nvidia_drm             57344  0
+nvidia_modeset       1196032  1 nvidia_drm
+nvidia              35270656  3875 nvidia_uvm,nvidia_modeset
+drm_kms_helper        184320  4 ast,nvidia_drm
+drm                   495616  7 drm_kms_helper,drm_vram_helper,ast,nvidia,nvidia_drm,ttm
+
+
+
+================== g1004 ==================
+nvidia_uvm           1036288  14
+nvidia_drm             57344  0
+nvidia_modeset       1196032  1 nvidia_drm
+nvidia              35270656  1700 nvidia_uvm,nvidia_modeset
+drm_kms_helper        184320  4 ast,nvidia_drm
+drm                   495616  7 drm_kms_helper,drm_vram_helper,ast,nvidia,nvidia_drm,ttm
+
+
+
+================== g1006 ==================
+nvidia_uvm           1036288  16
+nvidia_drm             57344  0
+nvidia_modeset       1196032  1 nvidia_drm
+nvidia              35270656  2673 nvidia_uvm,nvidia_modeset
+drm_kms_helper        184320  5 ast,nvidia_drm,nouveau
+drm                   495616  8 drm_kms_helper,drm_vram_helper,ast,nvidia,nvidia_drm,ttm,nouveau
+
+
+

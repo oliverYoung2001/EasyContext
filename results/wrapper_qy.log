@@ -1,0 +1,294 @@
++ export CUDA_LAUNCH_BLOCKING=1
++ CUDA_LAUNCH_BLOCKING=1
++ export CUDA_DEVICE_MAX_CONNECTIONS=1
++ CUDA_DEVICE_MAX_CONNECTIONS=1
++ mpirun --prefix /home/zhaijidong/yhy/.local/openmpi/bin/../ -x MASTER_ADDR -x MASTER_PORT -x LD_LIBRARY_PATH -x PATH -x TRACE_NAME -x NCCL_DEBUG -x NCCL_NET_GDR_LEVEL -x NCCL_DEBUG_SUBSYS -x NCCL_IB_DISABLE -np 16 --host g3021:8,g3022:8 python bench_ring_attn.py
+torch distributed is already initialized, skipping initialization ...
+************ Finish sequence pralell group Initialization. ***********
+S=131072
+# hierarchy_attn_func, fwd
+out: torch.Size([1, 4096, 32, 128]), lse: torch.Size([1, 4096, 32, 1]), block_out: torch.Size([1, 4096, 32, 128]), block_lse: torch.Size([1, 4096, 32, 1])
+out: torch.Size([1, 4096, 32, 128]), lse: torch.Size([1, 4096, 32, 1]), block_out: torch.Size([1, 4096, 32, 128]), block_lse: torch.Size([1, 4096, 32, 1])
+out: torch.Size([1, 4096, 32, 128]), lse: torch.Size([1, 4096, 32, 1]), block_out: torch.Size([1, 4096, 32, 128]), block_lse: torch.Size([1, 4096, 32, 1])
+out: torch.Size([1, 4096, 32, 128]), lse: torch.Size([1, 4096, 32, 1]), block_out: torch.Size([1, 4096, 32, 128]), block_lse: torch.Size([1, 4096, 32, 1])
+out: torch.Size([1, 4096, 32, 128]), lse: torch.Size([1, 4096, 32, 1]), block_out: torch.Size([1, 4096, 32, 128]), block_lse: torch.Size([1, 4096, 32, 1])
+out: torch.Size([1, 4096, 32, 128]), lse: torch.Size([1, 4096, 32, 1]), block_out: torch.Size([1, 4096, 32, 128]), block_lse: torch.Size([1, 4096, 32, 1])
+out: torch.Size([1, 4096, 32, 128]), lse: torch.Size([1, 4096, 32, 1]), block_out: torch.Size([1, 4096, 32, 128]), block_lse: torch.Size([1, 4096, 32, 1])
+out: torch.Size([1, 4096, 32, 128]), lse: torch.Size([1, 4096, 32, 1]), block_out: torch.Size([1, 4096, 32, 128]), block_lse: torch.Size([1, 4096, 32, 1])
+out: torch.Size([1, 4096, 32, 128]), lse: torch.Size([1, 4096, 32, 1]), block_out: torch.Size([1, 4096, 32, 128]), block_lse: torch.Size([1, 4096, 32, 1])
+out: torch.Size([1, 4096, 32, 128]), lse: torch.Size([1, 4096, 32, 1]), block_out: torch.Size([1, 4096, 32, 128]), block_lse: torch.Size([1, 4096, 32, 1])
+out: torch.Size([1, 4096, 32, 128]), lse: torch.Size([1, 4096, 32, 1]), block_out: torch.Size([1, 4096, 32, 128]), block_lse: torch.Size([1, 4096, 32, 1])
+out: torch.Size([1, 4096, 32, 128]), lse: torch.Size([1, 4096, 32, 1]), block_out: torch.Size([1, 4096, 32, 128]), block_lse: torch.Size([1, 4096, 32, 1])
+out: torch.Size([1, 4096, 32, 128]), lse: torch.Size([1, 4096, 32, 1]), block_out: torch.Size([1, 4096, 32, 128]), block_lse: torch.Size([1, 4096, 32, 1])
+out: torch.Size([1, 4096, 32, 128]), lse: torch.Size([1, 4096, 32, 1]), block_out: torch.Size([1, 4096, 32, 128]), block_lse: torch.Size([1, 4096, 32, 1])
+out: torch.Size([1, 4096, 32, 128]), lse: torch.Size([1, 4096, 32, 1]), block_out: torch.Size([1, 4096, 32, 128]), block_lse: torch.Size([1, 4096, 32, 1])
+out: torch.Size([1, 8192, 32, 128]), lse: torch.Size([1, 8192, 32, 1]), block_out: torch.Size([1, 8192, 32, 128]), block_lse: torch.Size([1, 8192, 32, 1])
+out: torch.Size([1, 8192, 32, 128]), lse: torch.Size([1, 8192, 32, 1]), block_out: torch.Size([1, 8192, 32, 128]), block_lse: torch.Size([1, 8192, 32, 1])
+out: torch.Size([1, 8192, 32, 128]), lse: torch.Size([1, 8192, 32, 1]), block_out: torch.Size([1, 8192, 32, 128]), block_lse: torch.Size([1, 8192, 32, 1])
+out: torch.Size([1, 8192, 32, 128]), lse: torch.Size([1, 8192, 32, 1]), block_out: torch.Size([1, 8192, 32, 128]), block_lse: torch.Size([1, 8192, 32, 1])
+out: torch.Size([1, 8192, 32, 128]), lse: torch.Size([1, 8192, 32, 1]), block_out: torch.Size([1, 8192, 32, 128]), block_lse: torch.Size([1, 8192, 32, 1])
+out: torch.Size([1, 8192, 32, 128]), lse: torch.Size([1, 8192, 32, 1]), block_out: torch.Size([1, 8192, 32, 128]), block_lse: torch.Size([1, 8192, 32, 1])
+out: torch.Size([1, 8192, 32, 128]), lse: torch.Size([1, 8192, 32, 1]), block_out: torch.Size([1, 8192, 32, 128]), block_lse: torch.Size([1, 8192, 32, 1])
+out: torch.Size([1, 8192, 32, 128]), lse: torch.Size([1, 8192, 32, 1]), block_out: torch.Size([1, 8192, 32, 128]), block_lse: torch.Size([1, 8192, 32, 1])
+out: torch.Size([1, 8192, 32, 128]), lse: torch.Size([1, 8192, 32, 1]), block_out: torch.Size([1, 8192, 32, 128]), block_lse: torch.Size([1, 8192, 32, 1])
+out: torch.Size([1, 8192, 32, 128]), lse: torch.Size([1, 8192, 32, 1]), block_out: torch.Size([1, 8192, 32, 128]), block_lse: torch.Size([1, 8192, 32, 1])
+out: torch.Size([1, 8192, 32, 128]), lse: torch.Size([1, 8192, 32, 1]), block_out: torch.Size([1, 8192, 32, 128]), block_lse: torch.Size([1, 8192, 32, 1])
+out: torch.Size([1, 8192, 32, 128]), lse: torch.Size([1, 8192, 32, 1]), block_out: torch.Size([1, 8192, 32, 128]), block_lse: torch.Size([1, 8192, 32, 1])
+out: torch.Size([1, 8192, 32, 128]), lse: torch.Size([1, 8192, 32, 1]), block_out: torch.Size([1, 8192, 32, 128]), block_lse: torch.Size([1, 8192, 32, 1])
+out: torch.Size([1, 8192, 32, 128]), lse: torch.Size([1, 8192, 32, 1]), block_out: torch.Size([1, 8192, 32, 128]), block_lse: torch.Size([1, 8192, 32, 1])
+out: torch.Size([1, 8192, 32, 128]), lse: torch.Size([1, 8192, 32, 1]), block_out: torch.Size([1, 8192, 32, 128]), block_lse: torch.Size([1, 8192, 32, 1])
+out: torch.Size([1, 4096, 32, 128]), lse: torch.Size([1, 4096, 32, 1]), block_out: torch.Size([1, 4096, 32, 128]), block_lse: torch.Size([1, 4096, 32, 1])
+Traceback (most recent call last):
+  File "/home/zhaijidong/yhy/llm/EasyContext/bench_ring_attn.py", line 282, in <module>
+    main(parse_args())
+  File "/home/zhaijidong/yhy/llm/EasyContext/bench_ring_attn.py", line 277, in main
+    benchmark(args, f, shapes, forward_only=True, log=True)
+  File "/home/zhaijidong/yhy/llm/EasyContext/bench_ring_attn.py", line 157, in benchmark
+    _ = f(**inputs)
+  File "/home/zhaijidong/yhy/llm/EasyContext/hierarchy_attn/hierarchy_attn_impl.py", line 452, in hierarchy_attn_func
+    return HierarchyAttnFunc.apply(
+  File "/home/zhaijidong/miniconda3/envs/yhy_easycontext/lib/python3.10/site-packages/torch/autograd/function.py", line 539, in apply
+    return super().apply(*args, **kwargs)  # type: ignore[misc]
+  File "/home/zhaijidong/yhy/llm/EasyContext/hierarchy_attn/hierarchy_attn_impl.py", line 393, in forward
+    out, softmax_lse = hierarchy_attn_forward(
+  File "/home/zhaijidong/yhy/llm/EasyContext/hierarchy_attn/hierarchy_attn_impl.py", line 346, in hierarchy_attn_forward
+    out, lse = update_out_and_lse(out, lse, _o, _lse,)
+  File "/home/zhaijidong/yhy/llm/EasyContext/hierarchy_attn/hierarchy_attn_impl.py", line 54, in update_out_and_lse
+    out, lse = _update_out_and_lse(out, lse, block_out, block_lse)
+  File "/home/zhaijidong/yhy/llm/EasyContext/hierarchy_attn/hierarchy_attn_impl.py", line 30, in _update_out_and_lse
+    out = torch.exp(lse - new_lse) * out + torch.exp(block_lse - new_lse) * block_out
+torch.cuda.OutOfMemoryError: CUDA out of memory. Tried to allocate 1024.00 GiB. GPU 2 has a total capacty of 79.15 GiB of which 60.21 GiB is free. Including non-PyTorch memory, this process has 18.94 GiB memory in use. Of the allocated memory 16.50 GiB is allocated by PyTorch, and 0 bytes is reserved by PyTorch but unallocated. If reserved but unallocated memory is large try setting max_split_size_mb to avoid fragmentation.  See documentation for Memory Management and PYTORCH_CUDA_ALLOC_CONF
+out: torch.Size([1, 4096, 32, 128]), lse: torch.Size([1, 4096, 32, 1]), block_out: torch.Size([1, 4096, 32, 128]), block_lse: torch.Size([1, 4096, 32, 1])
+out: torch.Size([1, 4096, 32, 128]), lse: torch.Size([1, 4096, 32, 1]), block_out: torch.Size([1, 4096, 32, 128]), block_lse: torch.Size([1, 4096, 32, 1])
+out: torch.Size([1, 4096, 32, 128]), lse: torch.Size([1, 4096, 32, 1]), block_out: torch.Size([1, 4096, 32, 128]), block_lse: torch.Size([1, 4096, 32, 1])
+out: torch.Size([1, 4096, 32, 128]), lse: torch.Size([1, 4096, 32, 1]), block_out: torch.Size([1, 4096, 32, 128]), block_lse: torch.Size([1, 4096, 32, 1])
+out: torch.Size([1, 4096, 32, 128]), lse: torch.Size([1, 4096, 32, 1]), block_out: torch.Size([1, 4096, 32, 128]), block_lse: torch.Size([1, 4096, 32, 1])
+out: torch.Size([1, 4096, 32, 128]), lse: torch.Size([1, 4096, 32, 1]), block_out: torch.Size([1, 4096, 32, 128]), block_lse: torch.Size([1, 4096, 32, 1])
+out: torch.Size([1, 4096, 32, 128]), lse: torch.Size([1, 4096, 32, 1]), block_out: torch.Size([1, 4096, 32, 128]), block_lse: torch.Size([1, 4096, 32, 1])
+out: torch.Size([1, 4096, 32, 128]), lse: torch.Size([1, 4096, 32, 1]), block_out: torch.Size([1, 4096, 32, 128]), block_lse: torch.Size([1, 4096, 32, 1])
+out: torch.Size([1, 4096, 32, 128]), lse: torch.Size([1, 4096, 32, 1]), block_out: torch.Size([1, 4096, 32, 128]), block_lse: torch.Size([1, 4096, 32, 1])
+out: torch.Size([1, 4096, 32, 128]), lse: torch.Size([1, 4096, 32, 1]), block_out: torch.Size([1, 4096, 32, 128]), block_lse: torch.Size([1, 4096, 32, 1])
+out: torch.Size([1, 4096, 32, 128]), lse: torch.Size([1, 4096, 32, 1]), block_out: torch.Size([1, 4096, 32, 128]), block_lse: torch.Size([1, 4096, 32, 1])
+out: torch.Size([1, 4096, 32, 128]), lse: torch.Size([1, 4096, 32, 1]), block_out: torch.Size([1, 4096, 32, 128]), block_lse: torch.Size([1, 4096, 32, 1])
+out: torch.Size([1, 4096, 32, 128]), lse: torch.Size([1, 4096, 32, 1]), block_out: torch.Size([1, 4096, 32, 128]), block_lse: torch.Size([1, 4096, 32, 1])
+out: torch.Size([1, 4096, 32, 128]), lse: torch.Size([1, 4096, 32, 1]), block_out: torch.Size([1, 4096, 32, 128]), block_lse: torch.Size([1, 4096, 32, 1])
+out: torch.Size([1, 8192, 32, 128]), lse: torch.Size([1, 8192, 32, 1]), block_out: torch.Size([1, 8192, 32, 128]), block_lse: torch.Size([1, 8192, 32, 1])
+out: torch.Size([1, 8192, 32, 128]), lse: torch.Size([1, 8192, 32, 1]), block_out: torch.Size([1, 8192, 32, 128]), block_lse: torch.Size([1, 8192, 32, 1])
+out: torch.Size([1, 8192, 32, 128]), lse: torch.Size([1, 8192, 32, 1]), block_out: torch.Size([1, 8192, 32, 128]), block_lse: torch.Size([1, 8192, 32, 1])
+out: torch.Size([1, 8192, 32, 128]), lse: torch.Size([1, 8192, 32, 1]), block_out: torch.Size([1, 8192, 32, 128]), block_lse: torch.Size([1, 8192, 32, 1])
+out: torch.Size([1, 8192, 32, 128]), lse: torch.Size([1, 8192, 32, 1]), block_out: torch.Size([1, 8192, 32, 128]), block_lse: torch.Size([1, 8192, 32, 1])
+out: torch.Size([1, 8192, 32, 128]), lse: torch.Size([1, 8192, 32, 1]), block_out: torch.Size([1, 8192, 32, 128]), block_lse: torch.Size([1, 8192, 32, 1])
+out: torch.Size([1, 8192, 32, 128]), lse: torch.Size([1, 8192, 32, 1]), block_out: torch.Size([1, 8192, 32, 128]), block_lse: torch.Size([1, 8192, 32, 1])
+out: torch.Size([1, 8192, 32, 128]), lse: torch.Size([1, 8192, 32, 1]), block_out: torch.Size([1, 8192, 32, 128]), block_lse: torch.Size([1, 8192, 32, 1])
+out: torch.Size([1, 8192, 32, 128]), lse: torch.Size([1, 8192, 32, 1]), block_out: torch.Size([1, 8192, 32, 128]), block_lse: torch.Size([1, 8192, 32, 1])
+out: torch.Size([1, 8192, 32, 128]), lse: torch.Size([1, 8192, 32, 1]), block_out: torch.Size([1, 8192, 32, 128]), block_lse: torch.Size([1, 8192, 32, 1])
+out: torch.Size([1, 8192, 32, 128]), lse: torch.Size([1, 8192, 32, 1]), block_out: torch.Size([1, 8192, 32, 128]), block_lse: torch.Size([1, 8192, 32, 1])
+out: torch.Size([1, 8192, 32, 128]), lse: torch.Size([1, 8192, 32, 1]), block_out: torch.Size([1, 8192, 32, 128]), block_lse: torch.Size([1, 8192, 32, 1])
+out: torch.Size([1, 8192, 32, 128]), lse: torch.Size([1, 8192, 32, 1]), block_out: torch.Size([1, 8192, 32, 128]), block_lse: torch.Size([1, 8192, 32, 1])
+out: torch.Size([1, 8192, 32, 128]), lse: torch.Size([1, 8192, 32, 1]), block_out: torch.Size([1, 8192, 32, 128]), block_lse: torch.Size([1, 8192, 32, 1])
+out: torch.Size([1, 8192, 32, 128]), lse: torch.Size([1, 8192, 32, 1]), block_out: torch.Size([1, 8192, 32, 128]), block_lse: torch.Size([1, 8192, 32, 1])
+out: torch.Size([1, 4096, 32, 128]), lse: torch.Size([1, 4096, 32, 1]), block_out: torch.Size([1, 4096, 32, 128]), block_lse: torch.Size([1, 4096, 32, 1])
+out: torch.Size([1, 4096, 32, 128]), lse: torch.Size([1, 4096, 32, 1]), block_out: torch.Size([1, 4096, 32, 128]), block_lse: torch.Size([1, 4096, 32, 1])
+out: torch.Size([1, 4096, 32, 128]), lse: torch.Size([1, 4096, 32, 1]), block_out: torch.Size([1, 4096, 32, 128]), block_lse: torch.Size([1, 4096, 32, 1])
+out: torch.Size([1, 4096, 32, 128]), lse: torch.Size([1, 4096, 32, 1]), block_out: torch.Size([1, 4096, 32, 128]), block_lse: torch.Size([1, 4096, 32, 1])
+out: torch.Size([1, 4096, 32, 128]), lse: torch.Size([1, 4096, 32, 1]), block_out: torch.Size([1, 4096, 32, 128]), block_lse: torch.Size([1, 4096, 32, 1])
+out: torch.Size([1, 4096, 32, 128]), lse: torch.Size([1, 4096, 32, 1]), block_out: torch.Size([1, 4096, 32, 128]), block_lse: torch.Size([1, 4096, 32, 1])
+out: torch.Size([1, 4096, 32, 128]), lse: torch.Size([1, 4096, 32, 1]), block_out: torch.Size([1, 4096, 32, 128]), block_lse: torch.Size([1, 4096, 32, 1])
+out: torch.Size([1, 4096, 32, 128]), lse: torch.Size([1, 4096, 32, 1]), block_out: torch.Size([1, 4096, 32, 128]), block_lse: torch.Size([1, 4096, 32, 1])
+out: torch.Size([1, 4096, 32, 128]), lse: torch.Size([1, 4096, 32, 1]), block_out: torch.Size([1, 4096, 32, 128]), block_lse: torch.Size([1, 4096, 32, 1])
+out: torch.Size([1, 4096, 32, 128]), lse: torch.Size([1, 4096, 32, 1]), block_out: torch.Size([1, 4096, 32, 128]), block_lse: torch.Size([1, 4096, 32, 1])
+out: torch.Size([1, 4096, 32, 128]), lse: torch.Size([1, 4096, 32, 1]), block_out: torch.Size([1, 4096, 32, 128]), block_lse: torch.Size([1, 4096, 32, 1])
+out: torch.Size([1, 4096, 32, 128]), lse: torch.Size([1, 4096, 32, 1]), block_out: torch.Size([1, 4096, 32, 128]), block_lse: torch.Size([1, 4096, 32, 1])
+out: torch.Size([1, 4096, 32, 128]), lse: torch.Size([1, 4096, 32, 1]), block_out: torch.Size([1, 4096, 32, 128]), block_lse: torch.Size([1, 4096, 32, 1])
+out: torch.Size([1, 4096, 32, 128]), lse: torch.Size([1, 4096, 32, 1]), block_out: torch.Size([1, 4096, 32, 128]), block_lse: torch.Size([1, 4096, 32, 1])
+out: torch.Size([1, 4096, 32, 128]), lse: torch.Size([1, 4096, 32, 1]), block_out: torch.Size([1, 4096, 32, 128]), block_lse: torch.Size([1, 4096, 32, 1])
+out: torch.Size([1, 8192, 32, 128]), lse: torch.Size([1, 8192, 32, 1]), block_out: torch.Size([1, 8192, 32, 128]), block_lse: torch.Size([1, 8192, 32, 1])
+out: torch.Size([1, 8192, 32, 128]), lse: torch.Size([1, 8192, 32, 1]), block_out: torch.Size([1, 8192, 32, 128]), block_lse: torch.Size([1, 8192, 32, 1])
+out: torch.Size([1, 8192, 32, 128]), lse: torch.Size([1, 8192, 32, 1]), block_out: torch.Size([1, 8192, 32, 128]), block_lse: torch.Size([1, 8192, 32, 1])
+out: torch.Size([1, 8192, 32, 128]), lse: torch.Size([1, 8192, 32, 1]), block_out: torch.Size([1, 8192, 32, 128]), block_lse: torch.Size([1, 8192, 32, 1])
+out: torch.Size([1, 8192, 32, 128]), lse: torch.Size([1, 8192, 32, 1]), block_out: torch.Size([1, 8192, 32, 128]), block_lse: torch.Size([1, 8192, 32, 1])
+out: torch.Size([1, 8192, 32, 128]), lse: torch.Size([1, 8192, 32, 1]), block_out: torch.Size([1, 8192, 32, 128]), block_lse: torch.Size([1, 8192, 32, 1])
+out: torch.Size([1, 8192, 32, 128]), lse: torch.Size([1, 8192, 32, 1]), block_out: torch.Size([1, 8192, 32, 128]), block_lse: torch.Size([1, 8192, 32, 1])
+out: torch.Size([1, 8192, 32, 128]), lse: torch.Size([1, 8192, 32, 1]), block_out: torch.Size([1, 8192, 32, 128]), block_lse: torch.Size([1, 8192, 32, 1])
+Traceback (most recent call last):
+  File "/home/zhaijidong/yhy/llm/EasyContext/bench_ring_attn.py", line 282, in <module>
+    main(parse_args())
+  File "/home/zhaijidong/yhy/llm/EasyContext/bench_ring_attn.py", line 277, in main
+    benchmark(args, f, shapes, forward_only=True, log=True)
+  File "/home/zhaijidong/yhy/llm/EasyContext/bench_ring_attn.py", line 157, in benchmark
+    _ = f(**inputs)
+  File "/home/zhaijidong/yhy/llm/EasyContext/hierarchy_attn/hierarchy_attn_impl.py", line 452, in hierarchy_attn_func
+    return HierarchyAttnFunc.apply(
+  File "/home/zhaijidong/miniconda3/envs/yhy_easycontext/lib/python3.10/site-packages/torch/autograd/function.py", line 539, in apply
+    return super().apply(*args, **kwargs)  # type: ignore[misc]
+  File "/home/zhaijidong/yhy/llm/EasyContext/hierarchy_attn/hierarchy_attn_impl.py", line 393, in forward
+    out, softmax_lse = hierarchy_attn_forward(
+  File "/home/zhaijidong/yhy/llm/EasyContext/hierarchy_attn/hierarchy_attn_impl.py", line 346, in hierarchy_attn_forward
+    out, lse = update_out_and_lse(out, lse, _o, _lse,)
+  File "/home/zhaijidong/yhy/llm/EasyContext/hierarchy_attn/hierarchy_attn_impl.py", line 54, in update_out_and_lse
+    out, lse = _update_out_and_lse(out, lse, block_out, block_lse)
+  File "/home/zhaijidong/yhy/llm/EasyContext/hierarchy_attn/hierarchy_attn_impl.py", line 30, in _update_out_and_lse
+    out = torch.exp(lse - new_lse) * out + torch.exp(block_lse - new_lse) * block_out
+torch.cuda.OutOfMemoryError: CUDA out of memory. Tried to allocate 1024.00 GiB. GPU 5 has a total capacty of 79.15 GiB of which 60.21 GiB is free. Including non-PyTorch memory, this process has 18.94 GiB memory in use. Of the allocated memory 16.50 GiB is allocated by PyTorch, and 0 bytes is reserved by PyTorch but unallocated. If reserved but unallocated memory is large try setting max_split_size_mb to avoid fragmentation.  See documentation for Memory Management and PYTORCH_CUDA_ALLOC_CONF
+Traceback (most recent call last):
+  File "/home/zhaijidong/yhy/llm/EasyContext/bench_ring_attn.py", line 282, in <module>
+    main(parse_args())
+  File "/home/zhaijidong/yhy/llm/EasyContext/bench_ring_attn.py", line 277, in main
+    benchmark(args, f, shapes, forward_only=True, log=True)
+  File "/home/zhaijidong/yhy/llm/EasyContext/bench_ring_attn.py", line 157, in benchmark
+    _ = f(**inputs)
+  File "/home/zhaijidong/yhy/llm/EasyContext/hierarchy_attn/hierarchy_attn_impl.py", line 452, in hierarchy_attn_func
+    return HierarchyAttnFunc.apply(
+  File "/home/zhaijidong/miniconda3/envs/yhy_easycontext/lib/python3.10/site-packages/torch/autograd/function.py", line 539, in apply
+    return super().apply(*args, **kwargs)  # type: ignore[misc]
+  File "/home/zhaijidong/yhy/llm/EasyContext/hierarchy_attn/hierarchy_attn_impl.py", line 393, in forward
+    out, softmax_lse = hierarchy_attn_forward(
+  File "/home/zhaijidong/yhy/llm/EasyContext/hierarchy_attn/hierarchy_attn_impl.py", line 346, in hierarchy_attn_forward
+    out, lse = update_out_and_lse(out, lse, _o, _lse,)
+  File "/home/zhaijidong/yhy/llm/EasyContext/hierarchy_attn/hierarchy_attn_impl.py", line 54, in update_out_and_lse
+    out, lse = _update_out_and_lse(out, lse, block_out, block_lse)
+  File "/home/zhaijidong/yhy/llm/EasyContext/hierarchy_attn/hierarchy_attn_impl.py", line 30, in _update_out_and_lse
+    out = torch.exp(lse - new_lse) * out + torch.exp(block_lse - new_lse) * block_out
+torch.cuda.OutOfMemoryError: CUDA out of memory. Tried to allocate 1024.00 GiB. GPU 1 has a total capacty of 79.15 GiB of which 60.21 GiB is free. Including non-PyTorch memory, this process has 18.94 GiB memory in use. Of the allocated memory 16.50 GiB is allocated by PyTorch, and 0 bytes is reserved by PyTorch but unallocated. If reserved but unallocated memory is large try setting max_split_size_mb to avoid fragmentation.  See documentation for Memory Management and PYTORCH_CUDA_ALLOC_CONF
+Traceback (most recent call last):
+  File "/home/zhaijidong/yhy/llm/EasyContext/bench_ring_attn.py", line 282, in <module>
+    main(parse_args())
+  File "/home/zhaijidong/yhy/llm/EasyContext/bench_ring_attn.py", line 277, in main
+    benchmark(args, f, shapes, forward_only=True, log=True)
+  File "/home/zhaijidong/yhy/llm/EasyContext/bench_ring_attn.py", line 157, in benchmark
+    _ = f(**inputs)
+  File "/home/zhaijidong/yhy/llm/EasyContext/hierarchy_attn/hierarchy_attn_impl.py", line 452, in hierarchy_attn_func
+    return HierarchyAttnFunc.apply(
+  File "/home/zhaijidong/miniconda3/envs/yhy_easycontext/lib/python3.10/site-packages/torch/autograd/function.py", line 539, in apply
+    return super().apply(*args, **kwargs)  # type: ignore[misc]
+  File "/home/zhaijidong/yhy/llm/EasyContext/hierarchy_attn/hierarchy_attn_impl.py", line 393, in forward
+    out, softmax_lse = hierarchy_attn_forward(
+  File "/home/zhaijidong/yhy/llm/EasyContext/hierarchy_attn/hierarchy_attn_impl.py", line 346, in hierarchy_attn_forward
+    out, lse = update_out_and_lse(out, lse, _o, _lse,)
+  File "/home/zhaijidong/yhy/llm/EasyContext/hierarchy_attn/hierarchy_attn_impl.py", line 54, in update_out_and_lse
+    out, lse = _update_out_and_lse(out, lse, block_out, block_lse)
+  File "/home/zhaijidong/yhy/llm/EasyContext/hierarchy_attn/hierarchy_attn_impl.py", line 30, in _update_out_and_lse
+    out = torch.exp(lse - new_lse) * out + torch.exp(block_lse - new_lse) * block_out
+torch.cuda.OutOfMemoryError: CUDA out of memory. Tried to allocate 1024.00 GiB. GPU 6 has a total capacty of 79.15 GiB of which 60.21 GiB is free. Including non-PyTorch memory, this process has 18.94 GiB memory in use. Of the allocated memory 16.50 GiB is allocated by PyTorch, and 0 bytes is reserved by PyTorch but unallocated. If reserved but unallocated memory is large try setting max_split_size_mb to avoid fragmentation.  See documentation for Memory Management and PYTORCH_CUDA_ALLOC_CONF
+Traceback (most recent call last):
+  File "/home/zhaijidong/yhy/llm/EasyContext/bench_ring_attn.py", line 282, in <module>
+    main(parse_args())
+  File "/home/zhaijidong/yhy/llm/EasyContext/bench_ring_attn.py", line 277, in main
+    benchmark(args, f, shapes, forward_only=True, log=True)
+  File "/home/zhaijidong/yhy/llm/EasyContext/bench_ring_attn.py", line 157, in benchmark
+    _ = f(**inputs)
+  File "/home/zhaijidong/yhy/llm/EasyContext/hierarchy_attn/hierarchy_attn_impl.py", line 452, in hierarchy_attn_func
+    return HierarchyAttnFunc.apply(
+  File "/home/zhaijidong/miniconda3/envs/yhy_easycontext/lib/python3.10/site-packages/torch/autograd/function.py", line 539, in apply
+    return super().apply(*args, **kwargs)  # type: ignore[misc]
+  File "/home/zhaijidong/yhy/llm/EasyContext/hierarchy_attn/hierarchy_attn_impl.py", line 393, in forward
+    out, softmax_lse = hierarchy_attn_forward(
+  File "/home/zhaijidong/yhy/llm/EasyContext/hierarchy_attn/hierarchy_attn_impl.py", line 346, in hierarchy_attn_forward
+    out, lse = update_out_and_lse(out, lse, _o, _lse,)
+  File "/home/zhaijidong/yhy/llm/EasyContext/hierarchy_attn/hierarchy_attn_impl.py", line 54, in update_out_and_lse
+    out, lse = _update_out_and_lse(out, lse, block_out, block_lse)
+  File "/home/zhaijidong/yhy/llm/EasyContext/hierarchy_attn/hierarchy_attn_impl.py", line 30, in _update_out_and_lse
+    out = torch.exp(lse - new_lse) * out + torch.exp(block_lse - new_lse) * block_out
+torch.cuda.OutOfMemoryError: CUDA out of memory. Tried to allocate 1024.00 GiB. GPU 0 has a total capacty of 79.15 GiB of which 60.35 GiB is free. Including non-PyTorch memory, this process has 18.80 GiB memory in use. Of the allocated memory 16.50 GiB is allocated by PyTorch, and 0 bytes is reserved by PyTorch but unallocated. If reserved but unallocated memory is large try setting max_split_size_mb to avoid fragmentation.  See documentation for Memory Management and PYTORCH_CUDA_ALLOC_CONF
+out: torch.Size([1, 8192, 32, 128]), lse: torch.Size([1, 8192, 32, 1]), block_out: torch.Size([1, 8192, 32, 128]), block_lse: torch.Size([1, 8192, 32, 1])
+out: torch.Size([1, 8192, 32, 128]), lse: torch.Size([1, 8192, 32, 1]), block_out: torch.Size([1, 8192, 32, 128]), block_lse: torch.Size([1, 8192, 32, 1])
+out: torch.Size([1, 8192, 32, 128]), lse: torch.Size([1, 8192, 32, 1]), block_out: torch.Size([1, 8192, 32, 128]), block_lse: torch.Size([1, 8192, 32, 1])
+out: torch.Size([1, 8192, 32, 128]), lse: torch.Size([1, 8192, 32, 1]), block_out: torch.Size([1, 8192, 32, 128]), block_lse: torch.Size([1, 8192, 32, 1])
+out: torch.Size([1, 8192, 32, 128]), lse: torch.Size([1, 8192, 32, 1]), block_out: torch.Size([1, 8192, 32, 128]), block_lse: torch.Size([1, 8192, 32, 1])
+out: torch.Size([1, 8192, 32, 128]), lse: torch.Size([1, 8192, 32, 1]), block_out: torch.Size([1, 8192, 32, 128]), block_lse: torch.Size([1, 8192, 32, 1])
+out: torch.Size([1, 8192, 32, 128]), lse: torch.Size([1, 8192, 32, 1]), block_out: torch.Size([1, 8192, 32, 128]), block_lse: torch.Size([1, 8192, 32, 1])
+out: torch.Size([1, 4096, 32, 128]), lse: torch.Size([1, 4096, 32, 1]), block_out: torch.Size([1, 4096, 32, 128]), block_lse: torch.Size([1, 4096, 32, 1])
+out: torch.Size([1, 4096, 32, 128]), lse: torch.Size([1, 4096, 32, 1]), block_out: torch.Size([1, 4096, 32, 128]), block_lse: torch.Size([1, 4096, 32, 1])
+out: torch.Size([1, 4096, 32, 128]), lse: torch.Size([1, 4096, 32, 1]), block_out: torch.Size([1, 4096, 32, 128]), block_lse: torch.Size([1, 4096, 32, 1])
+out: torch.Size([1, 4096, 32, 128]), lse: torch.Size([1, 4096, 32, 1]), block_out: torch.Size([1, 4096, 32, 128]), block_lse: torch.Size([1, 4096, 32, 1])
+out: torch.Size([1, 4096, 32, 128]), lse: torch.Size([1, 4096, 32, 1]), block_out: torch.Size([1, 4096, 32, 128]), block_lse: torch.Size([1, 4096, 32, 1])
+out: torch.Size([1, 4096, 32, 128]), lse: torch.Size([1, 4096, 32, 1]), block_out: torch.Size([1, 4096, 32, 128]), block_lse: torch.Size([1, 4096, 32, 1])
+out: torch.Size([1, 4096, 32, 128]), lse: torch.Size([1, 4096, 32, 1]), block_out: torch.Size([1, 4096, 32, 128]), block_lse: torch.Size([1, 4096, 32, 1])
+out: torch.Size([1, 4096, 32, 128]), lse: torch.Size([1, 4096, 32, 1]), block_out: torch.Size([1, 4096, 32, 128]), block_lse: torch.Size([1, 4096, 32, 1])
+out: torch.Size([1, 4096, 32, 128]), lse: torch.Size([1, 4096, 32, 1]), block_out: torch.Size([1, 4096, 32, 128]), block_lse: torch.Size([1, 4096, 32, 1])
+out: torch.Size([1, 4096, 32, 128]), lse: torch.Size([1, 4096, 32, 1]), block_out: torch.Size([1, 4096, 32, 128]), block_lse: torch.Size([1, 4096, 32, 1])
+out: torch.Size([1, 4096, 32, 128]), lse: torch.Size([1, 4096, 32, 1]), block_out: torch.Size([1, 4096, 32, 128]), block_lse: torch.Size([1, 4096, 32, 1])
+out: torch.Size([1, 4096, 32, 128]), lse: torch.Size([1, 4096, 32, 1]), block_out: torch.Size([1, 4096, 32, 128]), block_lse: torch.Size([1, 4096, 32, 1])
+out: torch.Size([1, 4096, 32, 128]), lse: torch.Size([1, 4096, 32, 1]), block_out: torch.Size([1, 4096, 32, 128]), block_lse: torch.Size([1, 4096, 32, 1])
+out: torch.Size([1, 4096, 32, 128]), lse: torch.Size([1, 4096, 32, 1]), block_out: torch.Size([1, 4096, 32, 128]), block_lse: torch.Size([1, 4096, 32, 1])
+out: torch.Size([1, 4096, 32, 128]), lse: torch.Size([1, 4096, 32, 1]), block_out: torch.Size([1, 4096, 32, 128]), block_lse: torch.Size([1, 4096, 32, 1])
+out: torch.Size([1, 8192, 32, 128]), lse: torch.Size([1, 8192, 32, 1]), block_out: torch.Size([1, 8192, 32, 128]), block_lse: torch.Size([1, 8192, 32, 1])
+out: torch.Size([1, 8192, 32, 128]), lse: torch.Size([1, 8192, 32, 1]), block_out: torch.Size([1, 8192, 32, 128]), block_lse: torch.Size([1, 8192, 32, 1])
+out: torch.Size([1, 8192, 32, 128]), lse: torch.Size([1, 8192, 32, 1]), block_out: torch.Size([1, 8192, 32, 128]), block_lse: torch.Size([1, 8192, 32, 1])
+out: torch.Size([1, 8192, 32, 128]), lse: torch.Size([1, 8192, 32, 1]), block_out: torch.Size([1, 8192, 32, 128]), block_lse: torch.Size([1, 8192, 32, 1])
+out: torch.Size([1, 8192, 32, 128]), lse: torch.Size([1, 8192, 32, 1]), block_out: torch.Size([1, 8192, 32, 128]), block_lse: torch.Size([1, 8192, 32, 1])
+out: torch.Size([1, 8192, 32, 128]), lse: torch.Size([1, 8192, 32, 1]), block_out: torch.Size([1, 8192, 32, 128]), block_lse: torch.Size([1, 8192, 32, 1])
+out: torch.Size([1, 8192, 32, 128]), lse: torch.Size([1, 8192, 32, 1]), block_out: torch.Size([1, 8192, 32, 128]), block_lse: torch.Size([1, 8192, 32, 1])
+out: torch.Size([1, 8192, 32, 128]), lse: torch.Size([1, 8192, 32, 1]), block_out: torch.Size([1, 8192, 32, 128]), block_lse: torch.Size([1, 8192, 32, 1])
+Traceback (most recent call last):
+  File "/home/zhaijidong/yhy/llm/EasyContext/bench_ring_attn.py", line 282, in <module>
+    main(parse_args())
+  File "/home/zhaijidong/yhy/llm/EasyContext/bench_ring_attn.py", line 277, in main
+    benchmark(args, f, shapes, forward_only=True, log=True)
+  File "/home/zhaijidong/yhy/llm/EasyContext/bench_ring_attn.py", line 157, in benchmark
+    _ = f(**inputs)
+  File "/home/zhaijidong/yhy/llm/EasyContext/hierarchy_attn/hierarchy_attn_impl.py", line 452, in hierarchy_attn_func
+    return HierarchyAttnFunc.apply(
+  File "/home/zhaijidong/miniconda3/envs/yhy_easycontext/lib/python3.10/site-packages/torch/autograd/function.py", line 539, in apply
+    return super().apply(*args, **kwargs)  # type: ignore[misc]
+  File "/home/zhaijidong/yhy/llm/EasyContext/hierarchy_attn/hierarchy_attn_impl.py", line 393, in forward
+    out, softmax_lse = hierarchy_attn_forward(
+  File "/home/zhaijidong/yhy/llm/EasyContext/hierarchy_attn/hierarchy_attn_impl.py", line 346, in hierarchy_attn_forward
+    out, lse = update_out_and_lse(out, lse, _o, _lse,)
+  File "/home/zhaijidong/yhy/llm/EasyContext/hierarchy_attn/hierarchy_attn_impl.py", line 54, in update_out_and_lse
+    out, lse = _update_out_and_lse(out, lse, block_out, block_lse)
+  File "/home/zhaijidong/yhy/llm/EasyContext/hierarchy_attn/hierarchy_attn_impl.py", line 30, in _update_out_and_lse
+    out = torch.exp(lse - new_lse) * out + torch.exp(block_lse - new_lse) * block_out
+torch.cuda.OutOfMemoryError: CUDA out of memory. Tried to allocate 1024.00 GiB. GPU 3 has a total capacty of 79.15 GiB of which 60.21 GiB is free. Including non-PyTorch memory, this process has 18.94 GiB memory in use. Of the allocated memory 16.50 GiB is allocated by PyTorch, and 0 bytes is reserved by PyTorch but unallocated. If reserved but unallocated memory is large try setting max_split_size_mb to avoid fragmentation.  See documentation for Memory Management and PYTORCH_CUDA_ALLOC_CONF
+Traceback (most recent call last):
+  File "/home/zhaijidong/yhy/llm/EasyContext/bench_ring_attn.py", line 282, in <module>
+    main(parse_args())
+  File "/home/zhaijidong/yhy/llm/EasyContext/bench_ring_attn.py", line 277, in main
+    benchmark(args, f, shapes, forward_only=True, log=True)
+  File "/home/zhaijidong/yhy/llm/EasyContext/bench_ring_attn.py", line 157, in benchmark
+    _ = f(**inputs)
+  File "/home/zhaijidong/yhy/llm/EasyContext/hierarchy_attn/hierarchy_attn_impl.py", line 452, in hierarchy_attn_func
+    return HierarchyAttnFunc.apply(
+  File "/home/zhaijidong/miniconda3/envs/yhy_easycontext/lib/python3.10/site-packages/torch/autograd/function.py", line 539, in apply
+    return super().apply(*args, **kwargs)  # type: ignore[misc]
+  File "/home/zhaijidong/yhy/llm/EasyContext/hierarchy_attn/hierarchy_attn_impl.py", line 393, in forward
+    out, softmax_lse = hierarchy_attn_forward(
+  File "/home/zhaijidong/yhy/llm/EasyContext/hierarchy_attn/hierarchy_attn_impl.py", line 346, in hierarchy_attn_forward
+    out, lse = update_out_and_lse(out, lse, _o, _lse,)
+  File "/home/zhaijidong/yhy/llm/EasyContext/hierarchy_attn/hierarchy_attn_impl.py", line 54, in update_out_and_lse
+    out, lse = _update_out_and_lse(out, lse, block_out, block_lse)
+  File "/home/zhaijidong/yhy/llm/EasyContext/hierarchy_attn/hierarchy_attn_impl.py", line 30, in _update_out_and_lse
+    out = torch.exp(lse - new_lse) * out + torch.exp(block_lse - new_lse) * block_out
+torch.cuda.OutOfMemoryError: CUDA out of memory. Tried to allocate 1024.00 GiB. GPU 4 has a total capacty of 79.15 GiB of which 60.21 GiB is free. Including non-PyTorch memory, this process has 18.94 GiB memory in use. Of the allocated memory 16.50 GiB is allocated by PyTorch, and 0 bytes is reserved by PyTorch but unallocated. If reserved but unallocated memory is large try setting max_split_size_mb to avoid fragmentation.  See documentation for Memory Management and PYTORCH_CUDA_ALLOC_CONF
+Traceback (most recent call last):
+  File "/home/zhaijidong/yhy/llm/EasyContext/bench_ring_attn.py", line 282, in <module>
+    main(parse_args())
+  File "/home/zhaijidong/yhy/llm/EasyContext/bench_ring_attn.py", line 277, in main
+    benchmark(args, f, shapes, forward_only=True, log=True)
+  File "/home/zhaijidong/yhy/llm/EasyContext/bench_ring_attn.py", line 157, in benchmark
+    _ = f(**inputs)
+  File "/home/zhaijidong/yhy/llm/EasyContext/hierarchy_attn/hierarchy_attn_impl.py", line 452, in hierarchy_attn_func
+    return HierarchyAttnFunc.apply(
+  File "/home/zhaijidong/miniconda3/envs/yhy_easycontext/lib/python3.10/site-packages/torch/autograd/function.py", line 539, in apply
+    return super().apply(*args, **kwargs)  # type: ignore[misc]
+  File "/home/zhaijidong/yhy/llm/EasyContext/hierarchy_attn/hierarchy_attn_impl.py", line 393, in forward
+    out, softmax_lse = hierarchy_attn_forward(
+  File "/home/zhaijidong/yhy/llm/EasyContext/hierarchy_attn/hierarchy_attn_impl.py", line 346, in hierarchy_attn_forward
+    out, lse = update_out_and_lse(out, lse, _o, _lse,)
+  File "/home/zhaijidong/yhy/llm/EasyContext/hierarchy_attn/hierarchy_attn_impl.py", line 54, in update_out_and_lse
+    out, lse = _update_out_and_lse(out, lse, block_out, block_lse)
+  File "/home/zhaijidong/yhy/llm/EasyContext/hierarchy_attn/hierarchy_attn_impl.py", line 30, in _update_out_and_lse
+    out = torch.exp(lse - new_lse) * out + torch.exp(block_lse - new_lse) * block_out
+torch.cuda.OutOfMemoryError: CUDA out of memory. Tried to allocate 1024.00 GiB. GPU 7 has a total capacty of 79.15 GiB of which 60.35 GiB is free. Including non-PyTorch memory, this process has 18.80 GiB memory in use. Of the allocated memory 16.50 GiB is allocated by PyTorch, and 0 bytes is reserved by PyTorch but unallocated. If reserved but unallocated memory is large try setting max_split_size_mb to avoid fragmentation.  See documentation for Memory Management and PYTORCH_CUDA_ALLOC_CONF
+--------------------------------------------------------------------------
+Primary job  terminated normally, but 1 process returned
+a non-zero exit code. Per user-direction, the job has been aborted.
+--------------------------------------------------------------------------
+--------------------------------------------------------------------------
+mpirun detected that one or more processes exited with non-zero status, thus causing
+the job to be terminated. The first process to do so was:
+
+  Process name: [[15469,1],10]
+  Exit code:    1
+--------------------------------------------------------------------------
++ set +x
