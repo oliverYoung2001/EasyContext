@@ -1,0 +1,109 @@
+[+] /usr (external glibc-2.31-de3tje6inatgbz3rjz3xp3aukkygargn)
+[+] /home/zhaijidong/yhy/.local/spack/opt/spack/linux-ubuntu20.04-x86_64/gcc-9.4.0/gcc-runtime-9.4.0-364dscy4etdzd5euxlotyq36luozog7j
+[+] /home/zhaijidong/yhy/.local/spack/opt/spack/linux-ubuntu20.04-x86_64/gcc-9.4.0/zlib-ng-2.1.6-jikq2r2bsiyv7smwtwiluhsfjk2p6nt7
+[+] /home/zhaijidong/yhy/.local/spack/opt/spack/linux-ubuntu20.04-x86_64/gcc-9.4.0/lz4-1.9.4-axmktsmdoaiyh2bzhus2oxpd3ck3d3hf
+[+] /home/zhaijidong/yhy/.local/spack/opt/spack/linux-ubuntu20.04-x86_64/gcc-9.4.0/berkeley-db-18.1.40-hpcirxyrar5vqhbi3esdpq4gn6tkvabt
+[+] /home/zhaijidong/yhy/.local/spack/opt/spack/linux-ubuntu20.04-x86_64/gcc-9.4.0/ninja-1.12.0-7aqtgejpglvz3bdlly7w7n62y7nlbib3
+[+] /home/zhaijidong/yhy/.local/spack/opt/spack/linux-ubuntu20.04-x86_64/gcc-9.4.0/numactl-2.0.14-2uyhy3pqwukwmmu24te3rmjr7a4gjnxx
+[+] /home/zhaijidong/yhy/.local/spack/opt/spack/linux-ubuntu20.04-x86_64/gcc-9.4.0/nghttp2-1.62.0-c6ngxglvbsi5c7kb26zylzlfl3jku3ah
+[+] /home/zhaijidong/yhy/.local/spack/opt/spack/linux-ubuntu20.04-x86_64/gcc-9.4.0/json-c-0.16-zmjhmgu2x3ahgmvlvi2qyqzlgg3uf2mp
+[+] /home/zhaijidong/yhy/.local/spack/opt/spack/linux-ubuntu20.04-x86_64/gcc-9.4.0/libnl-3.3.0-p77v3qndoj4gfezf4tfsf36pxazqpxva
+[+] /home/zhaijidong/yhy/.local/spack/opt/spack/linux-ubuntu20.04-x86_64/gcc-9.4.0/pkgconf-2.2.0-ih5mefeqaa53gftlzdmahle3pariqbri
+[+] /home/zhaijidong/yhy/.local/spack/opt/spack/linux-ubuntu20.04-x86_64/gcc-9.4.0/xz-5.4.6-l5jaz47ycs7gulaa5hqsbnrhxxq3pjpk
+[+] /home/zhaijidong/yhy/.local/spack/opt/spack/linux-ubuntu20.04-x86_64/gcc-9.4.0/libmd-1.0.4-njvfxl7nxwil7f3jiaskmbdfjkqrgtvk
+[+] /home/zhaijidong/yhy/.local/spack/opt/spack/linux-ubuntu20.04-x86_64/gcc-9.4.0/check-0.15.2-mdsioucfajkqrnbaoounj6fro4uw6mhm
+[+] /home/zhaijidong/yhy/.local/spack/opt/spack/linux-ubuntu20.04-x86_64/gcc-9.4.0/bzip2-1.0.8-6dsxgye7pv4cv4brlsd7q2xtx6pnk3ph
+[+] /home/zhaijidong/yhy/.local/spack/opt/spack/linux-ubuntu20.04-x86_64/gcc-9.4.0/libgpg-error-1.49-wzfmvwbjhmhnfjb7rja7353hrfeduti6
+[+] /home/zhaijidong/yhy/.local/spack/opt/spack/linux-ubuntu20.04-x86_64/gcc-9.4.0/gmake-4.4.1-ny6g4tvy3dcpfdbgdlhr3hbg5mv3udvc
+[+] /home/zhaijidong/yhy/.local/spack/opt/spack/linux-ubuntu20.04-x86_64/gcc-9.4.0/pigz-2.8-go52iopt7rhlwozmhvwfyovawg2v423a
+[+] /home/zhaijidong/yhy/.local/spack/opt/spack/linux-ubuntu20.04-x86_64/gcc-9.4.0/libgcrypt-1.10.3-yjdbqdg32l3xdlreezyvyogxgf5ylr7y
+[+] /home/zhaijidong/yhy/.local/spack/opt/spack/linux-ubuntu20.04-x86_64/gcc-9.4.0/rdma-core-51.0-kxs3chnlfi7mhqcctc3qpb7m3ysn6spj
+[+] /home/zhaijidong/yhy/.local/spack/opt/spack/linux-ubuntu20.04-x86_64/gcc-9.4.0/libpciaccess-0.17-gpehypdymtn2eyxmmj3djgrohkerfqle
+[+] /home/zhaijidong/yhy/.local/spack/opt/spack/linux-ubuntu20.04-x86_64/gcc-9.4.0/openssl-3.3.0-hk5eae4xlbjme53vz3t6bkanvfteyxbr
+[+] /home/zhaijidong/yhy/.local/spack/opt/spack/linux-ubuntu20.04-x86_64/gcc-9.4.0/zstd-1.5.6-tmhzkigwbk4ifrxnnixkltvy6akiwqot
+[+] /home/zhaijidong/yhy/.local/spack/opt/spack/linux-ubuntu20.04-x86_64/gcc-9.4.0/libbsd-0.12.2-ijdv7hqg2evstulm33cbu6e6ha4b35wk
+[+] /home/zhaijidong/yhy/.local/spack/opt/spack/linux-ubuntu20.04-x86_64/gcc-9.4.0/util-linux-uuid-2.40.1-c2oav33u3becmaq6hcdyp4e7c4jzgygy
+[+] /home/zhaijidong/yhy/.local/spack/opt/spack/linux-ubuntu20.04-x86_64/gcc-9.4.0/libiconv-1.17-ornmhvcepi2gxrpb6wd42ptonwx6ty4n
+[+] /home/zhaijidong/yhy/.local/spack/opt/spack/linux-ubuntu20.04-x86_64/gcc-9.4.0/ncurses-6.5-wevyodgsijqyjkyhxu7c4hbu6aly65bs
+[+] /home/zhaijidong/yhy/.local/spack/opt/spack/linux-ubuntu20.04-x86_64/gcc-9.4.0/libffi-3.4.6-7kwr33fkq2qrgaa6tu6jonjbpzekfvtk
+[+] /home/zhaijidong/yhy/.local/spack/opt/spack/linux-ubuntu20.04-x86_64/gcc-9.4.0/pcre2-10.43-pgnziefroopocvbz7smfxl4huon4cxwz
+[+] /home/zhaijidong/yhy/.local/spack/opt/spack/linux-ubuntu20.04-x86_64/gcc-9.4.0/libxcrypt-4.4.35-bl44hqtig2t6mkn5wr6trjrqpnpfevkn
+[+] /home/zhaijidong/yhy/.local/spack/opt/spack/linux-ubuntu20.04-x86_64/gcc-9.4.0/munge-0.5.15-6kswaisi2m6t3klrkwup6p4goz7owhnj
+[+] /home/zhaijidong/yhy/.local/spack/opt/spack/linux-ubuntu20.04-x86_64/gcc-9.4.0/curl-8.7.1-w2udc7zxfnwayl3mapvx2mdi4dbay66p
+[+] /home/zhaijidong/yhy/.local/spack/opt/spack/linux-ubuntu20.04-x86_64/gcc-9.4.0/libevent-2.1.12-2f56qesgbnpzh2xxsed7zgqxtldfbnhq
+[+] /home/zhaijidong/yhy/.local/spack/opt/spack/linux-ubuntu20.04-x86_64/gcc-9.4.0/expat-2.6.2-t4xzoimepl4vphov6r6465fxkf552mcs
+[+] /home/zhaijidong/yhy/.local/spack/opt/spack/linux-ubuntu20.04-x86_64/gcc-9.4.0/tar-1.34-dnpgmbxqezdssw3r3wnbrrqohe6usol5
+[+] /home/zhaijidong/yhy/.local/spack/opt/spack/linux-ubuntu20.04-x86_64/gcc-9.4.0/libxml2-2.10.3-7yhgktuskim6wnpy2hp4xe2h3ga543f4
+[+] /home/zhaijidong/yhy/.local/spack/opt/spack/linux-ubuntu20.04-x86_64/gcc-9.4.0/readline-8.2-yhwvthxh2ursdryzpmjrm7skiyq7btme
+[+] /home/zhaijidong/yhy/.local/spack/opt/spack/linux-ubuntu20.04-x86_64/gcc-9.4.0/libedit-3.1-20230828-cindhn6i2it7wajv54qbvxzaimgtxofn
+[+] /home/zhaijidong/yhy/.local/spack/opt/spack/linux-ubuntu20.04-x86_64/gcc-9.4.0/cuda-11.8.0-r53roqnu3l2snovd4r5zjdeslhifzoi7
+[+] /home/zhaijidong/yhy/.local/spack/opt/spack/linux-ubuntu20.04-x86_64/gcc-9.4.0/gettext-0.22.5-hk6cceptj5wdb25prni5dofbjwheolwk
+[+] /home/zhaijidong/yhy/.local/spack/opt/spack/linux-ubuntu20.04-x86_64/gcc-9.4.0/sqlite-3.43.2-mb5fuh4n44c2vhxkxkudjzba2evxf7nn
+[+] /home/zhaijidong/yhy/.local/spack/opt/spack/linux-ubuntu20.04-x86_64/gcc-9.4.0/gdbm-1.23-xlsadkm3hekbjl6rzgtnqfc4qsxq7df4
+[+] /home/zhaijidong/yhy/.local/spack/opt/spack/linux-ubuntu20.04-x86_64/gcc-9.4.0/hwloc-2.9.1-oz323j26erqc26fcuf5pl7ggmvhdkbhr
+==> Installing gdrcopy-2.4.1-g35sgl52vmvbutu77cdvxxzg5vj7wzwx [44/57]
+==> No binary for gdrcopy-2.4.1-g35sgl52vmvbutu77cdvxxzg5vj7wzwx found: installing from source
+==> Using cached archive: /home/zhaijidong/yhy/.local/spack/var/spack/cache/_source-cache/archive/fa/faa7e816e9bad3301e53d6721457f7ef5ab42b7aa3b01ffda51f8e5620bb20ed.tar.gz
+==> No patches needed for gdrcopy
+==> gdrcopy: Executing phase: 'edit'
+==> gdrcopy: Executing phase: 'build'
+==> Error: ProcessError: Command exited with status 2:
+    'make' '-j8' 'exes'
+
+3 errors found in build log:
+     35    /home/zhaijidong/yhy/.local/spack/lib/spack/env/gcc/g++ -O2 -I /usr/local/cuda/include -I ../include -I .
+           ./src -I /usr/local/cuda/include  -c -o common.o common.cpp
+     36    /home/zhaijidong/yhy/.local/spack/lib/spack/env/gcc/g++ -O2 -I /usr/local/cuda/include -I ../include -I .
+           ./src -I /usr/local/cuda/include  -c -o sanity.o sanity.cpp
+     37    /home/zhaijidong/yhy/.local/spack/lib/spack/env/gcc/g++ -O2 -I /usr/local/cuda/include -I ../include -I .
+           ./src -I /usr/local/cuda/include  -c -o testsuites/testsuite.o testsuites/testsuite.cpp
+     38    /home/zhaijidong/yhy/.local/spack/lib/spack/env/gcc/g++ -O2 -I /usr/local/cuda/include -I ../include -I .
+           ./src -I /usr/local/cuda/include  -c -o copylat.o copylat.cpp
+     39    /home/zhaijidong/yhy/.local/spack/lib/spack/env/gcc/g++ -O2 -I /usr/local/cuda/include -I ../include -I .
+           ./src -I /usr/local/cuda/include  -c -o apiperf.o apiperf.cpp
+     40    /usr/local/cuda/bin/nvcc -o pplat.o -c pplat.cu -lcuda -lpthread -ldl -lgdrapi -I /usr/local/cuda/include
+            -I ../include -I ../src -I /usr/local/cuda/include
+  >> 41    make[1]: /usr/local/cuda/bin/nvcc: No such file or directory
+  >> 42    make[1]: *** [Makefile:50: pplat.o] Error 127
+     43    make[1]: *** Waiting for unfinished jobs....
+     44    make[1]: Leaving directory '/tmp/zhaijidong/spack-stage/spack-stage-gdrcopy-2.4.1-g35sgl52vmvbutu77cdvxxz
+           g5vj7wzwx/spack-src/tests'
+  >> 45    make: *** [Makefile:62: exes] Error 2
+
+See build log for details:
+  /tmp/zhaijidong/spack-stage/spack-stage-gdrcopy-2.4.1-g35sgl52vmvbutu77cdvxxzg5vj7wzwx/spack-build-out.txt
+
+==> Warning: Skipping build of ucx-1.16.0-7x357sagnbxef6loyyrdfw56bo2d7swn since gdrcopy-2.4.1-g35sgl52vmvbutu77cdvxxzg5vj7wzwx failed
+==> Warning: Skipping build of openmpi-4.1.5-cwg6fheor5zu3aliiakfumfu4kxwjd4y since ucx-1.16.0-7x357sagnbxef6loyyrdfw56bo2d7swn failed
+[+] /home/zhaijidong/yhy/.local/spack/opt/spack/linux-ubuntu20.04-x86_64/gcc-9.4.0/elfutils-0.191-ifp44iii5zcjvif2jkaffiostympb5sr
+[+] /home/zhaijidong/yhy/.local/spack/opt/spack/linux-ubuntu20.04-x86_64/gcc-9.4.0/krb5-1.21.2-mxqk436ro2zd2obnriiskmfkcysq35cy
+[+] /home/zhaijidong/yhy/.local/spack/opt/spack/linux-ubuntu20.04-x86_64/gcc-9.4.0/perl-5.38.2-mrxslmpcrfkdkj5o3rsdmnxbfvnw2pkm
+[+] /home/zhaijidong/yhy/.local/spack/opt/spack/linux-ubuntu20.04-x86_64/gcc-9.4.0/python-3.11.9-dmum33dojv6dt3jzcc6ftewzqmbsazhw
+[+] /home/zhaijidong/yhy/.local/spack/opt/spack/linux-ubuntu20.04-x86_64/gcc-9.4.0/pmix-4.2.2-3h6bcxuc4hlgztczeuivyguwtgbn2nfv
+[+] /home/zhaijidong/yhy/.local/spack/opt/spack/linux-ubuntu20.04-x86_64/gcc-9.4.0/openssh-9.7p1-mbzvmhulockxnmerd2tvaf66knckqpsw
+[+] /home/zhaijidong/yhy/.local/spack/opt/spack/linux-ubuntu20.04-x86_64/gcc-9.4.0/python-venv-1.0-gog5gyy2c3v7w2lkqwaoldyu5u25xm3o
+[+] /home/zhaijidong/yhy/.local/spack/opt/spack/linux-ubuntu20.04-x86_64/gcc-9.4.0/py-setuptools-69.2.0-c5yqiwckp2t6mqkltuy7xmi2abh2hqae
+[+] /home/zhaijidong/yhy/.local/spack/opt/spack/linux-ubuntu20.04-x86_64/gcc-9.4.0/meson-1.3.2-oqsmz3te2sww5to2cmktibdj7bdcrfq3
+==> Installing glib-2.78.3-zuyownrk4rhrzypjohdftkuaasce2u6l [54/57]
+==> No binary for glib-2.78.3-zuyownrk4rhrzypjohdftkuaasce2u6l found: installing from source
+==> Using cached archive: /home/zhaijidong/yhy/.local/spack/var/spack/cache/_source-cache/archive/60/609801dd373796e515972bf95fc0b2daa44545481ee2f465c4f204d224b2bc21.tar.xz
+==> Ran patch() for glib
+==> glib: Executing phase: 'meson'
+==> glib: Executing phase: 'build'
+==> glib: Executing phase: 'install'
+==> glib: Successfully installed glib-2.78.3-zuyownrk4rhrzypjohdftkuaasce2u6l
+  Stage: 0.59s.  Meson: 27.17s.  Build: 31.53s.  Install: 7.56s.  Post-install: 1.59s.  Total: 1m 11.80s
+[+] /home/zhaijidong/yhy/.local/spack/opt/spack/linux-ubuntu20.04-x86_64/gcc-9.4.0/glib-2.78.3-zuyownrk4rhrzypjohdftkuaasce2u6l
+==> Installing slurm-23-11-1-1-3sqsfau34o6xw3jwegmv5jldjll7hmpa [55/57]
+==> No binary for slurm-23-11-1-1-3sqsfau34o6xw3jwegmv5jldjll7hmpa found: installing from source
+==> Fetching https://github.com/SchedMD/slurm/archive/slurm-23-11-1-1.tar.gz
+==> No patches needed for slurm
+==> slurm: Executing phase: 'autoreconf'
+==> slurm: Executing phase: 'configure'
+==> slurm: Executing phase: 'build'
+==> slurm: Executing phase: 'install'
+==> slurm: Successfully installed slurm-23-11-1-1-3sqsfau34o6xw3jwegmv5jldjll7hmpa
+  Stage: 32.02s.  Autoreconf: 0.00s.  Configure: 22.25s.  Build: 1m 55.11s.  Install: 30.31s.  Post-install: 1.87s.  Total: 3m 23.46s
+[+] /home/zhaijidong/yhy/.local/spack/opt/spack/linux-ubuntu20.04-x86_64/gcc-9.4.0/slurm-23-11-1-1-3sqsfau34o6xw3jwegmv5jldjll7hmpa
+==> Error: openmpi-4.1.5-cwg6fheor5zu3aliiakfumfu4kxwjd4y: Package was not installed
+==> Error: Installation request failed.  Refer to reported errors for failing package(s).

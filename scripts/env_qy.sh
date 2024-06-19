@@ -1,3 +1,5 @@
+source ~/yhy/.local/spack/share/spack/setup-env.sh
+spack load cuda@11.8.0
 # source /data/apps/tools/spack/share/spack/setup-env.sh
 # spack load cuda@11.8
 
@@ -10,11 +12,11 @@
 # export CPLUS_INCLUDE_PATH="$(dirname `which mpicxx`)/../include:$CPLUS_INCLUDE_PATH"  # for #include <mpi.h>
 # export LD_LIBRARY_PATH="$(dirname `which nvcc`)/../lib64:$LD_LIBRARY_PATH"  # for -lcudart
 
-# cuda
-CUDA_PATH=~/yhy/.local/cuda-11.8
-export PATH="$CUDA_PATH/bin:$PATH"
-export LD_LIBRARY_PATH="$CUDA_PATH/lib64:$LD_LIBRARY_PATH"
+# # cuda
+# export CUDA_HOME=~/yhy/.local/cuda-11.8
+# export PATH="$CUDA_HOME/bin:$PATH"
+# export LD_LIBRARY_PATH="$CUDA_HOME/lib64:$LD_LIBRARY_PATH"
 
 # conda
-conda deactivate && conda deactivate
+conda deactivate && conda deactivate && conda deactivate
 conda activate yhy_easycontext

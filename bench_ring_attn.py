@@ -22,13 +22,26 @@ import inspect
 import warnings
 import time
 import socket
+from functools import partial
 warnings.filterwarnings("ignore")   # disable warning caused by lightseq
 
 PROC_INFO: dict
 
+# def zigzag_ring_flash_attn_func_opt(*args, **kwargs):
+#     print(f'args: {args}, kwargs: {kwargs}')
+#     return zigzag_ring_flash_attn_func(*args, **kwargs, opt=True)
+zigzag_ring_flash_attn_func_opt = partial(zigzag_ring_flash_attn_func, opt=True)
+zigzag_ring_flash_attn_func_opt.__name__ = 'zigzag_ring_flash_attn_func_opt'
+overlapped_hierarchy_attn_func = partial(hierarchy_attn_func, overlapped=True)
+overlapped_hierarchy_attn_func.__name__ = 'overlapped_hierarchy_attn_func'
+
 def lightseq_attn_func(q, k, v, causal, sm_scale):
     return lightseq_attn(q, k, v, causal, sm_scale)
-    
+   
+def parse_slurm_tasks_per_node(tasks_per_node):
+    # 4(x2), 8, ...
+    return int(tasks_per_node.split('(')[0])
+     
 def get_proc_info():
     if os.getenv('SLURM_PROCID', None) is not None:    # launch with Slurm
         rank = int(os.environ['SLURM_PROCID'])
@@ -40,7 +53,7 @@ def get_proc_info():
         clustername = os.environ['SLURM_CLUSTER_NAME']
         nodeid = int(os.environ['SLURM_NODEID'])
         nodename = os.environ['SLURMD_NODENAME']
-        tasks_per_node = os.environ['SLURM_TASKS_PER_NODE']
+        tasks_per_node = parse_slurm_tasks_per_node(os.environ['SLURM_TASKS_PER_NODE'])
         
     elif os.getenv('OMPI_COMM_WORLD_RANK', None) is not None: # launch with OpenMPI
         rank = int(os.environ['OMPI_COMM_WORLD_RANK'])
@@ -71,6 +84,7 @@ def get_proc_info():
         'local_rank': local_rank,
         'hostip': hostip,
         'ip': ip,
+        'deviceid': local_rank,
     }
     # print(f'proc_info: {proc_info}')
     return proc_info
@@ -107,7 +121,7 @@ def benchmark(args, f, shapes:dict, warmup=5, num_iter=100, forward_only=True, l
         print(f'# {f.__name__}, {"fwd" if forward_only else "fwd + bwd"}', flush=True)
     dtype = torch.bfloat16
     world_size = dist.get_world_size()
-    device = torch.device(f"cuda:{local_rank}")
+    device = torch.device(f"cuda:{PROC_INFO['deviceid']}")
     torch.cuda.set_device(device)
 
     batch_size = shapes['bs']
@@ -149,7 +163,6 @@ def benchmark(args, f, shapes:dict, warmup=5, num_iter=100, forward_only=True, l
 
     is_runned = False
     
-    
     # warmup
     if forward_only:
         with torch.no_grad():
@@ -168,7 +181,8 @@ def benchmark(args, f, shapes:dict, warmup=5, num_iter=100, forward_only=True, l
     # begin.record()
     ts = time.time()
     
-    if args.profiler_with_tensorboard and not hasattr(args, "tb_profiled"):
+    # if args.profiler_with_tensorboard and not hasattr(args, "tb_profiled"):
+    if args.profiler_with_tensorboard:
         args.tb_profiled = True
         is_runned = True
         BARRIER_FREQ = 4
@@ -231,6 +245,7 @@ def benchmark(args, f, shapes:dict, warmup=5, num_iter=100, forward_only=True, l
 def main(args):
     global PROC_INFO
     PROC_INFO = get_proc_info()
+    
     MASTER_ADDR = os.getenv('MASTER_ADDR', None)
     MASTER_PORT = os.getenv('MASTER_PORT', None)
     init_method = f'tcp://[{MASTER_ADDR}]:{MASTER_PORT}'
@@ -242,25 +257,31 @@ def main(args):
     initialize_distributed()    # used by lightseq
 
 
+    PROC_INFO['tasks_per_node'] = 2 # for test 4 x 2
+    PROC_INFO['tasks_per_node'] = 4 # for test 2 x 4
+    PROC_INFO['local_rank'] %= PROC_INFO['tasks_per_node']
+    PROC_INFO['nodeid'] = PROC_INFO['rank'] // PROC_INFO['tasks_per_node']
+    
+
     forward_only = False
     
     funcs = [
         # ring_flash_attn_func,
-        # zigzag_ring_flash_attn_func,
+        zigzag_ring_flash_attn_func,
+        # zigzag_ring_flash_attn_func_opt,
         # stripe_flash_attn_func,
         # lightseq_attn_func,
         # flash_attn_func,
         hierarchy_attn_func,
+        overlapped_hierarchy_attn_func,
     ]
-    S = 8 * 1024   # 8K
-    S = 16 * 1024   # 8K
-    S = 32 * 1024   # 32K
-    S = 128 * 1024   # 128K
     Ss = [
-        # 8 * 1024,   # 8K
-        # 16 * 1024,  # 16K
-        # 32 * 1024,   # 32K
+        8 * 1024,   # 8K
+        16 * 1024,  # 16K
+        32 * 1024,   # 32K
+        64 * 1024,   # 64K
         128 * 1024,   # 128K
+        256 * 1024,   # 256K
     ]
     for S in Ss:
         if torch.distributed.get_rank() == 0:

@@ -1,0 +1,22 @@
++ export CUDA_DEVICE_MAX_CONNECTIONS=1
++ CUDA_DEVICE_MAX_CONNECTIONS=1
++ srun -p arch -N 2 --ntasks-per-node=8 --gres=gpu:8 --mem 256G -K ./scripts/bench_ring_attn.sh python bench_ring_attn.py
+srun: job 638 queued and waiting for resources
+srun: job 638 has been allocated resources
+torch distributed is already initialized, skipping initialization ...
+************ Finish sequence pralell group Initialization. ***********
+S=16384
+# zigzag_ring_flash_attn_func, fwd
+mfu: 6.497 Tflops/s, hfu: 6.497 Tflops/s, 47.270 iter/s, 2.115 sec
+# zigzag_ring_flash_attn_func_opt, fwd
+mfu: 3.466 Tflops/s, hfu: 3.466 Tflops/s, 25.219 iter/s, 3.965 sec
+# hierarchy_attn_func, fwd
+mfu: 8.228 Tflops/s, hfu: 8.228 Tflops/s, 59.864 iter/s, 1.670 sec
+S=131072
+# zigzag_ring_flash_attn_func, fwd
+mfu: 71.623 Tflops/s, hfu: 71.623 Tflops/s, 8.143 iter/s, 12.281 sec
+# zigzag_ring_flash_attn_func_opt, fwd
+mfu: 87.331 Tflops/s, hfu: 87.331 Tflops/s, 9.928 iter/s, 10.072 sec
+# hierarchy_attn_func, fwd
+mfu: 54.078 Tflops/s, hfu: 54.078 Tflops/s, 6.148 iter/s, 16.266 sec
++ set +x
