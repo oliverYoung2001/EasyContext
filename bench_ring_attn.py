@@ -26,6 +26,8 @@ from functools import partial
 warnings.filterwarnings("ignore")   # disable warning caused by lightseq
 
 PROC_INFO: dict
+DTYPE = torch.bfloat16
+
 
 # def zigzag_ring_flash_attn_func_opt(*args, **kwargs):
 #     print(f'args: {args}, kwargs: {kwargs}')
@@ -113,13 +115,15 @@ def calc_flops(mbs, S, Nh, D, causal=True, forward_only=False):
         h_flops = (1 + 2.5) * flops
     return m_flops, h_flops # model flops & hardware flops
     
-def benchmark(args, f, shapes:dict, warmup=5, num_iter=100, forward_only=True, log=True):
+def benchmark(args, f, shapes:dict, qkv_buf, dout_buf, warmup=5, num_iter=20, forward_only=True, log=True):
+    torch.cuda.synchronize()
+    torch.distributed.barrier()
+    t0 = time.time()
     global PROC_INFO
     rank = PROC_INFO['rank']
     local_rank = PROC_INFO['local_rank']
     if rank == 0:
         print(f'# {f.__name__}, {"fwd" if forward_only else "fwd + bwd"}', flush=True)
-    dtype = torch.bfloat16
     world_size = dist.get_world_size()
     device = torch.device(f"cuda:{PROC_INFO['deviceid']}")
     torch.cuda.set_device(device)
@@ -138,10 +142,13 @@ def benchmark(args, f, shapes:dict, warmup=5, num_iter=100, forward_only=True, l
     # assert seqlen % (2 * world_size) == 0
     assert d % 8 == 0
 
-    qkv = torch.randn(
-        3 * batch_size, seqlen, nheads, d, device=device, dtype=dtype, requires_grad=True
-    )
-    dout = torch.randn(batch_size, seqlen, nheads, d, device=device, dtype=dtype)
+    # qkv = torch.empty(
+    #     3 * batch_size, seqlen, nheads, d, device=device, dtype=DTYPE, requires_grad=True
+    # )
+    # dout = torch.empty(batch_size, seqlen, nheads, d, device=device, dtype=DTYPE)
+    qkv = qkv_buf[: 3 * batch_size * seqlen * nheads * d].view(3 * batch_size, seqlen, nheads, d)
+    qkv.requires_grad = True
+    dout = dout_buf[: batch_size * seqlen * nheads * d].view(batch_size, seqlen, nheads, d)
     # bsz, nh, seq_len, hdim
     if f == lightseq_attn_func:
         qkv = qkv.permute(0, 2, 1, 3)
@@ -163,6 +170,9 @@ def benchmark(args, f, shapes:dict, warmup=5, num_iter=100, forward_only=True, l
 
     is_runned = False
     
+    torch.cuda.synchronize()
+    torch.distributed.barrier()
+    t1 = time.time()
     # warmup
     if forward_only:
         with torch.no_grad():
@@ -177,12 +187,11 @@ def benchmark(args, f, shapes:dict, warmup=5, num_iter=100, forward_only=True, l
                 
     torch.cuda.synchronize()
     torch.distributed.barrier()
-    # begin = torch.cuda.Event(enable_timing=True)
-    # begin.record()
-    ts = time.time()
+    t2 = time.time()
     
     # if args.profiler_with_tensorboard and not hasattr(args, "tb_profiled"):
     if args.profiler_with_tensorboard:
+        sync_tensor = torch.empty((1 * 1024 * 1024 * 1024), dtype=DTYPE, device=device)
         args.tb_profiled = True
         is_runned = True
         BARRIER_FREQ = 4
@@ -201,6 +210,7 @@ def benchmark(args, f, shapes:dict, warmup=5, num_iter=100, forward_only=True, l
             with_stack=True,
         ) as prof:
             for iter in range(TOTAL_TURNS):
+                torch.distributed.all_reduce(sync_tensor, async_op=False)    # for sync and alignment
                 if forward_only:
                     with torch.no_grad():
                         _ = f(**inputs)
@@ -231,16 +241,13 @@ def benchmark(args, f, shapes:dict, warmup=5, num_iter=100, forward_only=True, l
     
     torch.cuda.synchronize()
     torch.distributed.barrier()
-    te = time.time()
-    # end = torch.cuda.Event(enable_timing=True)
-    # end.record()
-    # td = begin.elapsed_time(end) / 1000.0
-    td = te - ts
+    t3 = time.time()
+    td = t3 - t2
 
     if rank == 0 and log:
         m_flops, h_flops = calc_flops(batch_size, seqlen * world_size, nheads, d, causal, forward_only)
         mfu, hfu = (round(flops / pow(1000, 4) / (td / num_iter * world_size), 3) for flops in (m_flops, h_flops))
-        print(f"mfu: {mfu} Tflops/s, hfu: {hfu} Tflops/s, {num_iter / td:.3f} iter/s, {td:.3f} sec", flush=True)
+        print(f"mfu: {mfu} Tflops/s, hfu: {hfu} Tflops/s, {num_iter / td:.3f} iter/s, ({(t1 - t0):.3f}, {(t2 - t1):.3f}, {td:.3f}) sec", flush=True)
 
 def main(args):
     global PROC_INFO
@@ -256,11 +263,14 @@ def main(args):
     # print(f'rank{rank}, world_size{world_size}, hostname: {socket.gethostname()}')
     initialize_distributed()    # used by lightseq
 
+    device = torch.device(f"cuda:{PROC_INFO['deviceid']}")
+    torch.cuda.set_device(device)
 
-    PROC_INFO['tasks_per_node'] = 2 # for test 4 x 2
-    PROC_INFO['tasks_per_node'] = 4 # for test 2 x 4
-    PROC_INFO['local_rank'] %= PROC_INFO['tasks_per_node']
-    PROC_INFO['nodeid'] = PROC_INFO['rank'] // PROC_INFO['tasks_per_node']
+
+    # PROC_INFO['tasks_per_node'] = 2 # for test 4 x 2
+    # PROC_INFO['tasks_per_node'] = 4 # for test 2 x 4
+    # PROC_INFO['local_rank'] %= PROC_INFO['tasks_per_node']
+    # PROC_INFO['nodeid'] = PROC_INFO['rank'] // PROC_INFO['tasks_per_node']
     
 
     forward_only = False
@@ -275,6 +285,8 @@ def main(args):
         hierarchy_attn_func,
         overlapped_hierarchy_attn_func,
     ]
+    bs = 1
+    D = 128
     Ss = [
         8 * 1024,   # 8K
         16 * 1024,  # 16K
@@ -283,20 +295,32 @@ def main(args):
         128 * 1024,   # 128K
         256 * 1024,   # 256K
     ]
-    for S in Ss:
-        if torch.distributed.get_rank() == 0:
-            print(f'S={S}')
-        shapes = {
-            'bs': 1,
-            'S': S // world_size,  # partitioned
-            'Nh': 32,
-            'D': 128,
-        }
+    Nhs = [ # configs of llama2
+    #    32,  # 7b
+    #    40,  # 13b
+       80,  # 70b 
+    ]
+    qkv_buf = torch.randn(
+        (3 * bs * max(Ss) * max(Nhs) * D), device=device, dtype=DTYPE, requires_grad=False
+    )
+    dout_buf = torch.randn((bs * max(Ss) * max(Nhs) * D), device=device, dtype=DTYPE)
 
-        for f in funcs:
-            torch.cuda.empty_cache()
-            benchmark(args, f, shapes, forward_only=True, log=True)
-            # benchmark(args, f, shapes, forward_only=False, log=True)
+    for Nh in Nhs:
+        for S in Ss:
+            S = (S + world_size - 1)  // world_size * world_size
+            if torch.distributed.get_rank() == 0:
+                print(f'Nh={Nh}, S={S}')
+            shapes = {
+                'bs': 1,
+                'S': S // world_size,  # partitioned
+                'Nh': Nh,
+                'D': 128,
+            }
+
+            for f in funcs:
+                torch.cuda.empty_cache()
+                benchmark(args, f, shapes, qkv_buf, dout_buf, forward_only=True, log=True)
+                # benchmark(args, f, shapes, forward_only=False, log=True)
     
 
 if __name__ == "__main__":

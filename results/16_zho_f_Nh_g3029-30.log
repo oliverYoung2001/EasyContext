@@ -1,0 +1,4 @@
++ export CUDA_DEVICE_MAX_CONNECTIONS=1
++ CUDA_DEVICE_MAX_CONNECTIONS=1
++ srun -p arch -N 2 --ntasks-per-node=8 --gres=gpu:8 --mem 256G -K -w g3029,g3030 -c 16 ./scripts/bench_ring_attn.sh python bench_ring_attn.py
+srun: job 3679 queued and waiting for resources

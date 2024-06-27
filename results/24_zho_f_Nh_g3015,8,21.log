@@ -1,0 +1,133 @@
++ export CUDA_DEVICE_MAX_CONNECTIONS=1
++ CUDA_DEVICE_MAX_CONNECTIONS=1
++ srun -p rag -N 3 --ntasks-per-node=8 --gres=gpu:8 --mem 256G -K -w g3015,g3018 -c 16 ./scripts/bench_ring_attn.sh python bench_ring_attn.py
+srun: job 3626 queued and waiting for resources
+srun: job 3626 has been allocated resources
+torch distributed is already initialized, skipping initialization ...
+************ Finish sequence pralell group Initialization. ***********
+Nh=32, S=8208
+# zigzag_ring_flash_attn_func, fwd
+mfu: 2.812 Tflops/s, hfu: 2.812 Tflops/s, 122.283 iter/s, 0.818 sec
+# hierarchy_attn_func, fwd
+mfu: 6.866 Tflops/s, hfu: 6.866 Tflops/s, 298.583 iter/s, 0.335 sec
+# overlapped_hierarchy_attn_func, fwd
+mfu: 6.954 Tflops/s, hfu: 6.954 Tflops/s, 302.379 iter/s, 0.331 sec
+Nh=32, S=16392
+# zigzag_ring_flash_attn_func, fwd
+mfu: 7.373 Tflops/s, hfu: 7.373 Tflops/s, 80.392 iter/s, 1.244 sec
+# hierarchy_attn_func, fwd
+mfu: 22.274 Tflops/s, hfu: 22.274 Tflops/s, 242.864 iter/s, 0.412 sec
+# overlapped_hierarchy_attn_func, fwd
+mfu: 25.506 Tflops/s, hfu: 25.506 Tflops/s, 278.094 iter/s, 0.360 sec
+Nh=32, S=32784
+# zigzag_ring_flash_attn_func, fwd
+mfu: 15.339 Tflops/s, hfu: 15.339 Tflops/s, 41.813 iter/s, 2.392 sec
+# hierarchy_attn_func, fwd
+mfu: 43.727 Tflops/s, hfu: 43.727 Tflops/s, 119.192 iter/s, 0.839 sec
+# overlapped_hierarchy_attn_func, fwd
+mfu: 52.837 Tflops/s, hfu: 52.837 Tflops/s, 144.023 iter/s, 0.694 sec
+Nh=32, S=65544
+# zigzag_ring_flash_attn_func, fwd
+mfu: 30.178 Tflops/s, hfu: 30.178 Tflops/s, 20.580 iter/s, 4.859 sec
+# hierarchy_attn_func, fwd
+mfu: 69.718 Tflops/s, hfu: 69.718 Tflops/s, 47.545 iter/s, 2.103 sec
+# overlapped_hierarchy_attn_func, fwd
+mfu: 82.343 Tflops/s, hfu: 82.343 Tflops/s, 56.154 iter/s, 1.781 sec
+Nh=32, S=131088
+# zigzag_ring_flash_attn_func, fwd
+mfu: 58.906 Tflops/s, hfu: 58.906 Tflops/s, 10.043 iter/s, 9.957 sec
+# hierarchy_attn_func, fwd
+mfu: 93.579 Tflops/s, hfu: 93.579 Tflops/s, 15.954 iter/s, 6.268 sec
+# overlapped_hierarchy_attn_func, fwd
+mfu: 104.079 Tflops/s, hfu: 104.079 Tflops/s, 17.744 iter/s, 5.636 sec
+Nh=32, S=262152
+# zigzag_ring_flash_attn_func, fwd
+mfu: 110.674 Tflops/s, hfu: 110.674 Tflops/s, 4.718 iter/s, 21.195 sec
+# hierarchy_attn_func, fwd
+mfu: 110.212 Tflops/s, hfu: 110.212 Tflops/s, 4.698 iter/s, 21.284 sec
+# overlapped_hierarchy_attn_func, fwd
+mfu: 116.452 Tflops/s, hfu: 116.452 Tflops/s, 4.964 iter/s, 20.144 sec
+Nh=40, S=8208
+# zigzag_ring_flash_attn_func, fwd
+mfu: 3.529 Tflops/s, hfu: 3.529 Tflops/s, 122.776 iter/s, 0.814 sec
+# hierarchy_attn_func, fwd
+mfu: 8.902 Tflops/s, hfu: 8.902 Tflops/s, 309.694 iter/s, 0.323 sec
+# overlapped_hierarchy_attn_func, fwd
+mfu: 8.626 Tflops/s, hfu: 8.626 Tflops/s, 300.081 iter/s, 0.333 sec
+Nh=40, S=16392
+# zigzag_ring_flash_attn_func, fwd
+mfu: 7.689 Tflops/s, hfu: 7.689 Tflops/s, 67.068 iter/s, 1.491 sec
+# hierarchy_attn_func, fwd
+mfu: 23.524 Tflops/s, hfu: 23.524 Tflops/s, 205.188 iter/s, 0.487 sec
+# overlapped_hierarchy_attn_func, fwd
+mfu: 28.534 Tflops/s, hfu: 28.534 Tflops/s, 248.894 iter/s, 0.402 sec
+Nh=40, S=32784
+# zigzag_ring_flash_attn_func, fwd
+mfu: 15.267 Tflops/s, hfu: 15.267 Tflops/s, 33.292 iter/s, 3.004 sec
+# hierarchy_attn_func, fwd
+mfu: 45.68 Tflops/s, hfu: 45.68 Tflops/s, 99.612 iter/s, 1.004 sec
+# overlapped_hierarchy_attn_func, fwd
+mfu: 55.259 Tflops/s, hfu: 55.259 Tflops/s, 120.501 iter/s, 0.830 sec
+Nh=40, S=65544
+# zigzag_ring_flash_attn_func, fwd
+mfu: 30.123 Tflops/s, hfu: 30.123 Tflops/s, 16.434 iter/s, 6.085 sec
+# hierarchy_attn_func, fwd
+mfu: 71.388 Tflops/s, hfu: 71.388 Tflops/s, 38.946 iter/s, 2.568 sec
+# overlapped_hierarchy_attn_func, fwd
+mfu: 84.258 Tflops/s, hfu: 84.258 Tflops/s, 45.968 iter/s, 2.175 sec
+Nh=40, S=131088
+# zigzag_ring_flash_attn_func, fwd
+mfu: 59.151 Tflops/s, hfu: 59.151 Tflops/s, 8.068 iter/s, 12.395 sec
+# hierarchy_attn_func, fwd
+mfu: 95.27 Tflops/s, hfu: 95.27 Tflops/s, 12.994 iter/s, 7.696 sec
+# overlapped_hierarchy_attn_func, fwd
+mfu: 104.875 Tflops/s, hfu: 104.875 Tflops/s, 14.304 iter/s, 6.991 sec
+Nh=40, S=262152
+# zigzag_ring_flash_attn_func, fwd
+mfu: 117.472 Tflops/s, hfu: 117.472 Tflops/s, 4.006 iter/s, 24.961 sec
+# hierarchy_attn_func, fwd
+mfu: 110.633 Tflops/s, hfu: 110.633 Tflops/s, 3.773 iter/s, 26.504 sec
+# overlapped_hierarchy_attn_func, fwd
+mfu: 116.501 Tflops/s, hfu: 116.501 Tflops/s, 3.973 iter/s, 25.169 sec
+Nh=80, S=8208
+# zigzag_ring_flash_attn_func, fwd
+mfu: 3.812 Tflops/s, hfu: 3.812 Tflops/s, 66.314 iter/s, 1.508 sec
+# hierarchy_attn_func, fwd
+mfu: 11.655 Tflops/s, hfu: 11.655 Tflops/s, 202.734 iter/s, 0.493 sec
+# overlapped_hierarchy_attn_func, fwd
+mfu: 12.685 Tflops/s, hfu: 12.685 Tflops/s, 220.655 iter/s, 0.453 sec
+Nh=80, S=16392
+# zigzag_ring_flash_attn_func, fwd
+mfu: 7.656 Tflops/s, hfu: 7.656 Tflops/s, 33.392 iter/s, 2.995 sec
+# hierarchy_attn_func, fwd
+mfu: 26.817 Tflops/s, hfu: 26.817 Tflops/s, 116.957 iter/s, 0.855 sec
+# overlapped_hierarchy_attn_func, fwd
+mfu: 35.274 Tflops/s, hfu: 35.274 Tflops/s, 153.840 iter/s, 0.650 sec
+Nh=80, S=32784
+# zigzag_ring_flash_attn_func, fwd
+mfu: 15.036 Tflops/s, hfu: 15.036 Tflops/s, 16.395 iter/s, 6.100 sec
+# hierarchy_attn_func, fwd
+mfu: 48.592 Tflops/s, hfu: 48.592 Tflops/s, 52.981 iter/s, 1.887 sec
+# overlapped_hierarchy_attn_func, fwd
+mfu: 61.764 Tflops/s, hfu: 61.764 Tflops/s, 67.343 iter/s, 1.485 sec
+Nh=80, S=65544
+# zigzag_ring_flash_attn_func, fwd
+mfu: 29.672 Tflops/s, hfu: 29.672 Tflops/s, 8.094 iter/s, 12.355 sec
+# hierarchy_attn_func, fwd
+mfu: 73.894 Tflops/s, hfu: 73.894 Tflops/s, 20.157 iter/s, 4.961 sec
+# overlapped_hierarchy_attn_func, fwd
+mfu: 87.361 Tflops/s, hfu: 87.361 Tflops/s, 23.830 iter/s, 4.196 sec
+Nh=80, S=131088
+# zigzag_ring_flash_attn_func, fwd
+mfu: 59.056 Tflops/s, hfu: 59.056 Tflops/s, 4.027 iter/s, 24.830 sec
+# hierarchy_attn_func, fwd
+mfu: 95.724 Tflops/s, hfu: 95.724 Tflops/s, 6.528 iter/s, 15.319 sec
+# overlapped_hierarchy_attn_func, fwd
+mfu: 106.071 Tflops/s, hfu: 106.071 Tflops/s, 7.234 iter/s, 13.824 sec
+Nh=80, S=262152
+# zigzag_ring_flash_attn_func, fwd
+mfu: 113.999 Tflops/s, hfu: 113.999 Tflops/s, 1.944 iter/s, 51.443 sec
+# hierarchy_attn_func, fwd
+mfu: 82.368 Tflops/s, hfu: 82.368 Tflops/s, 1.405 iter/s, 71.198 sec
+# overlapped_hierarchy_attn_func, fwd
+mfu: 84.561 Tflops/s, hfu: 84.561 Tflops/s, 1.442 iter/s, 69.351 sec

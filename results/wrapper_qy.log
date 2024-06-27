@@ -1,11 +1,107 @@
 + export CUDA_DEVICE_MAX_CONNECTIONS=1
 + CUDA_DEVICE_MAX_CONNECTIONS=1
-+ srun -p rag -N 1 --ntasks-per-node=8 --gres=gpu:8 --mem 256G -K -c 16 ./scripts/bench_ring_attn.sh python bench_ring_attn.py
-srun: job 3280 queued and waiting for resources
-srun: job 3280 has been allocated resources
++ srun -p rag -N 2 --ntasks-per-node=8 --gres=gpu:8 --mem 256G -K -w g3015,g3018 -c 16 ./scripts/bench_ring_attn.sh python bench_ring_attn.py --profiler-with-tensorboard --tb-dir ./tb
+srun: job 3517 queued and waiting for resources
+srun: job 3517 has been allocated resources
 torch distributed is already initialized, skipping initialization ...
 ************ Finish sequence pralell group Initialization. ***********
-S=131072
+S=16384
 # overlapped_hierarchy_attn_func, fwd
-mfu: 136.478 Tflops/s, hfu: 136.478 Tflops/s, 7.758 iter/s, 12.890 sec
+[W kineto_shim.cpp:372] Profiler is not initialized: skipping step() invocation
+[W kineto_shim.cpp:372] Profiler is not initialized: skipping step() invocation
+[W kineto_shim.cpp:372] Profiler is not initialized: skipping step() invocation
+[W kineto_shim.cpp:372] Profiler is not initialized: skipping step() invocation
+[W kineto_shim.cpp:372] Profiler is not initialized: skipping step() invocation
+[W kineto_shim.cpp:372] Profiler is not initialized: skipping step() invocation
+[W kineto_shim.cpp:372] Profiler is not initialized: skipping step() invocation
+[W kineto_shim.cpp:372] Profiler is not initialized: skipping step() invocation
+[W kineto_shim.cpp:372] Profiler is not initialized: skipping step() invocation
+[W kineto_shim.cpp:372] Profiler is not initialized: skipping step() invocation
+[W kineto_shim.cpp:372] Profiler is not initialized: skipping step() invocation
+[W kineto_shim.cpp:372] Profiler is not initialized: skipping step() invocation
+[W kineto_shim.cpp:372] Profiler is not initialized: skipping step() invocation
+[W kineto_shim.cpp:372] Profiler is not initialized: skipping step() invocation
+[W kineto_shim.cpp:372] Profiler is not initialized: skipping step() invocation
+[W kineto_shim.cpp:372] Profiler is not initialized: skipping step() invocation
+[W kineto_shim.cpp:372] Profiler is not initialized: skipping step() invocation
+[W kineto_shim.cpp:372] Profiler is not initialized: skipping step() invocation
+[W kineto_shim.cpp:372] Profiler is not initialized: skipping step() invocation
+[W kineto_shim.cpp:372] Profiler is not initialized: skipping step() invocation
+[W kineto_shim.cpp:372] Profiler is not initialized: skipping step() invocation
+[W kineto_shim.cpp:372] Profiler is not initialized: skipping step() invocation
+[W kineto_shim.cpp:372] Profiler is not initialized: skipping step() invocation
+[W kineto_shim.cpp:372] Profiler is not initialized: skipping step() invocation
+[W kineto_shim.cpp:372] Profiler is not initialized: skipping step() invocation
+[W kineto_shim.cpp:372] Profiler is not initialized: skipping step() invocation
+[W kineto_shim.cpp:372] Profiler is not initialized: skipping step() invocation
+[W kineto_shim.cpp:372] Profiler is not initialized: skipping step() invocation
+[W kineto_shim.cpp:372] Profiler is not initialized: skipping step() invocation
+[W kineto_shim.cpp:372] Profiler is not initialized: skipping step() invocation
+[W kineto_shim.cpp:372] Profiler is not initialized: skipping step() invocation
+[W kineto_shim.cpp:372] Profiler is not initialized: skipping step() invocation
+[W kineto_shim.cpp:372] Profiler is not initialized: skipping step() invocation
+[W kineto_shim.cpp:372] Profiler is not initialized: skipping step() invocation
+[W kineto_shim.cpp:372] Profiler is not initialized: skipping step() invocation
+[W kineto_shim.cpp:372] Profiler is not initialized: skipping step() invocation
+[W kineto_shim.cpp:372] Profiler is not initialized: skipping step() invocation
+[W kineto_shim.cpp:372] Profiler is not initialized: skipping step() invocation
+[W kineto_shim.cpp:372] Profiler is not initialized: skipping step() invocation
+[W kineto_shim.cpp:372] Profiler is not initialized: skipping step() invocation
+[W kineto_shim.cpp:372] Profiler is not initialized: skipping step() invocation
+[W kineto_shim.cpp:372] Profiler is not initialized: skipping step() invocation
+[W kineto_shim.cpp:372] Profiler is not initialized: skipping step() invocation
+[W kineto_shim.cpp:372] Profiler is not initialized: skipping step() invocation
+[W kineto_shim.cpp:372] Profiler is not initialized: skipping step() invocation
+[W kineto_shim.cpp:372] Profiler is not initialized: skipping step() invocation
+[W kineto_shim.cpp:372] Profiler is not initialized: skipping step() invocation
+[W kineto_shim.cpp:372] Profiler is not initialized: skipping step() invocation
+STAGE:2024-06-19 14:26:26 344672:344672 ActivityProfilerController.cpp:312] Completed Stage: Warm Up
+STAGE:2024-06-19 14:26:26 344674:344674 ActivityProfilerController.cpp:312] Completed Stage: Warm Up
+STAGE:2024-06-19 14:26:26 344667:344667 ActivityProfilerController.cpp:312] Completed Stage: Warm Up
+STAGE:2024-06-19 14:26:26 344668:344668 ActivityProfilerController.cpp:312] Completed Stage: Warm Up
+STAGE:2024-06-19 14:26:26 344669:344669 ActivityProfilerController.cpp:312] Completed Stage: Warm Up
+STAGE:2024-06-19 14:26:26 344670:344670 ActivityProfilerController.cpp:312] Completed Stage: Warm Up
+STAGE:2024-06-19 14:26:26 344671:344671 ActivityProfilerController.cpp:312] Completed Stage: Warm Up
+STAGE:2024-06-19 14:26:26 344673:344673 ActivityProfilerController.cpp:312] Completed Stage: Warm Up
+STAGE:2024-06-19 14:26:26 3405086:3405086 ActivityProfilerController.cpp:312] Completed Stage: Warm Up
+STAGE:2024-06-19 14:26:26 3405087:3405087 ActivityProfilerController.cpp:312] Completed Stage: Warm Up
+STAGE:2024-06-19 14:26:26 3405088:3405088 ActivityProfilerController.cpp:312] Completed Stage: Warm Up
+STAGE:2024-06-19 14:26:26 3405089:3405089 ActivityProfilerController.cpp:312] Completed Stage: Warm Up
+STAGE:2024-06-19 14:26:26 3405090:3405090 ActivityProfilerController.cpp:312] Completed Stage: Warm Up
+STAGE:2024-06-19 14:26:26 3405091:3405091 ActivityProfilerController.cpp:312] Completed Stage: Warm Up
+STAGE:2024-06-19 14:26:26 3405092:3405092 ActivityProfilerController.cpp:312] Completed Stage: Warm Up
+STAGE:2024-06-19 14:26:26 3405093:3405093 ActivityProfilerController.cpp:312] Completed Stage: Warm Up
+STAGE:2024-06-19 14:26:27 344672:344672 ActivityProfilerController.cpp:318] Completed Stage: Collection
+STAGE:2024-06-19 14:26:27 344668:344668 ActivityProfilerController.cpp:318] Completed Stage: Collection
+STAGE:2024-06-19 14:26:27 344673:344673 ActivityProfilerController.cpp:318] Completed Stage: Collection
+STAGE:2024-06-19 14:26:27 344674:344674 ActivityProfilerController.cpp:318] Completed Stage: Collection
+STAGE:2024-06-19 14:26:27 344669:344669 ActivityProfilerController.cpp:318] Completed Stage: Collection
+STAGE:2024-06-19 14:26:27 344671:344671 ActivityProfilerController.cpp:318] Completed Stage: Collection
+STAGE:2024-06-19 14:26:27 344667:344667 ActivityProfilerController.cpp:318] Completed Stage: Collection
+STAGE:2024-06-19 14:26:27 3405092:3405092 ActivityProfilerController.cpp:318] Completed Stage: Collection
+STAGE:2024-06-19 14:26:27 344670:344670 ActivityProfilerController.cpp:318] Completed Stage: Collection
+STAGE:2024-06-19 14:26:27 3405091:3405091 ActivityProfilerController.cpp:318] Completed Stage: Collection
+STAGE:2024-06-19 14:26:27 3405090:3405090 ActivityProfilerController.cpp:318] Completed Stage: Collection
+STAGE:2024-06-19 14:26:27 3405088:3405088 ActivityProfilerController.cpp:318] Completed Stage: Collection
+STAGE:2024-06-19 14:26:27 3405087:3405087 ActivityProfilerController.cpp:318] Completed Stage: Collection
+STAGE:2024-06-19 14:26:27 3405086:3405086 ActivityProfilerController.cpp:318] Completed Stage: Collection
+STAGE:2024-06-19 14:26:27 3405089:3405089 ActivityProfilerController.cpp:318] Completed Stage: Collection
+STAGE:2024-06-19 14:26:27 3405093:3405093 ActivityProfilerController.cpp:318] Completed Stage: Collection
+STAGE:2024-06-19 14:26:27 344667:344667 ActivityProfilerController.cpp:322] Completed Stage: Post Processing
+STAGE:2024-06-19 14:26:27 344674:344674 ActivityProfilerController.cpp:322] Completed Stage: Post Processing
+STAGE:2024-06-19 14:26:27 344669:344669 ActivityProfilerController.cpp:322] Completed Stage: Post Processing
+STAGE:2024-06-19 14:26:27 344673:344673 ActivityProfilerController.cpp:322] Completed Stage: Post Processing
+STAGE:2024-06-19 14:26:27 344670:344670 ActivityProfilerController.cpp:322] Completed Stage: Post Processing
+STAGE:2024-06-19 14:26:27 344668:344668 ActivityProfilerController.cpp:322] Completed Stage: Post Processing
+STAGE:2024-06-19 14:26:27 344671:344671 ActivityProfilerController.cpp:322] Completed Stage: Post Processing
+STAGE:2024-06-19 14:26:27 344672:344672 ActivityProfilerController.cpp:322] Completed Stage: Post Processing
+STAGE:2024-06-19 14:26:27 3405087:3405087 ActivityProfilerController.cpp:322] Completed Stage: Post Processing
+STAGE:2024-06-19 14:26:27 3405089:3405089 ActivityProfilerController.cpp:322] Completed Stage: Post Processing
+STAGE:2024-06-19 14:26:27 3405091:3405091 ActivityProfilerController.cpp:322] Completed Stage: Post Processing
+STAGE:2024-06-19 14:26:27 3405093:3405093 ActivityProfilerController.cpp:322] Completed Stage: Post Processing
+STAGE:2024-06-19 14:26:27 3405092:3405092 ActivityProfilerController.cpp:322] Completed Stage: Post Processing
+STAGE:2024-06-19 14:26:27 3405086:3405086 ActivityProfilerController.cpp:322] Completed Stage: Post Processing
+STAGE:2024-06-19 14:26:27 3405090:3405090 ActivityProfilerController.cpp:322] Completed Stage: Post Processing
+STAGE:2024-06-19 14:26:27 3405088:3405088 ActivityProfilerController.cpp:322] Completed Stage: Post Processing
+mfu: 0.762 Tflops/s, hfu: 0.762 Tflops/s, 5.543 iter/s, 3.608 sec
 + set +x

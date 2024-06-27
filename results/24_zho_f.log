@@ -1,0 +1,50 @@
++ export CUDA_DEVICE_MAX_CONNECTIONS=1
++ CUDA_DEVICE_MAX_CONNECTIONS=1
++ srun -p rag -N 3 --ntasks-per-node=8 --gres=gpu:8 --mem 256G -K -w g3015,g3018 -c 16 ./scripts/bench_ring_attn.sh python bench_ring_attn.py
+srun: job 3592 queued and waiting for resources
+srun: job 3592 has been allocated resources
+torch distributed is already initialized, skipping initialization ...
+************ Finish sequence pralell group Initialization. ***********
+S=8208
+# zigzag_ring_flash_attn_func, fwd
+mfu: 2.762 Tflops/s, hfu: 2.762 Tflops/s, 120.125 iter/s, 0.832 sec
+# hierarchy_attn_func, fwd
+mfu: 6.994 Tflops/s, hfu: 6.994 Tflops/s, 304.142 iter/s, 0.329 sec
+# overlapped_hierarchy_attn_func, fwd
+mfu: 6.987 Tflops/s, hfu: 6.987 Tflops/s, 303.845 iter/s, 0.329 sec
+S=16392
+# zigzag_ring_flash_attn_func, fwd
+mfu: 7.659 Tflops/s, hfu: 7.659 Tflops/s, 83.503 iter/s, 1.198 sec
+# hierarchy_attn_func, fwd
+mfu: 21.636 Tflops/s, hfu: 21.636 Tflops/s, 235.899 iter/s, 0.424 sec
+# overlapped_hierarchy_attn_func, fwd
+mfu: 27.25 Tflops/s, hfu: 27.25 Tflops/s, 297.113 iter/s, 0.337 sec
+S=32784
+# zigzag_ring_flash_attn_func, fwd
+mfu: 15.3 Tflops/s, hfu: 15.3 Tflops/s, 41.704 iter/s, 2.398 sec
+# hierarchy_attn_func, fwd
+mfu: 42.709 Tflops/s, hfu: 42.709 Tflops/s, 116.417 iter/s, 0.859 sec
+# overlapped_hierarchy_attn_func, fwd
+mfu: 53.537 Tflops/s, hfu: 53.537 Tflops/s, 145.933 iter/s, 0.685 sec
+S=65544
+# zigzag_ring_flash_attn_func, fwd
+mfu: 30.162 Tflops/s, hfu: 30.162 Tflops/s, 20.569 iter/s, 4.862 sec
+# hierarchy_attn_func, fwd
+mfu: 70.632 Tflops/s, hfu: 70.632 Tflops/s, 48.168 iter/s, 2.076 sec
+# overlapped_hierarchy_attn_func, fwd
+mfu: 82.665 Tflops/s, hfu: 82.665 Tflops/s, 56.374 iter/s, 1.774 sec
+S=131088
+# zigzag_ring_flash_attn_func, fwd
+mfu: 59.476 Tflops/s, hfu: 59.476 Tflops/s, 10.140 iter/s, 9.862 sec
+# hierarchy_attn_func, fwd
+mfu: 94.609 Tflops/s, hfu: 94.609 Tflops/s, 16.130 iter/s, 6.200 sec
+# overlapped_hierarchy_attn_func, fwd
+mfu: 104.224 Tflops/s, hfu: 104.224 Tflops/s, 17.769 iter/s, 5.628 sec
+S=262152
+# zigzag_ring_flash_attn_func, fwd
+mfu: 117.872 Tflops/s, hfu: 117.872 Tflops/s, 5.025 iter/s, 19.901 sec
+# hierarchy_attn_func, fwd
+mfu: 110.63 Tflops/s, hfu: 110.63 Tflops/s, 4.716 iter/s, 21.204 sec
+# overlapped_hierarchy_attn_func, fwd
+mfu: 116.699 Tflops/s, hfu: 116.699 Tflops/s, 4.975 iter/s, 20.101 sec
++ set +x
