@@ -22,7 +22,7 @@ class Execution_Plan(): # input: kernel streams of gpus
     
     def get_plan_name(self):
         da_config = self.da_config
-        return f'S={da_config.S}_SP={da_config.SP}_causal={da_config.causal}_fob={self.fob}_b={da_config.bs}_Nh={da_config.Nh}_D={da_config.D}'
+        return da_config.get_plan_name(self.fob)
         
     def generate_execution_plan(self):
         fob = self.fob

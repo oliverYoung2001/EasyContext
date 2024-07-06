@@ -81,7 +81,7 @@ Welcome to the CBC MILP Solver
 Version: 2.10.3 
 Build Date: Dec 15 2019 
 
-command line - /home/yhy/.local/anaconda3/envs/mg/lib/python3.8/site-packages/pulp/solverdir/cbc/linux/64/cbc ./search_algo/tmp/a490a2075c2c4c1fa7143f1ee30f935c-pulp.mps timeMode elapsed branch printingOptions all solution ./search_algo/tmp/a490a2075c2c4c1fa7143f1ee30f935c-pulp.sol (default strategy 1)
+command line - /home/yhy/.local/anaconda3/envs/mg/lib/python3.8/site-packages/pulp/solverdir/cbc/linux/64/cbc ./search_algo/tmp/0c9a36f58e8d4ca89f54dac86af6f21f-pulp.mps timeMode elapsed branch printingOptions all solution ./search_algo/tmp/0c9a36f58e8d4ca89f54dac86af6f21f-pulp.sol (default strategy 1)
 At line 2 NAME          MODEL
 At line 3 ROWS
 At line 107 COLUMNS
@@ -134,18 +134,18 @@ Cbc0038I Pass  31: suminf.    0.00345 (12) obj. 0.000511053 iterations 18
 Cbc0038I No solution found this major pass
 Cbc0038I Before mini branch and bound, 0 integers at bound fixed and 0 continuous
 Cbc0038I Full problem 101 rows 56 columns, reduced to 101 rows 56 columns
-Cbc0038I Mini branch and bound did not improve solution (0.06 seconds)
-Cbc0038I After 0.06 seconds - Feasibility pump exiting with objective of 0.000545957 - took 0.06 seconds
-Cbc0012I Integer solution of 0.000545957 found by feasibility pump after 0 iterations and 0 nodes (0.06 seconds)
+Cbc0038I Mini branch and bound did not improve solution (0.07 seconds)
+Cbc0038I After 0.07 seconds - Feasibility pump exiting with objective of 0.000545957 - took 0.05 seconds
+Cbc0012I Integer solution of 0.000545957 found by feasibility pump after 0 iterations and 0 nodes (0.07 seconds)
 Cbc0031I 7 added rows had average density of 3.1428571
 Cbc0013I At root node, 7 cuts changed objective from 0.000286914 to 0.00040181397 in 100 passes
-Cbc0014I Cut generator 0 (Probing) - 210 row cuts average 3.5 elements, 7 column cuts (7 active)  in 0.011 seconds - new frequency is 1
+Cbc0014I Cut generator 0 (Probing) - 210 row cuts average 3.5 elements, 7 column cuts (7 active)  in 0.010 seconds - new frequency is 1
 Cbc0014I Cut generator 1 (Gomory) - 16 row cuts average 5.8 elements, 0 column cuts (0 active)  in 0.003 seconds - new frequency is 1
 Cbc0014I Cut generator 2 (Knapsack) - 0 row cuts average 0.0 elements, 0 column cuts (0 active)  in 0.002 seconds - new frequency is -100
 Cbc0014I Cut generator 3 (Clique) - 0 row cuts average 0.0 elements, 0 column cuts (0 active)  in 0.001 seconds - new frequency is -100
 Cbc0014I Cut generator 4 (MixedIntegerRounding2) - 11 row cuts average 2.0 elements, 0 column cuts (0 active)  in 0.003 seconds - new frequency is 1
-Cbc0014I Cut generator 5 (FlowCover) - 0 row cuts average 0.0 elements, 0 column cuts (0 active)  in 0.005 seconds - new frequency is -100
-Cbc0010I After 0 nodes, 1 on tree, 0.000545957 best solution, best possible 0.00040181397 (0.10 seconds)
+Cbc0014I Cut generator 5 (FlowCover) - 0 row cuts average 0.0 elements, 0 column cuts (0 active)  in 0.004 seconds - new frequency is -100
+Cbc0010I After 0 nodes, 1 on tree, 0.000545957 best solution, best possible 0.00040181397 (0.11 seconds)
 Cbc0038I Full problem 101 rows 56 columns, reduced to 101 rows 35 columns
 Cbc0001I Search completed - best objective 0.0005459569989983699, took 1212 iterations and 50 nodes (0.18 seconds)
 Cbc0032I Strong branching done 476 times (1830 iterations), fathomed 2 nodes and fixed 25 variables
@@ -156,7 +156,7 @@ Gomory was tried 201 times and created 65 cuts of which 0 were active after addi
 Knapsack was tried 100 times and created 0 cuts of which 0 were active after adding rounds of cuts (0.002 seconds)
 Clique was tried 100 times and created 0 cuts of which 0 were active after adding rounds of cuts (0.001 seconds)
 MixedIntegerRounding2 was tried 201 times and created 24 cuts of which 0 were active after adding rounds of cuts (0.006 seconds)
-FlowCover was tried 100 times and created 0 cuts of which 0 were active after adding rounds of cuts (0.005 seconds)
+FlowCover was tried 100 times and created 0 cuts of which 0 were active after adding rounds of cuts (0.004 seconds)
 TwoMirCuts was tried 1 times and created 0 cuts of which 0 were active after adding rounds of cuts (0.000 seconds)
 ZeroHalf was tried 1 times and created 0 cuts of which 0 were active after adding rounds of cuts (0.000 seconds)
 
@@ -169,7 +169,7 @@ Time (CPU seconds):             0.17
 Time (Wallclock seconds):       0.18
 
 Option for printingOptions changed from normal to all
-Total time (CPU seconds):       0.17   (Wallclock seconds):       0.20
+Total time (CPU seconds):       0.17   (Wallclock seconds):       0.21
 
 TOT_TIME_UP: 0.4600000102072954
 (0, 0, 0, 0, 0): 0.000e+00, 1.150e-04, 1.150e-04

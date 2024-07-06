@@ -22,6 +22,10 @@ class Dist_Attn_Config():
         self.bs = bs
         self.D = D
         self.causal = causal
+    
+    def get_plan_name(self, fob=True):
+        return f'S={self.S}_SP={self.SP}_causal={self.causal}_fob={fob}_b={self.bs}_Nh={self.Nh}_D={self.D}'
+
 
 
 class FlashAttn_Profile_Map():
