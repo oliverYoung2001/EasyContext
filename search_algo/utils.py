@@ -1,12 +1,14 @@
-from queue import PriorityQueue
-from heapq import heappush, heappop, heappushpop
+
 import sys
 import os
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__),
                                              os.path.pardir, os.path.pardir)))
+from queue import PriorityQueue
+from heapq import heappush, heappop, heappushpop
 from search_algo.global_vars import *
 import math
 import regex as re
+import numpy as np
 
 class FinitePriorityQueue():
     """finite min heap
@@ -28,13 +30,16 @@ class FinitePriorityQueue():
 
     def pop(self):
         return self.unpack_func(heappop(self.queue))
+
+    def __len__(self):
+        return len(self.queue)
     
 def convert_profile_data_to_map(profile_list):
     profile_map = {}
     for i in range(len(profile_list)):
         map_key = tuple(profile_list[i][0])
         assert map_key not in profile_map.keys()
-        profile_map[map_key] = profile_list[i][1]    # [fwd/bwd], (us)
+        profile_map[map_key] = np.array(profile_list[i][1]) / 1e6    # [fwd/bwd], (s)
     return profile_map
 
 # # Helper function to pretty-print message sizes
@@ -61,6 +66,6 @@ def convert_profile_data_to_comm_map(file_name: str, GPU_NUM: int):
             res = pat.match(line)
             if res:
                 # print(f'res: {res.group(1), res.group(2), res.group(4)}')
-                profile_map[int(res.group(1))] = convert_throughput_to_B(float(res.group(2)), res.group(4))  / pow(BYTE_MULTPLE_DOWN, 3) / GPU_NUM
+                profile_map[(int(res.group(1)),)] = convert_throughput_to_B(float(res.group(2)), res.group(4))  / pow(BYTE_MULTPLE_DOWN, 3) / GPU_NUM
     # print(f'profile_map: {profile_map}')
     return profile_map

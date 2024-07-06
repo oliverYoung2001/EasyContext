@@ -68,7 +68,7 @@ class Dependent_Graph():
         self.fob = fob  # fwd or bwd
         self.hierarchy = hierarchy  # (0, 1) -> (inter-machine, intra-machine)
         self.tot_sp = schedule.tot_sp
-        self.root_kernel = Cuda_Kernel()
+        # self.root_kernel = Cuda_Kernel()
         # comp: (b_id, h_id, r_id, c_id, gpuid) -> Cuda_Kernel
         # comm: (b_id, h_id, r/c_id, send, recv, i/o, r/c) -> Cuda_Kernel
         self.kernel_dict = {}
@@ -102,8 +102,8 @@ class Dependent_Graph():
                             self.kernel_dict[comm_key] = Comm_Kernel(comm_key, schedule.m_config, comm_raw_map_key, schedule.u_inp_row, hierarchy)
                             # output row reduce
                             comm_key = (i, j, k, dst_g_id, cur_g_id, 'o', 'r')
-                            assert comm_key not in self.kernel_dict.keys(comm_key, schedule.m_config, comm_raw_map_key, schedule.u_out_row, hierarchy)
-                            self.kernel_dict[comm_key] = Comm_Kernel(comm_key)
+                            assert comm_key not in self.kernel_dict.keys()
+                            self.kernel_dict[comm_key] = Comm_Kernel(comm_key, schedule.m_config, comm_raw_map_key, schedule.u_out_row, hierarchy)
                 # col
                 for l in range(schedule.split_degrees[1]):  # split_Skv
                     cur_g_id = schedule.S_map[j, l]

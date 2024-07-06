@@ -30,8 +30,11 @@ fi
 # # Run with Slurm
 RUNNER_CMD="srun $SLURM_ARGS"
 
+# set pulp tmp dir
+export TMPDIR=./search_algo/tmp
+
 set -x
 $RUNNER_CMD \
-python search_algo/search_engine.py \
+python search_algo/main.py \
 
 set +x

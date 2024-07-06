@@ -79,10 +79,10 @@ class FlashAttn_Profile_Map():
     
     def get_comp_time_from_map_key(self, map_key: tuple) -> np.ndarray:
         assert map_key in self.profile_map.keys(), f"Key {map_key} not found in profile_map"
-        return np.array(self.profile_map[map_key])    # [fwd/bwd]
+        return self.profile_map[map_key]    # [fwd/bwd], (s)
     
     def get_comp_time(self, da_config: Dist_Attn_Config, batch_degrees: list, split_degrees: list) -> np.ndarray:
-        map_key = self.get_map_key(da_config, batch_degrees, split_degrees)
+        map_key = self.get_comp_map_key(da_config, batch_degrees, split_degrees)
         return self.get_comp_time_from_map_key(map_key)    
 
 class Comm_Profile_Map():
@@ -98,7 +98,7 @@ class Comm_Profile_Map():
         tot_sp = reduce(lambda x,y:x*y, da_config.SP)
         Sq = da_config.S[0] * batch_degrees[0] // tot_sp
         # Skv = da_config.S[1] * batch_degrees[1] // tot_sp
-        return (Sq * (da_config.bs / split_degrees[2]) * (da_config.Nh[0] / split_degrees[3]) * da_config.D * 2)    # B
+        return (int(Sq * (da_config.bs / split_degrees[2]) * (da_config.Nh[0] / split_degrees[3]) * da_config.D * 2),)    # B
     
     def get_comm_time_from_map_key(self, map_key: tuple) -> float:
         if map_key[0] <= 0:
@@ -126,10 +126,10 @@ class Machine_Config():
         tot_sp = reduce(lambda x,y:x*y, da_config.SP)
         Sq = da_config.S[0] * batch_degrees[0] // tot_sp
         # Skv = da_config.S[1] * batch_degrees[1] // tot_sp
-        return (Sq * (da_config.bs / split_degrees[2]) * (da_config.Nh[0] / split_degrees[3]) * da_config.D * 2)    # B
+        return (Sq * (da_config.bs / split_degrees[2]) * (da_config.Nh[0] / split_degrees[3]) * da_config.D * 2,)    # B
     
     def get_comm_time_from_map_key(self, map_key: tuple) -> float:
-        return map_key[0] / pow(BYTE_MULTPLE_DOWN, 3) / self.BW[1]    # Inter-Machine, GB/s
+        return map_key[0] / pow(BYTE_MULTPLE_DOWN, 3) / self.BW[1]    # Intra-Machine, GB/s
     
     def get_comm_time(self, da_config: Dist_Attn_Config, batch_degrees: list, split_degrees: list) -> float:
         comm_map_key = self.get_comm_map_key(da_config, batch_degrees, split_degrees)
@@ -354,7 +354,7 @@ class Dist_Attn_Schedule():
             return self.ub_cc_time
         _, cc_time = self.get_relative_cc_time()
         assert cc_time.shape == (2, 3, self.da_config.SP[0] * self.da_config.SP[1])
-        self.unit_comp_time = self.m_config.flashattn_profile_map.get_comp_time(self.da_config, [1, 1], self.split_degrees) / 1e6 # (s), [fwd/bwd]
+        self.unit_comp_time = self.m_config.flashattn_profile_map.get_comp_time(self.da_config, [1, 1], self.split_degrees) # (s), [fwd/bwd]
         self.unit_comm_time = self.m_config.get_comm_time(self.da_config, [1, 1], self.split_degrees)    # (s), scalar
         self.ub_cc_time = np.empty((2, 2), dtype=np.float32)    # [fwd/bwd][Comp/Comm]
         self.ub_cc_time[:, 0] = self.ub_comp_units * self.unit_comp_time # (s), [fwd/bwd]
@@ -423,10 +423,12 @@ class Search_Engine():
     def reset_before_search(self):
         # Constrain: x = unpack_func(pack_func(x))
         def pack_func(schedule):
-            global SCHEDULE_UNIQUE_ID
+            SCHEDULE_UNIQUE_ID = get_global_var('SCHEDULE_UNIQUE_ID')
             SCHEDULE_UNIQUE_ID += 1
-            print(f'schedule:\n{schedule.schedule_table}', flush=True)
-            print(f'fob: {self.fob}, get_e2e_time(): {schedule.get_e2e_time()}, get_absolute_cc_time:\n{schedule.get_absolute_cc_time()}')
+            set_global_var('SCHEDULE_UNIQUE_ID', SCHEDULE_UNIQUE_ID)
+            # print(f'SCHEDULE_UNIQUE_ID: {SCHEDULE_UNIQUE_ID}')
+            # print(f'schedule:\n{schedule.schedule_table}', flush=True)
+            # print(f'fob: {self.fob}, get_e2e_time(): {schedule.get_e2e_time()}, get_absolute_cc_time:\n{schedule.get_absolute_cc_time()}')
             return (- schedule.get_e2e_time()[self.fob], SCHEDULE_UNIQUE_ID, schedule)
         def unpack_func(q_item):
             return q_item[2]
@@ -521,7 +523,7 @@ class Search_Engine():
         # search for fwd
         self.fob = 0    # fwd
         self.reset_before_search()
-        self.brute_force_search(self.get_next_unsettled_pos((0, 0, 0, 0)))
+        # self.brute_force_search(self.get_next_unsettled_pos((0, 0, 0, 0)))
         
         # search for bwd
         self.fob = 1    # bwd
@@ -628,17 +630,3 @@ def get_init_schedule_list(da_config, m_config):
             
             # return [qo_schedule, kv_schedule]
             return [qo_schedule, kv_schedule, zigzag_kv_schedule]
-    
-    
-def main():
-    da_config = get_configs()
-    m_config = get_profile_data()
-    init_schedule_list = get_init_schedule_list(da_config, m_config)
-    search_engine = Search_Engine(da_config, m_config, init_schedule_list)
-    search_engine.search_optimal_schedules()
-    global SCHEDULE_UNIQUE_ID
-    print(f'tot schedule: {SCHEDULE_UNIQUE_ID}')
-    
-    
-if __name__ == '__main__':
-    main()
