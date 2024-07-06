@@ -81,7 +81,7 @@ Welcome to the CBC MILP Solver
 Version: 2.10.3 
 Build Date: Dec 15 2019 
 
-command line - /home/yhy/.local/anaconda3/envs/mg/lib/python3.8/site-packages/pulp/solverdir/cbc/linux/64/cbc ./search_algo/tmp/22dd62a9a35544c38983ef1036ddad9b-pulp.mps timeMode elapsed branch printingOptions all solution ./search_algo/tmp/22dd62a9a35544c38983ef1036ddad9b-pulp.sol (default strategy 1)
+command line - /home/yhy/.local/anaconda3/envs/mg/lib/python3.8/site-packages/pulp/solverdir/cbc/linux/64/cbc ./search_algo/tmp/1aba54292de040c5b36f4168e12dcbcf-pulp.mps timeMode elapsed branch printingOptions all solution ./search_algo/tmp/1aba54292de040c5b36f4168e12dcbcf-pulp.sol (default strategy 1)
 At line 2 NAME          MODEL
 At line 3 ROWS
 At line 107 COLUMNS
@@ -151,7 +151,7 @@ Cbc0001I Search completed - best objective 0.0005459569989983699, took 1212 iter
 Cbc0032I Strong branching done 476 times (1830 iterations), fathomed 2 nodes and fixed 25 variables
 Cbc0035I Maximum depth 9, 2 variables fixed on reduced cost
 Cuts at root node changed objective from 0.000286914 to 0.000401814
-Probing was tried 219 times and created 706 cuts of which 0 were active after adding rounds of cuts (0.018 seconds)
+Probing was tried 219 times and created 706 cuts of which 0 were active after adding rounds of cuts (0.019 seconds)
 Gomory was tried 201 times and created 65 cuts of which 0 were active after adding rounds of cuts (0.006 seconds)
 Knapsack was tried 100 times and created 0 cuts of which 0 were active after adding rounds of cuts (0.002 seconds)
 Clique was tried 100 times and created 0 cuts of which 0 were active after adding rounds of cuts (0.001 seconds)
@@ -165,81 +165,11 @@ Result - Optimal solution found
 Objective value:                0.00054596
 Enumerated nodes:               50
 Total iterations:               1212
-Time (CPU seconds):             0.17
+Time (CPU seconds):             0.18
 Time (Wallclock seconds):       0.18
 
 Option for printingOptions changed from normal to all
-Total time (CPU seconds):       0.17   (Wallclock seconds):       0.20
+Total time (CPU seconds):       0.18   (Wallclock seconds):       0.20
 
 TOT_TIME_UP: 0.4600000102072954
-(0, 0, 0, 0, 0): 0.000e+00, 1.150e-04, 1.150e-04
-(0, 0, 1, 0, 0): 1.150e-04, 1.150e-04, 2.300e-04
-(0, 0, 1, 1, 1): 0.000e+00, 1.150e-04, 1.150e-04
-(0, 0, 2, 0, 0): 2.300e-04, 1.150e-04, 3.450e-04
-(0, 0, 2, 1, 1): 3.450e-04, 1.150e-04, 4.600e-04
-(0, 0, 2, 2, 2): 0.000e+00, 1.150e-04, 1.150e-04
-(0, 0, 3, 0, 0): 3.450e-04, 1.150e-04, 4.600e-04
-(0, 0, 3, 1, 1): 1.731e-04, 1.150e-04, 2.881e-04
-(0, 0, 3, 2, 2): 1.150e-04, 1.150e-04, 2.300e-04
-(0, 0, 3, 3, 3): 0.000e+00, 1.150e-04, 1.150e-04
-(0, 0, 1, 1, 0, 'i', 'r'): 0.000e+00, 8.596e-05, 8.596e-05
-(0, 0, 1, 0, 1, 'o', 'r'): 2.881e-04, 8.596e-05, 3.740e-04
-(0, 0, 2, 2, 0, 'i', 'r'): 8.713e-05, 8.596e-05, 1.731e-04
-(0, 0, 2, 0, 2, 'o', 'r'): 3.740e-04, 8.596e-05, 4.600e-04
-(0, 0, 2, 2, 1, 'i', 'r'): 1.731e-04, 8.596e-05, 2.590e-04
-(0, 0, 2, 1, 2, 'o', 'r'): 4.600e-04, 8.596e-05, 5.460e-04
-(0, 0, 3, 3, 0, 'i', 'r'): 1.731e-04, 8.596e-05, 2.590e-04
-(0, 0, 3, 0, 3, 'o', 'r'): 4.600e-04, 8.596e-05, 5.460e-04
-(0, 0, 3, 3, 1, 'i', 'r'): 8.713e-05, 8.596e-05, 1.731e-04
-(0, 0, 3, 1, 3, 'o', 'r'): 2.881e-04, 8.596e-05, 3.740e-04
-(0, 0, 3, 3, 2, 'i', 'r'): 0.000e+00, 8.596e-05, 8.596e-05
-(0, 0, 3, 2, 3, 'o', 'r'): 3.740e-04, 8.596e-05, 4.600e-04
-Streams:
-gpu0, comp: 4
-(0, 0, 0, 0, 0): 0.000e+00, 1.150e-04, 1.150e-04
-(0, 0, 1, 0, 0): 1.150e-04, 1.150e-04, 2.300e-04
-(0, 0, 2, 0, 0): 2.300e-04, 1.150e-04, 3.450e-04
-(0, 0, 3, 0, 0): 3.450e-04, 1.150e-04, 4.600e-04
-gpu0, send: 3
-(0, 0, 1, 0, 1, 'o', 'r'): 2.881e-04, 8.596e-05, 3.740e-04
-(0, 0, 2, 0, 2, 'o', 'r'): 3.740e-04, 8.596e-05, 4.600e-04
-(0, 0, 3, 0, 3, 'o', 'r'): 4.600e-04, 8.596e-05, 5.460e-04
-gpu0, recv: 3
-(0, 0, 1, 1, 0, 'i', 'r'): 0.000e+00, 8.596e-05, 8.596e-05
-(0, 0, 2, 2, 0, 'i', 'r'): 8.713e-05, 8.596e-05, 1.731e-04
-(0, 0, 3, 3, 0, 'i', 'r'): 1.731e-04, 8.596e-05, 2.590e-04
-gpu1, comp: 3
-(0, 0, 1, 1, 1): 0.000e+00, 1.150e-04, 1.150e-04
-(0, 0, 2, 1, 1): 3.450e-04, 1.150e-04, 4.600e-04
-(0, 0, 3, 1, 1): 1.731e-04, 1.150e-04, 2.881e-04
-gpu1, send: 3
-(0, 0, 1, 1, 0, 'i', 'r'): 0.000e+00, 8.596e-05, 8.596e-05
-(0, 0, 2, 1, 2, 'o', 'r'): 4.600e-04, 8.596e-05, 5.460e-04
-(0, 0, 3, 1, 3, 'o', 'r'): 2.881e-04, 8.596e-05, 3.740e-04
-gpu1, recv: 3
-(0, 0, 1, 0, 1, 'o', 'r'): 2.881e-04, 8.596e-05, 3.740e-04
-(0, 0, 2, 2, 1, 'i', 'r'): 1.731e-04, 8.596e-05, 2.590e-04
-(0, 0, 3, 3, 1, 'i', 'r'): 8.713e-05, 8.596e-05, 1.731e-04
-gpu2, comp: 2
-(0, 0, 2, 2, 2): 0.000e+00, 1.150e-04, 1.150e-04
-(0, 0, 3, 2, 2): 1.150e-04, 1.150e-04, 2.300e-04
-gpu2, send: 3
-(0, 0, 2, 2, 0, 'i', 'r'): 8.713e-05, 8.596e-05, 1.731e-04
-(0, 0, 2, 2, 1, 'i', 'r'): 1.731e-04, 8.596e-05, 2.590e-04
-(0, 0, 3, 2, 3, 'o', 'r'): 3.740e-04, 8.596e-05, 4.600e-04
-gpu2, recv: 3
-(0, 0, 2, 0, 2, 'o', 'r'): 3.740e-04, 8.596e-05, 4.600e-04
-(0, 0, 2, 1, 2, 'o', 'r'): 4.600e-04, 8.596e-05, 5.460e-04
-(0, 0, 3, 3, 2, 'i', 'r'): 0.000e+00, 8.596e-05, 8.596e-05
-gpu3, comp: 1
-(0, 0, 3, 3, 3): 0.000e+00, 1.150e-04, 1.150e-04
-gpu3, send: 3
-(0, 0, 3, 3, 0, 'i', 'r'): 1.731e-04, 8.596e-05, 2.590e-04
-(0, 0, 3, 3, 1, 'i', 'r'): 8.713e-05, 8.596e-05, 1.731e-04
-(0, 0, 3, 3, 2, 'i', 'r'): 0.000e+00, 8.596e-05, 8.596e-05
-gpu3, recv: 3
-(0, 0, 3, 0, 3, 'o', 'r'): 4.600e-04, 8.596e-05, 5.460e-04
-(0, 0, 3, 1, 3, 'o', 'r'): 2.881e-04, 8.596e-05, 3.740e-04
-(0, 0, 3, 2, 3, 'o', 'r'): 3.740e-04, 8.596e-05, 4.600e-04
-objective=5.460e-04
 + set +x

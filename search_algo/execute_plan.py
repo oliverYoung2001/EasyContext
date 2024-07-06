@@ -6,8 +6,9 @@ from search_algo.dependent_graph import Dependent_Graph
 import pulp
 import regex as re
 import random
+import json
 
-class Execute_Engine(): # input: kernel streams of gpus
+class Execution_Plan(): # input: kernel streams of gpus
     def __init__(self, d_graph: Dependent_Graph, fob: bool):
         self.d_graph = d_graph
         self.da_config = d_graph.da_config
@@ -17,10 +18,9 @@ class Execute_Engine(): # input: kernel streams of gpus
         self.tot_sp = d_graph.tot_sp
         print(f'schedule:\n{d_graph.schedule.schedule_table}', flush=True)
         print(f'fob: {fob}, get_e2e_time(): {d_graph.schedule.get_e2e_time()}, get_absolute_cc_time:\n{d_graph.schedule.get_absolute_cc_time()}', flush=True)
-        self.generate_cuda_stream_events()
-        self.parse_lp_result()
+        self.generate_execution_plan()
         
-    def generate_cuda_stream_events(self):
+    def generate_execution_plan(self):
         fob = self.fob
         d_graph = self.d_graph
         TOT_TIME_UP = d_graph.schedule.get_e2e_time()[fob] * 1000
@@ -90,38 +90,30 @@ class Execute_Engine(): # input: kernel streams of gpus
         mylp.solve()
         self.mylp = mylp
         self.stream_kernel_lists = stream_kernel_lists
+        
+        # post process
+        
+        # sort all kernels in each stream according to start_time
+        for g in range(self.tot_sp):
+            for s in range(3):
+                self.stream_kernel_lists[(g, s)].sort(key=lambda x: x.start_time.value())
+    
         return mylp
     
-    def parse_lp_result(self):
+    def print_lp_result(self):
         fob = self.fob
         d_graph = self.d_graph
         mylp = self.mylp
         for v in d_graph.kernel_dict.values():
             if not v.is_empty(fob):
                 print(f'{v.key}: {v.start_time.value():.3e}, {v.time[fob]:.3e}, {(v.start_time.value() + v.time[fob]):.3e}')
+        
         print(f'Streams:')
         for g in range(self.tot_sp):
             for s in range(3):
                 print(f"gpu{g}, {['comp', 'send', 'recv'][s]}: {len(self.stream_kernel_lists[(g, s)])}")
                 for v in self.stream_kernel_lists[(g, s)]:
                     print(f'{v.key}: {v.start_time.value():.3e}, {v.time[fob]:.3e}, {(v.start_time.value() + v.time[fob]):.3e}')
-        # hold_pat = re.compile(r'hold_([\d]*)__([\d]*)__([\d]*)_', re.I)
-        # send_pat = re.compile(r'send_([\d]*)__([\d]*)__([\d]*)__([\d]*)_', re.I)
-        # hold_ = np.zeros((C, N, Tmax + 1), dtype=np.int32)
-        # send_ = np.zeros((C, N, N, Tmax), dtype=np.int32)
-        # for v in mylp.variables():
-            # match_obj = re.match(hold_pat, v.name)
-            # if match_obj:       # hold
-            #     groups = match_obj.groups()
-            #     hold_[tuple(int(g) for g in groups)] = int(v.varValue)
-            # else:
-            #     match_obj = re.match(send_pat, v.name)
-            #     assert(match_obj)
-            #     groups = match_obj.groups()
-            #     send_[tuple(int(g) for g in groups)] = int(v.varValue)
-                
-            # print(v.name, "=", v.varValue)
-            # solution.append(v.varValue)
-        # print(f'hold_: {hold_}')
         print(f'objective={pulp.value(mylp.objective):.3e}')
-    
+        
+            
