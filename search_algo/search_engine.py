@@ -532,7 +532,7 @@ class Search_Engine():
 
 
 def get_configs():
-    SP0, SP1 = 4, 1
+    SP0, SP1 = 1, 4
     Sq = Skv = 16 * 1024   # 16k
     Sq = Skv = 8 * 1024   # 8k
     Sq = Skv = 4 * 1024   # 4k

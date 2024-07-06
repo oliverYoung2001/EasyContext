@@ -81,7 +81,7 @@ Welcome to the CBC MILP Solver
 Version: 2.10.3 
 Build Date: Dec 15 2019 
 
-command line - /home/yhy/.local/anaconda3/envs/mg/lib/python3.8/site-packages/pulp/solverdir/cbc/linux/64/cbc ./search_algo/tmp/1aba54292de040c5b36f4168e12dcbcf-pulp.mps timeMode elapsed branch printingOptions all solution ./search_algo/tmp/1aba54292de040c5b36f4168e12dcbcf-pulp.sol (default strategy 1)
+command line - /home/yhy/.local/anaconda3/envs/mg/lib/python3.8/site-packages/pulp/solverdir/cbc/linux/64/cbc ./search_algo/tmp/a490a2075c2c4c1fa7143f1ee30f935c-pulp.mps timeMode elapsed branch printingOptions all solution ./search_algo/tmp/a490a2075c2c4c1fa7143f1ee30f935c-pulp.sol (default strategy 1)
 At line 2 NAME          MODEL
 At line 3 ROWS
 At line 107 COLUMNS
@@ -134,9 +134,9 @@ Cbc0038I Pass  31: suminf.    0.00345 (12) obj. 0.000511053 iterations 18
 Cbc0038I No solution found this major pass
 Cbc0038I Before mini branch and bound, 0 integers at bound fixed and 0 continuous
 Cbc0038I Full problem 101 rows 56 columns, reduced to 101 rows 56 columns
-Cbc0038I Mini branch and bound did not improve solution (0.07 seconds)
-Cbc0038I After 0.07 seconds - Feasibility pump exiting with objective of 0.000545957 - took 0.06 seconds
-Cbc0012I Integer solution of 0.000545957 found by feasibility pump after 0 iterations and 0 nodes (0.07 seconds)
+Cbc0038I Mini branch and bound did not improve solution (0.06 seconds)
+Cbc0038I After 0.06 seconds - Feasibility pump exiting with objective of 0.000545957 - took 0.06 seconds
+Cbc0012I Integer solution of 0.000545957 found by feasibility pump after 0 iterations and 0 nodes (0.06 seconds)
 Cbc0031I 7 added rows had average density of 3.1428571
 Cbc0013I At root node, 7 cuts changed objective from 0.000286914 to 0.00040181397 in 100 passes
 Cbc0014I Cut generator 0 (Probing) - 210 row cuts average 3.5 elements, 7 column cuts (7 active)  in 0.011 seconds - new frequency is 1
@@ -145,7 +145,7 @@ Cbc0014I Cut generator 2 (Knapsack) - 0 row cuts average 0.0 elements, 0 column 
 Cbc0014I Cut generator 3 (Clique) - 0 row cuts average 0.0 elements, 0 column cuts (0 active)  in 0.001 seconds - new frequency is -100
 Cbc0014I Cut generator 4 (MixedIntegerRounding2) - 11 row cuts average 2.0 elements, 0 column cuts (0 active)  in 0.003 seconds - new frequency is 1
 Cbc0014I Cut generator 5 (FlowCover) - 0 row cuts average 0.0 elements, 0 column cuts (0 active)  in 0.005 seconds - new frequency is -100
-Cbc0010I After 0 nodes, 1 on tree, 0.000545957 best solution, best possible 0.00040181397 (0.11 seconds)
+Cbc0010I After 0 nodes, 1 on tree, 0.000545957 best solution, best possible 0.00040181397 (0.10 seconds)
 Cbc0038I Full problem 101 rows 56 columns, reduced to 101 rows 35 columns
 Cbc0001I Search completed - best objective 0.0005459569989983699, took 1212 iterations and 50 nodes (0.18 seconds)
 Cbc0032I Strong branching done 476 times (1830 iterations), fathomed 2 nodes and fixed 25 variables
@@ -165,11 +165,81 @@ Result - Optimal solution found
 Objective value:                0.00054596
 Enumerated nodes:               50
 Total iterations:               1212
-Time (CPU seconds):             0.18
+Time (CPU seconds):             0.17
 Time (Wallclock seconds):       0.18
 
 Option for printingOptions changed from normal to all
-Total time (CPU seconds):       0.18   (Wallclock seconds):       0.20
+Total time (CPU seconds):       0.17   (Wallclock seconds):       0.20
 
 TOT_TIME_UP: 0.4600000102072954
+(0, 0, 0, 0, 0): 0.000e+00, 1.150e-04, 1.150e-04
+(0, 0, 1, 0, 0): 1.150e-04, 1.150e-04, 2.300e-04
+(0, 0, 1, 1, 1): 0.000e+00, 1.150e-04, 1.150e-04
+(0, 0, 2, 0, 0): 2.300e-04, 1.150e-04, 3.450e-04
+(0, 0, 2, 1, 1): 3.450e-04, 1.150e-04, 4.600e-04
+(0, 0, 2, 2, 2): 0.000e+00, 1.150e-04, 1.150e-04
+(0, 0, 3, 0, 0): 3.450e-04, 1.150e-04, 4.600e-04
+(0, 0, 3, 1, 1): 1.731e-04, 1.150e-04, 2.881e-04
+(0, 0, 3, 2, 2): 1.150e-04, 1.150e-04, 2.300e-04
+(0, 0, 3, 3, 3): 0.000e+00, 1.150e-04, 1.150e-04
+(0, 0, 1, 1, 0, 'i', 'r'): 0.000e+00, 8.596e-05, 8.596e-05
+(0, 0, 1, 0, 1, 'o', 'r'): 2.881e-04, 8.596e-05, 3.740e-04
+(0, 0, 2, 2, 0, 'i', 'r'): 8.713e-05, 8.596e-05, 1.731e-04
+(0, 0, 2, 0, 2, 'o', 'r'): 3.740e-04, 8.596e-05, 4.600e-04
+(0, 0, 2, 2, 1, 'i', 'r'): 1.731e-04, 8.596e-05, 2.590e-04
+(0, 0, 2, 1, 2, 'o', 'r'): 4.600e-04, 8.596e-05, 5.460e-04
+(0, 0, 3, 3, 0, 'i', 'r'): 1.731e-04, 8.596e-05, 2.590e-04
+(0, 0, 3, 0, 3, 'o', 'r'): 4.600e-04, 8.596e-05, 5.460e-04
+(0, 0, 3, 3, 1, 'i', 'r'): 8.713e-05, 8.596e-05, 1.731e-04
+(0, 0, 3, 1, 3, 'o', 'r'): 2.881e-04, 8.596e-05, 3.740e-04
+(0, 0, 3, 3, 2, 'i', 'r'): 0.000e+00, 8.596e-05, 8.596e-05
+(0, 0, 3, 2, 3, 'o', 'r'): 3.740e-04, 8.596e-05, 4.600e-04
+Streams:
+gpu0, comp: 4
+(0, 0, 0, 0, 0): 0.000e+00, 1.150e-04, 1.150e-04
+(0, 0, 1, 0, 0): 1.150e-04, 1.150e-04, 2.300e-04
+(0, 0, 2, 0, 0): 2.300e-04, 1.150e-04, 3.450e-04
+(0, 0, 3, 0, 0): 3.450e-04, 1.150e-04, 4.600e-04
+gpu0, send: 3
+(0, 0, 1, 0, 1, 'o', 'r'): 2.881e-04, 8.596e-05, 3.740e-04
+(0, 0, 2, 0, 2, 'o', 'r'): 3.740e-04, 8.596e-05, 4.600e-04
+(0, 0, 3, 0, 3, 'o', 'r'): 4.600e-04, 8.596e-05, 5.460e-04
+gpu0, recv: 3
+(0, 0, 1, 1, 0, 'i', 'r'): 0.000e+00, 8.596e-05, 8.596e-05
+(0, 0, 2, 2, 0, 'i', 'r'): 8.713e-05, 8.596e-05, 1.731e-04
+(0, 0, 3, 3, 0, 'i', 'r'): 1.731e-04, 8.596e-05, 2.590e-04
+gpu1, comp: 3
+(0, 0, 1, 1, 1): 0.000e+00, 1.150e-04, 1.150e-04
+(0, 0, 3, 1, 1): 1.731e-04, 1.150e-04, 2.881e-04
+(0, 0, 2, 1, 1): 3.450e-04, 1.150e-04, 4.600e-04
+gpu1, send: 3
+(0, 0, 1, 1, 0, 'i', 'r'): 0.000e+00, 8.596e-05, 8.596e-05
+(0, 0, 3, 1, 3, 'o', 'r'): 2.881e-04, 8.596e-05, 3.740e-04
+(0, 0, 2, 1, 2, 'o', 'r'): 4.600e-04, 8.596e-05, 5.460e-04
+gpu1, recv: 3
+(0, 0, 3, 3, 1, 'i', 'r'): 8.713e-05, 8.596e-05, 1.731e-04
+(0, 0, 2, 2, 1, 'i', 'r'): 1.731e-04, 8.596e-05, 2.590e-04
+(0, 0, 1, 0, 1, 'o', 'r'): 2.881e-04, 8.596e-05, 3.740e-04
+gpu2, comp: 2
+(0, 0, 2, 2, 2): 0.000e+00, 1.150e-04, 1.150e-04
+(0, 0, 3, 2, 2): 1.150e-04, 1.150e-04, 2.300e-04
+gpu2, send: 3
+(0, 0, 2, 2, 0, 'i', 'r'): 8.713e-05, 8.596e-05, 1.731e-04
+(0, 0, 2, 2, 1, 'i', 'r'): 1.731e-04, 8.596e-05, 2.590e-04
+(0, 0, 3, 2, 3, 'o', 'r'): 3.740e-04, 8.596e-05, 4.600e-04
+gpu2, recv: 3
+(0, 0, 3, 3, 2, 'i', 'r'): 0.000e+00, 8.596e-05, 8.596e-05
+(0, 0, 2, 0, 2, 'o', 'r'): 3.740e-04, 8.596e-05, 4.600e-04
+(0, 0, 2, 1, 2, 'o', 'r'): 4.600e-04, 8.596e-05, 5.460e-04
+gpu3, comp: 1
+(0, 0, 3, 3, 3): 0.000e+00, 1.150e-04, 1.150e-04
+gpu3, send: 3
+(0, 0, 3, 3, 2, 'i', 'r'): 0.000e+00, 8.596e-05, 8.596e-05
+(0, 0, 3, 3, 1, 'i', 'r'): 8.713e-05, 8.596e-05, 1.731e-04
+(0, 0, 3, 3, 0, 'i', 'r'): 1.731e-04, 8.596e-05, 2.590e-04
+gpu3, recv: 3
+(0, 0, 3, 1, 3, 'o', 'r'): 2.881e-04, 8.596e-05, 3.740e-04
+(0, 0, 3, 2, 3, 'o', 'r'): 3.740e-04, 8.596e-05, 4.600e-04
+(0, 0, 3, 0, 3, 'o', 'r'): 4.600e-04, 8.596e-05, 5.460e-04
+objective=5.460e-04
 + set +x

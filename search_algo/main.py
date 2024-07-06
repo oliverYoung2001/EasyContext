@@ -30,13 +30,14 @@ def main():
     d_graph = Dependent_Graph(example_schedule, fob, 1) # Intra-machine
     execute_plan = Execution_Plan(d_graph, fob)
     # dump plan
-    plan_file = f'{os.path.dirname(__file__)}/execution_plans/plan0.pkl'
+    plan_name = execute_plan.get_plan_name()
+    plan_file = f'{os.path.dirname(__file__)}/execution_plans/{plan_name}.pkl'
     with open(plan_file, 'wb') as f:
         pickle.dump(execute_plan, f)
-    # # load plan
-    # with open(plan_file, 'rb') as f:
-    #     execute_plan_loaded = pickle.load(f)
-    # execute_plan_loaded.print_lp_result()
+    # load plan
+    with open(plan_file, 'rb') as f:
+        execute_plan_loaded = pickle.load(f)
+    execute_plan_loaded.print_lp_result()
     
 if __name__ == '__main__':
     main()

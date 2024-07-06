@@ -19,6 +19,10 @@ class Execution_Plan(): # input: kernel streams of gpus
         print(f'schedule:\n{d_graph.schedule.schedule_table}', flush=True)
         print(f'fob: {fob}, get_e2e_time(): {d_graph.schedule.get_e2e_time()}, get_absolute_cc_time:\n{d_graph.schedule.get_absolute_cc_time()}', flush=True)
         self.generate_execution_plan()
+    
+    def get_plan_name(self):
+        da_config = self.da_config
+        return f'S={da_config.S}_SP={da_config.SP}_causal={da_config.causal}_fob={self.fob}_b={da_config.bs}_Nh={da_config.Nh}_D={da_config.D}'
         
     def generate_execution_plan(self):
         fob = self.fob
