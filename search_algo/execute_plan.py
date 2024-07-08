@@ -43,9 +43,10 @@ class Execution_Plan(): # input: kernel streams of gpus
         end_time = pulp.LpVariable(f'end_time', cat=pulp.const.LpContinuous, lowBound=0)
         # Constraints
         # 1. stream exclusive
+        self.stream_num = 3
         stream_kernel_lists = {}  # (tot_sp, 3) -> list, 3 stands for comp, send, recv
         for g in range(self.tot_sp):
-            for s in range(3):
+            for s in range(self.stream_num):
                 stream_kernel_lists[(g, s)] = []
         for v in self.valid_kernels:
             if v.type == 'comp':
@@ -99,9 +100,15 @@ class Execution_Plan(): # input: kernel streams of gpus
         
         # sort all kernels in each stream according to start_time
         for g in range(self.tot_sp):
-            for s in range(3):
+            for s in range(self.stream_num):
                 self.stream_kernel_lists[(g, s)].sort(key=lambda x: x.start_time.value())
-    
+        self.gpu_kernel_lists = []
+        for g in range(self.tot_sp):
+            kernel_list = []
+            for s in range(self.stream_num):
+                kernel_list += self.stream_kernel_lists[(g, s)]
+            kernel_list.sort(key=lambda x: x.start_time.value())
+            self.gpu_kernel_lists.append(kernel_list)
         return mylp
     
     def print_lp_result(self):

@@ -33,7 +33,7 @@ class Comp_Kernel(Cuda_Kernel):
     def __init__(self, key: tuple, m_config: Machine_Config, flashattn_map_key: tuple):
         # dict keys: (b_id, h_id, r_id, c_id, gpuid)
         super().__init__(key, m_config, 'comp')
-        # flashattn profile map_key: 
+        # flashattn profile map_key:
         self.flashattn_map_key = flashattn_map_key
         # kernel time
         self.time = m_config.flashattn_profile_map.get_comp_time_from_map_key(flashattn_map_key)    # [fwd/bwd]

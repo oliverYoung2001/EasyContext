@@ -10,6 +10,7 @@ from ring_flash_attn import (
     stripe_flash_attn_func,
 )
 from hierarchy_attn.hierarchy_attn_impl import hierarchy_attn_func
+from orchestrated_attn.orchestrated_attn_impl import orchestrated_attn_func
 import torch.cuda
 import argparse
 import os
@@ -18,10 +19,12 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__),
                                              os.path.pardir)))
 from easy_context.dist_flash_attn.lightseq_async_attn import attention as lightseq_attn
 from easy_context.dist_flash_attn.async_communication import initialize_distributed
+from search_algo.search_engine import Dist_Attn_Config
 import inspect
 import warnings
 import time
 import socket
+import pickle
 from functools import partial
 warnings.filterwarnings("ignore")   # disable warning caused by lightseq
 
@@ -166,6 +169,20 @@ def benchmark(args, f, shapes:dict, qkv_buf, dout_buf, warmup=5, num_iter=20, fo
         "PROC_INFO": PROC_INFO,
         "groups": {},
     }
+    if f == orchestrated_attn_func:
+        SP = (1, world_size)
+        Ss = (seqlen * world_size, seqlen * world_size)
+        Nhs = (nheads, nheads)
+        bs = batch_size
+        da_config = Dist_Attn_Config(SP=SP, S=Ss, Nh=Nhs, D=d, bs=batch_size, causal=causal)
+        plan_name = da_config.get_plan_name(fob=0 if forward_only else 1)
+        plan_file = f'{os.path.dirname(__file__)}/search_algo/execution_plans/{plan_name}.pkl'
+        # load plan
+        with open(plan_file, 'rb') as fin:
+            execution_plan = pickle.load(fin)
+        # if rank == 0:
+        #     execution_plan.print_lp_result()
+        inputs['execution_plan'] = execution_plan
     inputs = filter_kwargs(f, inputs)
 
     is_runned = False
@@ -277,28 +294,30 @@ def main(args):
     
     funcs = [
         # ring_flash_attn_func,
-        zigzag_ring_flash_attn_func,
+        # zigzag_ring_flash_attn_func,
         # zigzag_ring_flash_attn_func_opt,
         # stripe_flash_attn_func,
         # lightseq_attn_func,
         # flash_attn_func,
-        hierarchy_attn_func,
-        overlapped_hierarchy_attn_func,
+        # hierarchy_attn_func,
+        # overlapped_hierarchy_attn_func,
+        orchestrated_attn_func,
     ]
     bs = 1
     D = 128
     Ss = [
-        8 * 1024,   # 8K
-        16 * 1024,  # 16K
-        32 * 1024,   # 32K
-        64 * 1024,   # 64K
-        128 * 1024,   # 128K
-        256 * 1024,   # 256K
+        4 * 1024,   # 4K
+        # 8 * 1024,   # 8K
+        # 16 * 1024,  # 16K
+        # 32 * 1024,   # 32K
+        # 64 * 1024,   # 64K
+        # 128 * 1024,   # 128K
+        # 256 * 1024,   # 256K
     ]
     Nhs = [ # configs of llama2
-    #    32,  # 7b
+       32,  # 7b
     #    40,  # 13b
-       80,  # 70b 
+    #    80,  # 70b 
     ]
     qkv_buf = torch.randn(
         (3 * bs * max(Ss) * max(Nhs) * D), device=device, dtype=DTYPE, requires_grad=False

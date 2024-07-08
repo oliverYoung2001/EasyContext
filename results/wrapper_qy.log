@@ -1,107 +1,87 @@
 + export CUDA_DEVICE_MAX_CONNECTIONS=1
 + CUDA_DEVICE_MAX_CONNECTIONS=1
-+ srun -p rag -N 2 --ntasks-per-node=8 --gres=gpu:8 --mem 256G -K -w g3015,g3018 -c 16 ./scripts/bench_ring_attn.sh python bench_ring_attn.py --profiler-with-tensorboard --tb-dir ./tb
-srun: job 3517 queued and waiting for resources
-srun: job 3517 has been allocated resources
++ srun -p rag -N 1 --ntasks-per-node=4 --gres=gpu:4 --mem 256G -K -w g3017 -c 16 ./scripts/bench_ring_attn.sh python bench_ring_attn.py
+srun: job 7582 queued and waiting for resources
+srun: job 7582 has been allocated resources
 torch distributed is already initialized, skipping initialization ...
 ************ Finish sequence pralell group Initialization. ***********
-S=16384
-# overlapped_hierarchy_attn_func, fwd
-[W kineto_shim.cpp:372] Profiler is not initialized: skipping step() invocation
-[W kineto_shim.cpp:372] Profiler is not initialized: skipping step() invocation
-[W kineto_shim.cpp:372] Profiler is not initialized: skipping step() invocation
-[W kineto_shim.cpp:372] Profiler is not initialized: skipping step() invocation
-[W kineto_shim.cpp:372] Profiler is not initialized: skipping step() invocation
-[W kineto_shim.cpp:372] Profiler is not initialized: skipping step() invocation
-[W kineto_shim.cpp:372] Profiler is not initialized: skipping step() invocation
-[W kineto_shim.cpp:372] Profiler is not initialized: skipping step() invocation
-[W kineto_shim.cpp:372] Profiler is not initialized: skipping step() invocation
-[W kineto_shim.cpp:372] Profiler is not initialized: skipping step() invocation
-[W kineto_shim.cpp:372] Profiler is not initialized: skipping step() invocation
-[W kineto_shim.cpp:372] Profiler is not initialized: skipping step() invocation
-[W kineto_shim.cpp:372] Profiler is not initialized: skipping step() invocation
-[W kineto_shim.cpp:372] Profiler is not initialized: skipping step() invocation
-[W kineto_shim.cpp:372] Profiler is not initialized: skipping step() invocation
-[W kineto_shim.cpp:372] Profiler is not initialized: skipping step() invocation
-[W kineto_shim.cpp:372] Profiler is not initialized: skipping step() invocation
-[W kineto_shim.cpp:372] Profiler is not initialized: skipping step() invocation
-[W kineto_shim.cpp:372] Profiler is not initialized: skipping step() invocation
-[W kineto_shim.cpp:372] Profiler is not initialized: skipping step() invocation
-[W kineto_shim.cpp:372] Profiler is not initialized: skipping step() invocation
-[W kineto_shim.cpp:372] Profiler is not initialized: skipping step() invocation
-[W kineto_shim.cpp:372] Profiler is not initialized: skipping step() invocation
-[W kineto_shim.cpp:372] Profiler is not initialized: skipping step() invocation
-[W kineto_shim.cpp:372] Profiler is not initialized: skipping step() invocation
-[W kineto_shim.cpp:372] Profiler is not initialized: skipping step() invocation
-[W kineto_shim.cpp:372] Profiler is not initialized: skipping step() invocation
-[W kineto_shim.cpp:372] Profiler is not initialized: skipping step() invocation
-[W kineto_shim.cpp:372] Profiler is not initialized: skipping step() invocation
-[W kineto_shim.cpp:372] Profiler is not initialized: skipping step() invocation
-[W kineto_shim.cpp:372] Profiler is not initialized: skipping step() invocation
-[W kineto_shim.cpp:372] Profiler is not initialized: skipping step() invocation
-[W kineto_shim.cpp:372] Profiler is not initialized: skipping step() invocation
-[W kineto_shim.cpp:372] Profiler is not initialized: skipping step() invocation
-[W kineto_shim.cpp:372] Profiler is not initialized: skipping step() invocation
-[W kineto_shim.cpp:372] Profiler is not initialized: skipping step() invocation
-[W kineto_shim.cpp:372] Profiler is not initialized: skipping step() invocation
-[W kineto_shim.cpp:372] Profiler is not initialized: skipping step() invocation
-[W kineto_shim.cpp:372] Profiler is not initialized: skipping step() invocation
-[W kineto_shim.cpp:372] Profiler is not initialized: skipping step() invocation
-[W kineto_shim.cpp:372] Profiler is not initialized: skipping step() invocation
-[W kineto_shim.cpp:372] Profiler is not initialized: skipping step() invocation
-[W kineto_shim.cpp:372] Profiler is not initialized: skipping step() invocation
-[W kineto_shim.cpp:372] Profiler is not initialized: skipping step() invocation
-[W kineto_shim.cpp:372] Profiler is not initialized: skipping step() invocation
-[W kineto_shim.cpp:372] Profiler is not initialized: skipping step() invocation
-[W kineto_shim.cpp:372] Profiler is not initialized: skipping step() invocation
-[W kineto_shim.cpp:372] Profiler is not initialized: skipping step() invocation
-STAGE:2024-06-19 14:26:26 344672:344672 ActivityProfilerController.cpp:312] Completed Stage: Warm Up
-STAGE:2024-06-19 14:26:26 344674:344674 ActivityProfilerController.cpp:312] Completed Stage: Warm Up
-STAGE:2024-06-19 14:26:26 344667:344667 ActivityProfilerController.cpp:312] Completed Stage: Warm Up
-STAGE:2024-06-19 14:26:26 344668:344668 ActivityProfilerController.cpp:312] Completed Stage: Warm Up
-STAGE:2024-06-19 14:26:26 344669:344669 ActivityProfilerController.cpp:312] Completed Stage: Warm Up
-STAGE:2024-06-19 14:26:26 344670:344670 ActivityProfilerController.cpp:312] Completed Stage: Warm Up
-STAGE:2024-06-19 14:26:26 344671:344671 ActivityProfilerController.cpp:312] Completed Stage: Warm Up
-STAGE:2024-06-19 14:26:26 344673:344673 ActivityProfilerController.cpp:312] Completed Stage: Warm Up
-STAGE:2024-06-19 14:26:26 3405086:3405086 ActivityProfilerController.cpp:312] Completed Stage: Warm Up
-STAGE:2024-06-19 14:26:26 3405087:3405087 ActivityProfilerController.cpp:312] Completed Stage: Warm Up
-STAGE:2024-06-19 14:26:26 3405088:3405088 ActivityProfilerController.cpp:312] Completed Stage: Warm Up
-STAGE:2024-06-19 14:26:26 3405089:3405089 ActivityProfilerController.cpp:312] Completed Stage: Warm Up
-STAGE:2024-06-19 14:26:26 3405090:3405090 ActivityProfilerController.cpp:312] Completed Stage: Warm Up
-STAGE:2024-06-19 14:26:26 3405091:3405091 ActivityProfilerController.cpp:312] Completed Stage: Warm Up
-STAGE:2024-06-19 14:26:26 3405092:3405092 ActivityProfilerController.cpp:312] Completed Stage: Warm Up
-STAGE:2024-06-19 14:26:26 3405093:3405093 ActivityProfilerController.cpp:312] Completed Stage: Warm Up
-STAGE:2024-06-19 14:26:27 344672:344672 ActivityProfilerController.cpp:318] Completed Stage: Collection
-STAGE:2024-06-19 14:26:27 344668:344668 ActivityProfilerController.cpp:318] Completed Stage: Collection
-STAGE:2024-06-19 14:26:27 344673:344673 ActivityProfilerController.cpp:318] Completed Stage: Collection
-STAGE:2024-06-19 14:26:27 344674:344674 ActivityProfilerController.cpp:318] Completed Stage: Collection
-STAGE:2024-06-19 14:26:27 344669:344669 ActivityProfilerController.cpp:318] Completed Stage: Collection
-STAGE:2024-06-19 14:26:27 344671:344671 ActivityProfilerController.cpp:318] Completed Stage: Collection
-STAGE:2024-06-19 14:26:27 344667:344667 ActivityProfilerController.cpp:318] Completed Stage: Collection
-STAGE:2024-06-19 14:26:27 3405092:3405092 ActivityProfilerController.cpp:318] Completed Stage: Collection
-STAGE:2024-06-19 14:26:27 344670:344670 ActivityProfilerController.cpp:318] Completed Stage: Collection
-STAGE:2024-06-19 14:26:27 3405091:3405091 ActivityProfilerController.cpp:318] Completed Stage: Collection
-STAGE:2024-06-19 14:26:27 3405090:3405090 ActivityProfilerController.cpp:318] Completed Stage: Collection
-STAGE:2024-06-19 14:26:27 3405088:3405088 ActivityProfilerController.cpp:318] Completed Stage: Collection
-STAGE:2024-06-19 14:26:27 3405087:3405087 ActivityProfilerController.cpp:318] Completed Stage: Collection
-STAGE:2024-06-19 14:26:27 3405086:3405086 ActivityProfilerController.cpp:318] Completed Stage: Collection
-STAGE:2024-06-19 14:26:27 3405089:3405089 ActivityProfilerController.cpp:318] Completed Stage: Collection
-STAGE:2024-06-19 14:26:27 3405093:3405093 ActivityProfilerController.cpp:318] Completed Stage: Collection
-STAGE:2024-06-19 14:26:27 344667:344667 ActivityProfilerController.cpp:322] Completed Stage: Post Processing
-STAGE:2024-06-19 14:26:27 344674:344674 ActivityProfilerController.cpp:322] Completed Stage: Post Processing
-STAGE:2024-06-19 14:26:27 344669:344669 ActivityProfilerController.cpp:322] Completed Stage: Post Processing
-STAGE:2024-06-19 14:26:27 344673:344673 ActivityProfilerController.cpp:322] Completed Stage: Post Processing
-STAGE:2024-06-19 14:26:27 344670:344670 ActivityProfilerController.cpp:322] Completed Stage: Post Processing
-STAGE:2024-06-19 14:26:27 344668:344668 ActivityProfilerController.cpp:322] Completed Stage: Post Processing
-STAGE:2024-06-19 14:26:27 344671:344671 ActivityProfilerController.cpp:322] Completed Stage: Post Processing
-STAGE:2024-06-19 14:26:27 344672:344672 ActivityProfilerController.cpp:322] Completed Stage: Post Processing
-STAGE:2024-06-19 14:26:27 3405087:3405087 ActivityProfilerController.cpp:322] Completed Stage: Post Processing
-STAGE:2024-06-19 14:26:27 3405089:3405089 ActivityProfilerController.cpp:322] Completed Stage: Post Processing
-STAGE:2024-06-19 14:26:27 3405091:3405091 ActivityProfilerController.cpp:322] Completed Stage: Post Processing
-STAGE:2024-06-19 14:26:27 3405093:3405093 ActivityProfilerController.cpp:322] Completed Stage: Post Processing
-STAGE:2024-06-19 14:26:27 3405092:3405092 ActivityProfilerController.cpp:322] Completed Stage: Post Processing
-STAGE:2024-06-19 14:26:27 3405086:3405086 ActivityProfilerController.cpp:322] Completed Stage: Post Processing
-STAGE:2024-06-19 14:26:27 3405090:3405090 ActivityProfilerController.cpp:322] Completed Stage: Post Processing
-STAGE:2024-06-19 14:26:27 3405088:3405088 ActivityProfilerController.cpp:322] Completed Stage: Post Processing
-mfu: 0.762 Tflops/s, hfu: 0.762 Tflops/s, 5.543 iter/s, 3.608 sec
+Nh=32, S=4096
+# orchestrated_attn_func, fwd
+Traceback (most recent call last):
+  File "/home/zhaijidong/yhy/llm/EasyContext/bench_ring_attn.py", line 346, in <module>
+    main(parse_args())
+  File "/home/zhaijidong/yhy/llm/EasyContext/bench_ring_attn.py", line 341, in main
+    benchmark(args, f, shapes, qkv_buf, dout_buf, forward_only=True, log=True)
+  File "/home/zhaijidong/yhy/llm/EasyContext/bench_ring_attn.py", line 197, in benchmark
+    _ = f(**inputs)
+  File "/home/zhaijidong/yhy/llm/EasyContext/orchestrated_attn/orchestrated_attn_impl.py", line 270, in orchestrated_attn_func
+    return OrchestratedAttnFunc.apply(
+  File "/home/zhaijidong/miniconda3/envs/yhy_easycontext/lib/python3.10/site-packages/torch/autograd/function.py", line 539, in apply
+    return super().apply(*args, **kwargs)  # type: ignore[misc]
+  File "/home/zhaijidong/yhy/llm/EasyContext/orchestrated_attn/orchestrated_attn_impl.py", line 206, in forward
+    out, softmax_lse = orchestrated_attn_forward(
+  File "/home/zhaijidong/yhy/llm/EasyContext/orchestrated_attn/orchestrated_attn_impl.py", line 148, in orchestrated_attn_forward
+    return intra_attn_forward(
+  File "/home/zhaijidong/yhy/llm/EasyContext/orchestrated_attn/orchestrated_attn_impl.py", line 86, in intra_attn_forward
+    for _ in range(1, execution_plan.stream_num):
+AttributeError: 'Execution_Plan' object has no attribute 'stream_num'
+Traceback (most recent call last):
+  File "/home/zhaijidong/yhy/llm/EasyContext/bench_ring_attn.py", line 346, in <module>
+    main(parse_args())
+  File "/home/zhaijidong/yhy/llm/EasyContext/bench_ring_attn.py", line 341, in main
+    benchmark(args, f, shapes, qkv_buf, dout_buf, forward_only=True, log=True)
+  File "/home/zhaijidong/yhy/llm/EasyContext/bench_ring_attn.py", line 197, in benchmark
+    _ = f(**inputs)
+  File "/home/zhaijidong/yhy/llm/EasyContext/orchestrated_attn/orchestrated_attn_impl.py", line 270, in orchestrated_attn_func
+    return OrchestratedAttnFunc.apply(
+  File "/home/zhaijidong/miniconda3/envs/yhy_easycontext/lib/python3.10/site-packages/torch/autograd/function.py", line 539, in apply
+    return super().apply(*args, **kwargs)  # type: ignore[misc]
+  File "/home/zhaijidong/yhy/llm/EasyContext/orchestrated_attn/orchestrated_attn_impl.py", line 206, in forward
+    out, softmax_lse = orchestrated_attn_forward(
+  File "/home/zhaijidong/yhy/llm/EasyContext/orchestrated_attn/orchestrated_attn_impl.py", line 148, in orchestrated_attn_forward
+    return intra_attn_forward(
+  File "/home/zhaijidong/yhy/llm/EasyContext/orchestrated_attn/orchestrated_attn_impl.py", line 86, in intra_attn_forward
+    for _ in range(1, execution_plan.stream_num):
+AttributeError: 'Execution_Plan' object has no attribute 'stream_num'
+Traceback (most recent call last):
+  File "/home/zhaijidong/yhy/llm/EasyContext/bench_ring_attn.py", line 346, in <module>
+    main(parse_args())
+  File "/home/zhaijidong/yhy/llm/EasyContext/bench_ring_attn.py", line 341, in main
+    benchmark(args, f, shapes, qkv_buf, dout_buf, forward_only=True, log=True)
+  File "/home/zhaijidong/yhy/llm/EasyContext/bench_ring_attn.py", line 197, in benchmark
+    _ = f(**inputs)
+  File "/home/zhaijidong/yhy/llm/EasyContext/orchestrated_attn/orchestrated_attn_impl.py", line 270, in orchestrated_attn_func
+    return OrchestratedAttnFunc.apply(
+  File "/home/zhaijidong/miniconda3/envs/yhy_easycontext/lib/python3.10/site-packages/torch/autograd/function.py", line 539, in apply
+    return super().apply(*args, **kwargs)  # type: ignore[misc]
+  File "/home/zhaijidong/yhy/llm/EasyContext/orchestrated_attn/orchestrated_attn_impl.py", line 206, in forward
+    out, softmax_lse = orchestrated_attn_forward(
+  File "/home/zhaijidong/yhy/llm/EasyContext/orchestrated_attn/orchestrated_attn_impl.py", line 148, in orchestrated_attn_forward
+    return intra_attn_forward(
+  File "/home/zhaijidong/yhy/llm/EasyContext/orchestrated_attn/orchestrated_attn_impl.py", line 86, in intra_attn_forward
+    for _ in range(1, execution_plan.stream_num):
+AttributeError: 'Execution_Plan' object has no attribute 'stream_num'
+Traceback (most recent call last):
+  File "/home/zhaijidong/yhy/llm/EasyContext/bench_ring_attn.py", line 346, in <module>
+    main(parse_args())
+  File "/home/zhaijidong/yhy/llm/EasyContext/bench_ring_attn.py", line 341, in main
+    benchmark(args, f, shapes, qkv_buf, dout_buf, forward_only=True, log=True)
+  File "/home/zhaijidong/yhy/llm/EasyContext/bench_ring_attn.py", line 197, in benchmark
+    _ = f(**inputs)
+  File "/home/zhaijidong/yhy/llm/EasyContext/orchestrated_attn/orchestrated_attn_impl.py", line 270, in orchestrated_attn_func
+    return OrchestratedAttnFunc.apply(
+  File "/home/zhaijidong/miniconda3/envs/yhy_easycontext/lib/python3.10/site-packages/torch/autograd/function.py", line 539, in apply
+    return super().apply(*args, **kwargs)  # type: ignore[misc]
+  File "/home/zhaijidong/yhy/llm/EasyContext/orchestrated_attn/orchestrated_attn_impl.py", line 206, in forward
+    out, softmax_lse = orchestrated_attn_forward(
+  File "/home/zhaijidong/yhy/llm/EasyContext/orchestrated_attn/orchestrated_attn_impl.py", line 148, in orchestrated_attn_forward
+    return intra_attn_forward(
+  File "/home/zhaijidong/yhy/llm/EasyContext/orchestrated_attn/orchestrated_attn_impl.py", line 86, in intra_attn_forward
+    for _ in range(1, execution_plan.stream_num):
+AttributeError: 'Execution_Plan' object has no attribute 'stream_num'
+srun: error: g3017: tasks 0,3: Exited with exit code 1
+srun: launch/slurm: _step_signal: Terminating StepId=7582.0
+slurmstepd: error: *** STEP 7582.0 ON g3017 CANCELLED AT 2024-07-08T14:48:11 ***
+srun: error: g3017: task 1: Exited with exit code 1
+srun: error: g3017: task 2: Exited with exit code 1
 + set +x
