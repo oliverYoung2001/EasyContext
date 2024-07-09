@@ -1,87 +1,32 @@
-+ export CUDA_DEVICE_MAX_CONNECTIONS=1
-+ CUDA_DEVICE_MAX_CONNECTIONS=1
 + srun -p rag -N 1 --ntasks-per-node=4 --gres=gpu:4 --mem 256G -K -w g3017 -c 16 ./scripts/bench_ring_attn.sh python bench_ring_attn.py
-srun: job 7582 queued and waiting for resources
-srun: job 7582 has been allocated resources
+srun: job 7987 queued and waiting for resources
+srun: job 7987 has been allocated resources
 torch distributed is already initialized, skipping initialization ...
 ************ Finish sequence pralell group Initialization. ***********
-Nh=32, S=4096
+Nh=32, S=32768
 # orchestrated_attn_func, fwd
-Traceback (most recent call last):
-  File "/home/zhaijidong/yhy/llm/EasyContext/bench_ring_attn.py", line 346, in <module>
-    main(parse_args())
-  File "/home/zhaijidong/yhy/llm/EasyContext/bench_ring_attn.py", line 341, in main
-    benchmark(args, f, shapes, qkv_buf, dout_buf, forward_only=True, log=True)
-  File "/home/zhaijidong/yhy/llm/EasyContext/bench_ring_attn.py", line 197, in benchmark
-    _ = f(**inputs)
-  File "/home/zhaijidong/yhy/llm/EasyContext/orchestrated_attn/orchestrated_attn_impl.py", line 270, in orchestrated_attn_func
-    return OrchestratedAttnFunc.apply(
-  File "/home/zhaijidong/miniconda3/envs/yhy_easycontext/lib/python3.10/site-packages/torch/autograd/function.py", line 539, in apply
-    return super().apply(*args, **kwargs)  # type: ignore[misc]
-  File "/home/zhaijidong/yhy/llm/EasyContext/orchestrated_attn/orchestrated_attn_impl.py", line 206, in forward
-    out, softmax_lse = orchestrated_attn_forward(
-  File "/home/zhaijidong/yhy/llm/EasyContext/orchestrated_attn/orchestrated_attn_impl.py", line 148, in orchestrated_attn_forward
-    return intra_attn_forward(
-  File "/home/zhaijidong/yhy/llm/EasyContext/orchestrated_attn/orchestrated_attn_impl.py", line 86, in intra_attn_forward
-    for _ in range(1, execution_plan.stream_num):
-AttributeError: 'Execution_Plan' object has no attribute 'stream_num'
-Traceback (most recent call last):
-  File "/home/zhaijidong/yhy/llm/EasyContext/bench_ring_attn.py", line 346, in <module>
-    main(parse_args())
-  File "/home/zhaijidong/yhy/llm/EasyContext/bench_ring_attn.py", line 341, in main
-    benchmark(args, f, shapes, qkv_buf, dout_buf, forward_only=True, log=True)
-  File "/home/zhaijidong/yhy/llm/EasyContext/bench_ring_attn.py", line 197, in benchmark
-    _ = f(**inputs)
-  File "/home/zhaijidong/yhy/llm/EasyContext/orchestrated_attn/orchestrated_attn_impl.py", line 270, in orchestrated_attn_func
-    return OrchestratedAttnFunc.apply(
-  File "/home/zhaijidong/miniconda3/envs/yhy_easycontext/lib/python3.10/site-packages/torch/autograd/function.py", line 539, in apply
-    return super().apply(*args, **kwargs)  # type: ignore[misc]
-  File "/home/zhaijidong/yhy/llm/EasyContext/orchestrated_attn/orchestrated_attn_impl.py", line 206, in forward
-    out, softmax_lse = orchestrated_attn_forward(
-  File "/home/zhaijidong/yhy/llm/EasyContext/orchestrated_attn/orchestrated_attn_impl.py", line 148, in orchestrated_attn_forward
-    return intra_attn_forward(
-  File "/home/zhaijidong/yhy/llm/EasyContext/orchestrated_attn/orchestrated_attn_impl.py", line 86, in intra_attn_forward
-    for _ in range(1, execution_plan.stream_num):
-AttributeError: 'Execution_Plan' object has no attribute 'stream_num'
-Traceback (most recent call last):
-  File "/home/zhaijidong/yhy/llm/EasyContext/bench_ring_attn.py", line 346, in <module>
-    main(parse_args())
-  File "/home/zhaijidong/yhy/llm/EasyContext/bench_ring_attn.py", line 341, in main
-    benchmark(args, f, shapes, qkv_buf, dout_buf, forward_only=True, log=True)
-  File "/home/zhaijidong/yhy/llm/EasyContext/bench_ring_attn.py", line 197, in benchmark
-    _ = f(**inputs)
-  File "/home/zhaijidong/yhy/llm/EasyContext/orchestrated_attn/orchestrated_attn_impl.py", line 270, in orchestrated_attn_func
-    return OrchestratedAttnFunc.apply(
-  File "/home/zhaijidong/miniconda3/envs/yhy_easycontext/lib/python3.10/site-packages/torch/autograd/function.py", line 539, in apply
-    return super().apply(*args, **kwargs)  # type: ignore[misc]
-  File "/home/zhaijidong/yhy/llm/EasyContext/orchestrated_attn/orchestrated_attn_impl.py", line 206, in forward
-    out, softmax_lse = orchestrated_attn_forward(
-  File "/home/zhaijidong/yhy/llm/EasyContext/orchestrated_attn/orchestrated_attn_impl.py", line 148, in orchestrated_attn_forward
-    return intra_attn_forward(
-  File "/home/zhaijidong/yhy/llm/EasyContext/orchestrated_attn/orchestrated_attn_impl.py", line 86, in intra_attn_forward
-    for _ in range(1, execution_plan.stream_num):
-AttributeError: 'Execution_Plan' object has no attribute 'stream_num'
-Traceback (most recent call last):
-  File "/home/zhaijidong/yhy/llm/EasyContext/bench_ring_attn.py", line 346, in <module>
-    main(parse_args())
-  File "/home/zhaijidong/yhy/llm/EasyContext/bench_ring_attn.py", line 341, in main
-    benchmark(args, f, shapes, qkv_buf, dout_buf, forward_only=True, log=True)
-  File "/home/zhaijidong/yhy/llm/EasyContext/bench_ring_attn.py", line 197, in benchmark
-    _ = f(**inputs)
-  File "/home/zhaijidong/yhy/llm/EasyContext/orchestrated_attn/orchestrated_attn_impl.py", line 270, in orchestrated_attn_func
-    return OrchestratedAttnFunc.apply(
-  File "/home/zhaijidong/miniconda3/envs/yhy_easycontext/lib/python3.10/site-packages/torch/autograd/function.py", line 539, in apply
-    return super().apply(*args, **kwargs)  # type: ignore[misc]
-  File "/home/zhaijidong/yhy/llm/EasyContext/orchestrated_attn/orchestrated_attn_impl.py", line 206, in forward
-    out, softmax_lse = orchestrated_attn_forward(
-  File "/home/zhaijidong/yhy/llm/EasyContext/orchestrated_attn/orchestrated_attn_impl.py", line 148, in orchestrated_attn_forward
-    return intra_attn_forward(
-  File "/home/zhaijidong/yhy/llm/EasyContext/orchestrated_attn/orchestrated_attn_impl.py", line 86, in intra_attn_forward
-    for _ in range(1, execution_plan.stream_num):
-AttributeError: 'Execution_Plan' object has no attribute 'stream_num'
-srun: error: g3017: tasks 0,3: Exited with exit code 1
-srun: launch/slurm: _step_signal: Terminating StepId=7582.0
-slurmstepd: error: *** STEP 7582.0 ON g3017 CANCELLED AT 2024-07-08T14:48:11 ***
-srun: error: g3017: task 1: Exited with exit code 1
-srun: error: g3017: task 2: Exited with exit code 1
-+ set +x
+rank0, Out !!!
+rank0, cpu out !!!
+rank0, sync out !!!
+rank3, Out !!!
+rank3, cpu out !!!
+rank3, sync out !!!
+rank1, Out !!!
+rank1, cpu out !!!
+rank2, Out !!!
+rank1, sync out !!!
+rank2, cpu out !!!
+rank2, sync out !!!
+rank1, real out !!!
+rank3, real out !!!
+rank0, real out !!!
+rank2, real out !!!
+rank3, Out !!!
+rank3, cpu out !!!
+rank1, Out !!!
+rank2, Out !!!
+rank1, cpu out !!!
+rank2, cpu out !!!
+rank0, Out !!!
+rank0, cpu out !!!
+rank3, sync out !!!

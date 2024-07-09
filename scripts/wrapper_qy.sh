@@ -68,7 +68,7 @@ RUNNER_CMD="srun $SLURM_ARGS"
 
 set -x
 # export CUDA_LAUNCH_BLOCKING=1 # for debugging
-export CUDA_DEVICE_MAX_CONNECTIONS=1    # [NOTE]: important for cc overlap !!!
+# export CUDA_DEVICE_MAX_CONNECTIONS=1    # [NOTE]: important for cc overlap !!!
 $RUNNER_CMD \
 -c 16 \
 ./scripts/bench_ring_attn.sh \

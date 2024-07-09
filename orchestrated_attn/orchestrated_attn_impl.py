@@ -11,6 +11,7 @@ from .global_vars import *
 from search_algo.dependent_graph import Cuda_Kernel, Comp_Kernel, Comm_Kernel
 
 def execute_kernel(kernel: Cuda_Kernel, data_dict: dict, PROC_INFO, comp_func, comm: IntraComm, idata_buf: dict):
+    rank = PROC_INFO['rank']
     local_rank = PROC_INFO['local_rank']
     # get cuda stream on which kernel is executed
     if isinstance(kernel, Comp_Kernel):
@@ -23,11 +24,15 @@ def execute_kernel(kernel: Cuda_Kernel, data_dict: dict, PROC_INFO, comp_func, c
     with torch.cuda.stream(kernel.stream):
         # step1: wait for precursors
         for precursor in kernel.precursors:
-            kernel.stream.wait_event(precursor.event)
+            if hasattr(precursor, 'in_ranks') and local_rank in precursor.in_ranks:
+                kernel.stream.wait_event(precursor.event)
         
         # step2: execute kernel
         # comp: (b_id, h_id, r_id, c_id, gpuid) -> Cuda_Kernel
         # comm: (b_id, h_id, r/c_id, send, recv, i/o, r/c) -> Cuda_Kernel
+        if not hasattr(kernel, 'in_ranks'): # [NOTE]: maybe need a lock here !!!
+            kernel.in_ranks = set()
+        kernel.in_ranks.add(local_rank)
         if isinstance(kernel, Comp_Kernel):
             bid, hid, rid, cid = kernel.key[0: 4]
             causal = rid == cid
@@ -42,10 +47,10 @@ def execute_kernel(kernel: Cuda_Kernel, data_dict: dict, PROC_INFO, comp_func, c
             d_key = kernel.key[: 3] + kernel.key[5:]
             if kernel.key[3] == local_rank: # Send
                 assert d_key in data_dict.keys()
-                comm.send(kernel.key[4], data_dict[d_key])
+                comm.send(kernel.key[4], data_dict[d_key], kernel.stream)
             else:                           # Recv
                 idata_tmp = idata_buf[kernel.key[-2:]]
-                comm.recv(kernel.key[3], idata_tmp)
+                comm.recv(kernel.key[3], idata_tmp, kernel.stream)
                 if d_key in data_dict.keys():
                     data_dict[d_key].reduce(idata_tmp)
                 else:
@@ -54,8 +59,7 @@ def execute_kernel(kernel: Cuda_Kernel, data_dict: dict, PROC_INFO, comp_func, c
         # step3: record event after kernel execution for successors
         kernel.event = torch.cuda.Event()
         kernel.event.record()
-        
-    
+
 def intra_attn_forward(
     process_groups,
     q: torch.Tensor,
@@ -84,7 +88,7 @@ def intra_attn_forward(
         streams = []
         streams.append(torch.cuda.current_stream())
         for _ in range(1, execution_plan.stream_num):
-            torch.cuda.Stream(torch.cuda.current_device())
+            streams.append(torch.cuda.Stream(torch.cuda.current_device()))
         set_global_var('streams', streams)
     streams = get_global_var('streams')
     data_dict = {}  # (b_id, h_id, r/c_id, i/o, r/c) -> Integrated_Data
@@ -105,14 +109,14 @@ def intra_attn_forward(
             alibi_slopes=alibi_slopes,
             return_softmax=True and dropout_p > 0,
         )
-        lse = lse.transpose(-2, -1).contiguous().unsqueeze(dim=-1)
-        # block_out, block_lse # [mbs, S, Nh, D], [mbs, S, Nh, 1]
+        return (Output_Row_Fwd(O), Output_Col_Fwd())
+        lse = lse.transpose(-2, -1).contiguous().unsqueeze(dim=-1) # block_out, block_lse # [mbs, S, Nh, D], [mbs, S, Nh, 1]
         return (Output_Row_Fwd(O, lse), Output_Col_Fwd())
     
     # initial data:
     ir_idata, ic_idata = Input_Row_Fwd(q), Input_Col_Fwd(k, v)
-    data_dict[(1, 1, local_rank, 'i', 'r')] = ir_idata
-    data_dict[(1, 1, local_rank, 'i', 'c')] = ic_idata
+    data_dict[(0, 0, local_rank, 'i', 'r')] = ir_idata
+    data_dict[(0, 0, local_rank, 'i', 'c')] = ic_idata
     idata_buf = {
         ('i', 'r'): Input_Row_Fwd.from_idata(ir_idata),
         ('i', 'c'): Input_Col_Fwd.from_idata(ic_idata),
@@ -121,8 +125,8 @@ def intra_attn_forward(
     }
     for kernel in execution_plan.gpu_kernel_lists[local_rank]:
         execute_kernel(kernel, data_dict, PROC_INFO, fwd_comp_func, comm, idata_buf)
-    
-    return data_dict[(1, 1, local_rank, 'o', 'r')]
+    print(f'rank{rank}, Out !!!', flush=True)
+    return data_dict[(0, 0, local_rank, 'o', 'r')]
     
     
 def orchestrated_attn_forward(
@@ -138,7 +142,7 @@ def orchestrated_attn_forward(
     deterministic=False,
     PROC_INFO=None,
     execution_plan: Execution_Plan = None,
-):
+) -> Output_Row_Fwd:
     # [NOTE]: Now not support batch mechanism and only support tot_sp = world_size
     # [NOTE]: Now only support bs_split == 1, Nh_split == 1
     da_config = execution_plan.da_config
@@ -203,7 +207,7 @@ class OrchestratedAttnFunc(torch.autograd.Function):
         assert alibi_slopes is None
         k = k.contiguous()
         v = v.contiguous()
-        out, softmax_lse = orchestrated_attn_forward(
+        out_row = orchestrated_attn_forward(
             groups,
             q,
             k,
@@ -217,6 +221,7 @@ class OrchestratedAttnFunc(torch.autograd.Function):
             PROC_INFO=PROC_INFO,
             execution_plan=execution_plan,
         )
+        out, softmax_lse = out_row.O, out_row.lse
         # this should be out_padded
         ctx.save_for_backward(q, k, v, out, softmax_lse)
         ctx.dropout_p = dropout_p

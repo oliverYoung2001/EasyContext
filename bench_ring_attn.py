@@ -119,6 +119,8 @@ def calc_flops(mbs, S, Nh, D, causal=True, forward_only=False):
     return m_flops, h_flops # model flops & hardware flops
     
 def benchmark(args, f, shapes:dict, qkv_buf, dout_buf, warmup=5, num_iter=20, forward_only=True, log=True):
+    warmup = 0
+    num_iter = 2
     torch.cuda.synchronize()
     torch.distributed.barrier()
     t0 = time.time()
@@ -172,6 +174,8 @@ def benchmark(args, f, shapes:dict, qkv_buf, dout_buf, warmup=5, num_iter=20, fo
     if f == orchestrated_attn_func:
         SP = (1, world_size)
         Ss = (seqlen * world_size, seqlen * world_size)
+        # [HACK]
+        Ss = (4 * 1024, 4 * 1024)
         Nhs = (nheads, nheads)
         bs = batch_size
         da_config = Dist_Attn_Config(SP=SP, S=Ss, Nh=Nhs, D=d, bs=batch_size, causal=causal)
@@ -179,7 +183,7 @@ def benchmark(args, f, shapes:dict, qkv_buf, dout_buf, warmup=5, num_iter=20, fo
         plan_file = f'{os.path.dirname(__file__)}/search_algo/execution_plans/{plan_name}.pkl'
         # load plan
         with open(plan_file, 'rb') as fin:
-            execution_plan = pickle.load(fin)
+            execution_plan = pickle.load(fin)   # [NOTE]: this obj shared by all processors in memory !!!
         # if rank == 0:
         #     execution_plan.print_lp_result()
         inputs['execution_plan'] = execution_plan
@@ -195,6 +199,8 @@ def benchmark(args, f, shapes:dict, qkv_buf, dout_buf, warmup=5, num_iter=20, fo
         with torch.no_grad():
             for _ in range(warmup):
                 _ = f(**inputs)
+                torch.cuda.synchronize()
+                torch.distributed.barrier()
 
     else:
         for _ in range(warmup):
@@ -213,6 +219,7 @@ def benchmark(args, f, shapes:dict, qkv_buf, dout_buf, warmup=5, num_iter=20, fo
         is_runned = True
         BARRIER_FREQ = 4
         WAIT, WARMUP, ACTIVE, REPEAT = BARRIER_FREQ * 1, BARRIER_FREQ * 1, BARRIER_FREQ * 3, 1
+        # WAIT, WARMUP, ACTIVE, REPEAT = BARRIER_FREQ * 0, BARRIER_FREQ * 0, BARRIER_FREQ * 1, 1
         TOTAL_TURNS = (WAIT + WARMUP + ACTIVE) * (REPEAT)
         TRACE_NAME = f'{os.environ["TRACE_NAME"]}_w{world_size}_r{rank}_S{seqlen}_bs{batch_size}_Nh{nheads}_D{nheads}_{f.__name__}_{"f" if forward_only else "f+b"}'
         with torch.profiler.profile(
@@ -227,7 +234,7 @@ def benchmark(args, f, shapes:dict, qkv_buf, dout_buf, warmup=5, num_iter=20, fo
             with_stack=True,
         ) as prof:
             for iter in range(TOTAL_TURNS):
-                torch.distributed.all_reduce(sync_tensor, async_op=False)    # for sync and alignment
+                # torch.distributed.all_reduce(sync_tensor, async_op=False)    # for sync and alignment
                 if forward_only:
                     with torch.no_grad():
                         _ = f(**inputs)
@@ -248,7 +255,11 @@ def benchmark(args, f, shapes:dict, qkv_buf, dout_buf, warmup=5, num_iter=20, fo
             with torch.no_grad():
                 for _ in range(num_iter):
                     _ = f(**inputs)
-
+                    print(f'rank{rank}, cpu out !!!', flush=True)
+                    torch.cuda.synchronize()
+                    print(f'rank{rank}, sync out !!!', flush=True)
+                    torch.distributed.barrier()
+                    print(f'rank{rank}, real out !!!', flush=True)
         else:
             for _ in range(num_iter):
                 qkv.grad = None
@@ -294,8 +305,8 @@ def main(args):
     
     funcs = [
         # ring_flash_attn_func,
-        # zigzag_ring_flash_attn_func,
-        # zigzag_ring_flash_attn_func_opt,
+        # zigzag_ring_flash_attn_func,      # baseline
+        # zigzag_ring_flash_attn_func_opt,  # sol1
         # stripe_flash_attn_func,
         # lightseq_attn_func,
         # flash_attn_func,
@@ -306,10 +317,10 @@ def main(args):
     bs = 1
     D = 128
     Ss = [
-        4 * 1024,   # 4K
+        # 4 * 1024,   # 4K
         # 8 * 1024,   # 8K
         # 16 * 1024,  # 16K
-        # 32 * 1024,   # 32K
+        32 * 1024,   # 32K
         # 64 * 1024,   # 64K
         # 128 * 1024,   # 128K
         # 256 * 1024,   # 256K
