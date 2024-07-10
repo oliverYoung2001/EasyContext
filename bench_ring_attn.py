@@ -20,6 +20,9 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__),
 from easy_context.dist_flash_attn.lightseq_async_attn import attention as lightseq_attn
 from easy_context.dist_flash_attn.async_communication import initialize_distributed
 from search_algo.search_engine import Dist_Attn_Config
+from search_algo.dependent_graph import Cuda_Kernel, Comp_Kernel, Comm_Kernel
+from orchestrated_attn.global_vars import *
+from orchestrated_attn.utils import print_rank_0
 import inspect
 import warnings
 import time
@@ -119,14 +122,15 @@ def calc_flops(mbs, S, Nh, D, causal=True, forward_only=False):
     return m_flops, h_flops # model flops & hardware flops
     
 def benchmark(args, f, shapes:dict, qkv_buf, dout_buf, warmup=5, num_iter=20, forward_only=True, log=True):
-    warmup = 0
-    num_iter = 2
+    # warmup = 0
+    # num_iter = 20
     torch.cuda.synchronize()
     torch.distributed.barrier()
     t0 = time.time()
     global PROC_INFO
     rank = PROC_INFO['rank']
     local_rank = PROC_INFO['local_rank']
+    local_size = PROC_INFO['tasks_per_node']
     if rank == 0:
         print(f'# {f.__name__}, {"fwd" if forward_only else "fwd + bwd"}', flush=True)
     world_size = dist.get_world_size()
@@ -174,20 +178,69 @@ def benchmark(args, f, shapes:dict, qkv_buf, dout_buf, warmup=5, num_iter=20, fo
     if f == orchestrated_attn_func:
         SP = (1, world_size)
         Ss = (seqlen * world_size, seqlen * world_size)
-        # [HACK]
-        Ss = (4 * 1024, 4 * 1024)
         Nhs = (nheads, nheads)
         bs = batch_size
-        da_config = Dist_Attn_Config(SP=SP, S=Ss, Nh=Nhs, D=d, bs=batch_size, causal=causal)
+        # [HACK]
+        da_config = Dist_Attn_Config(SP=SP, S=(4 * 1024, 4 * 1024), Nh=Nhs, D=d, bs=batch_size, causal=causal)
         plan_name = da_config.get_plan_name(fob=0 if forward_only else 1)
         plan_file = f'{os.path.dirname(__file__)}/search_algo/execution_plans/{plan_name}.pkl'
         # load plan
         with open(plan_file, 'rb') as fin:
             execution_plan = pickle.load(fin)   # [NOTE]: this obj shared by all processors in memory !!!
+        # print(f'rank{rank}, id(execution_plan): {hex(id(execution_plan))}', flush=True)
+        # execution_plan.a = rank
+        # print(f'execution_plan.a: {execution_plan.a}')
         # if rank == 0:
         #     execution_plan.print_lp_result()
+        # preprocess
+        for kernel in execution_plan.gpu_kernel_lists[local_rank]:
+            kernel.in_ranks = set([local_rank])
+        # modify da_config
+        if execution_plan.da_config.S != Ss:
+            # print(f'modify {execution_plan.da_config.S} to {Ss}')
+            execution_plan.da_config.S = Ss
+        # create streams
+        if not is_exist_global_var('streams'):
+            streams = []
+            streams.append(torch.cuda.current_stream())
+            # print(f'rank{rank}, current_device: {torch.cuda.current_device()}')
+            for _ in range(1, execution_plan.stream_num):
+                streams.append(torch.cuda.Stream(torch.cuda.current_device()))
+            set_global_var('streams', streams)
+        # set stream for eash kernel
+        for kernel in execution_plan.gpu_kernel_lists[local_rank]:
+            if isinstance(kernel, Comp_Kernel):
+                kernel.stream = get_global_var('streams')[0]
+            else:
+                if kernel.key[3] == local_rank:
+                    kernel.stream = get_global_var('streams')[1]    # Send
+                else:
+                    kernel.stream = get_global_var('streams')[2]    # Recv
+        # # print kernel orders
+        # for r in range(local_size):
+        #     print_rank_0(f'rank{r}:')
+        #     for kernel in execution_plan.gpu_kernel_lists[r]:
+        #         # if isinstance(kernel, Comp_Kernel) or kernel.key[- 2] == 'o':
+        #         print_rank_0(f'{kernel.key}')
+                
         inputs['execution_plan'] = execution_plan
     inputs = filter_kwargs(f, inputs)
+    
+    if f == orchestrated_attn_func:
+        # Capture cuda graph
+        g = torch.cuda.CUDAGraph()
+        with torch.cuda.graph(g):
+            if forward_only:
+                with torch.no_grad():
+                    for _ in range(warmup):
+                        _ = f(**inputs)
+            else:
+                qkv.grad = None
+                out = f(**inputs)
+                out.backward(dout)
+        print_rank_0(f'Cuda Graph captured: {g}')
+
+    return
 
     is_runned = False
     
@@ -255,11 +308,13 @@ def benchmark(args, f, shapes:dict, qkv_buf, dout_buf, warmup=5, num_iter=20, fo
             with torch.no_grad():
                 for _ in range(num_iter):
                     _ = f(**inputs)
-                    print(f'rank{rank}, cpu out !!!', flush=True)
-                    torch.cuda.synchronize()
-                    print(f'rank{rank}, sync out !!!', flush=True)
-                    torch.distributed.barrier()
-                    print(f'rank{rank}, real out !!!', flush=True)
+                    # print(f'rank{rank}, cpu out !!!', flush=True)
+                    # torch.cuda.synchronize()
+                    # print(f'rank{rank}, sync out !!!', flush=True)
+                    # torch.distributed.barrier()
+                    # print(f'rank{rank}, real out !!!', flush=True)
+                    # for kernel in execution_plan.gpu_kernel_lists[rank]:
+                    #     print(f'rank{rank}, {kernel.key}, {kernel.in_ranks} !!!', flush=True)
         else:
             for _ in range(num_iter):
                 qkv.grad = None
@@ -320,8 +375,8 @@ def main(args):
         # 4 * 1024,   # 4K
         # 8 * 1024,   # 8K
         # 16 * 1024,  # 16K
-        32 * 1024,   # 32K
-        # 64 * 1024,   # 64K
+        # 32 * 1024,   # 32K
+        64 * 1024,   # 64K
         # 128 * 1024,   # 128K
         # 256 * 1024,   # 256K
     ]

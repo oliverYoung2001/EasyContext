@@ -152,13 +152,17 @@ class IntraComm:
         # cur_stream = torch.cuda.current_stream()
         # print_rank_0(f'send, stream: {stream.cuda_stream}, cur_stream: {cur_stream.cuda_stream}')
         # with torch.cuda.stream(stream):
+        # print(f'rank{self.rank}, peer{self.node_id * self.local_size + dst}, send In, {idata.data.numel()} !!!', flush=True)
         dist.send(idata.data, self.node_id * self.local_size + dst, group=self.process_groups['intra'])
+        # print(f'rank{self.rank}, send Out !!!', flush=True)
     
     def recv(self, src: int, idata: Integrated_Data, stream: torch.cuda.Stream) -> Integrated_Data:
         # cur_stream = torch.cuda.current_stream()
         # print_rank_0(f'recv, stream: {stream.cuda_stream}, cur_stream: {cur_stream.cuda_stream}')
         # with torch.cuda.stream(stream):
+        # print(f'rank{self.rank}, peer{self.node_id * self.local_size + src}, recv In, {idata.data.numel()} !!!', flush=True)
         dist.recv(idata.data, self.node_id * self.local_size + src, group=self.process_groups['intra'])
+        # print(f'rank{self.rank}, recv Out !!!', flush=True)
         return idata
 
 

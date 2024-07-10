@@ -1,0 +1,717 @@
++ export CUDA_LAUNCH_BLOCKING=1
++ CUDA_LAUNCH_BLOCKING=1
++ export CUDA_DEVICE_MAX_CONNECTIONS=1
++ CUDA_DEVICE_MAX_CONNECTIONS=1
++ srun -p rag -N 1 --ntasks-per-node=4 --gres=gpu:4 --mem 256G -K -w g3017 -c 16 pytest ./tests/test_pynccl.py -s
+srun: job 8408 queued and waiting for resources
+srun: job 8408 has been allocated resources
+============================= test session starts ==============================
+platform linux -- Python 3.10.14, pytest-8.1.1, pluggy-1.4.0
+rootdir: /home/zhaijidong/yhy/llm/EasyContext
+[WARN]: Failed to import from vllm._C with %r No module named 'vllm'
+collected 7 items
+
+============================= test session starts ==============================
+platform linux -- Python 3.10.14, pytest-8.1.1, pluggy-1.4.0
+rootdir: /home/zhaijidong/yhy/llm/EasyContext
+[WARN]: Failed to import from vllm._C with %r No module named 'vllm'
+collected 7 items
+
+============================= test session starts ==============================
+platform linux -- Python 3.10.14, pytest-8.1.1, pluggy-1.4.0
+rootdir: /home/zhaijidong/yhy/llm/EasyContext
+[WARN]: Failed to import from vllm._C with %r No module named 'vllm'
+collected 7 items
+
+============================= test session starts ==============================
+platform linux -- Python 3.10.14, pytest-8.1.1, pluggy-1.4.0
+rootdir: /home/zhaijidong/yhy/llm/EasyContext
+[WARN]: Failed to import from vllm._C with %r No module named 'vllm'
+collected 7 items
+
+[W socket.cpp:436] [c10d] The server socket has failed to bind to [::]:17791 (errno: 98 - Address already in use).
+[W socket.cpp:436] [c10d] The server socket has failed to bind to ?UNKNOWN? (errno: 98 - Address already in use).
+[E socket.cpp:472] [c10d] The server socket has failed to listen on any local network address.
+Process Process-1:
+Traceback (most recent call last):
+  File "/home/zhaijidong/miniconda3/envs/yhy_easycontext/lib/python3.10/multiprocessing/process.py", line 314, in _bootstrap
+    self.run()
+  File "/home/zhaijidong/miniconda3/envs/yhy_easycontext/lib/python3.10/multiprocessing/process.py", line 108, in run
+    self._target(*self._args, **self._kwargs)
+  File "/home/zhaijidong/yhy/llm/EasyContext/tests/test_pynccl.py", line 53, in wrapped_fn
+    init_distributed_environment()
+  File "/home/zhaijidong/yhy/llm/EasyContext/tests/distributed/parallel_state.py", line 812, in init_distributed_environment
+    torch.distributed.init_process_group(
+  File "/home/zhaijidong/miniconda3/envs/yhy_easycontext/lib/python3.10/site-packages/torch/distributed/c10d_logger.py", line 74, in wrapper
+    func_return = func(*args, **kwargs)
+  File "/home/zhaijidong/miniconda3/envs/yhy_easycontext/lib/python3.10/site-packages/torch/distributed/distributed_c10d.py", line 1141, in init_process_group
+    store, rank, world_size = next(rendezvous_iterator)
+  File "/home/zhaijidong/miniconda3/envs/yhy_easycontext/lib/python3.10/site-packages/torch/distributed/rendezvous.py", line 241, in _env_rendezvous_handler
+    store = _create_c10d_store(master_addr, master_port, rank, world_size, timeout)
+  File "/home/zhaijidong/miniconda3/envs/yhy_easycontext/lib/python3.10/site-packages/torch/distributed/rendezvous.py", line 172, in _create_c10d_store
+    return TCPStore(
+RuntimeError: The server socket has failed to listen on any local network address. The server socket has failed to bind to [::]:17791 (errno: 98 - Address already in use). The server socket has failed to bind to ?UNKNOWN? (errno: 98 - Address already in use).
+tests/test_pynccl.py [WARN]: Overwriting environment variable %s from '%s' to '%s' MASTER_PORT 14885 17791
+[W socket.cpp:436] [c10d] The server socket has failed to bind to [::]:17791 (errno: 98 - Address already in use).
+[W socket.cpp:436] [c10d] The server socket has failed to bind to ?UNKNOWN? (errno: 98 - Address already in use).
+[E socket.cpp:472] [c10d] The server socket has failed to listen on any local network address.
+Process Process-1:
+Traceback (most recent call last):
+  File "/home/zhaijidong/miniconda3/envs/yhy_easycontext/lib/python3.10/multiprocessing/process.py", line 314, in _bootstrap
+    self.run()
+  File "/home/zhaijidong/miniconda3/envs/yhy_easycontext/lib/python3.10/multiprocessing/process.py", line 108, in run
+    self._target(*self._args, **self._kwargs)
+  File "/home/zhaijidong/yhy/llm/EasyContext/tests/test_pynccl.py", line 53, in wrapped_fn
+    init_distributed_environment()
+  File "/home/zhaijidong/yhy/llm/EasyContext/tests/distributed/parallel_state.py", line 812, in init_distributed_environment
+    torch.distributed.init_process_group(
+  File "/home/zhaijidong/miniconda3/envs/yhy_easycontext/lib/python3.10/site-packages/torch/distributed/c10d_logger.py", line 74, in wrapper
+    func_return = func(*args, **kwargs)
+  File "/home/zhaijidong/miniconda3/envs/yhy_easycontext/lib/python3.10/site-packages/torch/distributed/distributed_c10d.py", line 1141, in init_process_group
+    store, rank, world_size = next(rendezvous_iterator)
+  File "/home/zhaijidong/miniconda3/envs/yhy_easycontext/lib/python3.10/site-packages/torch/distributed/rendezvous.py", line 241, in _env_rendezvous_handler
+    store = _create_c10d_store(master_addr, master_port, rank, world_size, timeout)
+  File "/home/zhaijidong/miniconda3/envs/yhy_easycontext/lib/python3.10/site-packages/torch/distributed/rendezvous.py", line 172, in _create_c10d_store
+    return TCPStore(
+RuntimeError: The server socket has failed to listen on any local network address. The server socket has failed to bind to [::]:17791 (errno: 98 - Address already in use). The server socket has failed to bind to ?UNKNOWN? (errno: 98 - Address already in use).
+tests/test_pynccl.py [WARN]: Overwriting environment variable %s from '%s' to '%s' MASTER_PORT 14885 17791
+[W socket.cpp:436] [c10d] The server socket has failed to bind to [::]:17791 (errno: 98 - Address already in use).
+[W socket.cpp:436] [c10d] The server socket has failed to bind to ?UNKNOWN? (errno: 98 - Address already in use).
+[E socket.cpp:472] [c10d] The server socket has failed to listen on any local network address.
+Process Process-1:
+Traceback (most recent call last):
+  File "/home/zhaijidong/miniconda3/envs/yhy_easycontext/lib/python3.10/multiprocessing/process.py", line 314, in _bootstrap
+    self.run()
+  File "/home/zhaijidong/miniconda3/envs/yhy_easycontext/lib/python3.10/multiprocessing/process.py", line 108, in run
+    self._target(*self._args, **self._kwargs)
+  File "/home/zhaijidong/yhy/llm/EasyContext/tests/test_pynccl.py", line 53, in wrapped_fn
+    init_distributed_environment()
+  File "/home/zhaijidong/yhy/llm/EasyContext/tests/distributed/parallel_state.py", line 812, in init_distributed_environment
+    torch.distributed.init_process_group(
+  File "/home/zhaijidong/miniconda3/envs/yhy_easycontext/lib/python3.10/site-packages/torch/distributed/c10d_logger.py", line 74, in wrapper
+    func_return = func(*args, **kwargs)
+  File "/home/zhaijidong/miniconda3/envs/yhy_easycontext/lib/python3.10/site-packages/torch/distributed/distributed_c10d.py", line 1141, in init_process_group
+    store, rank, world_size = next(rendezvous_iterator)
+  File "/home/zhaijidong/miniconda3/envs/yhy_easycontext/lib/python3.10/site-packages/torch/distributed/rendezvous.py", line 241, in _env_rendezvous_handler
+    store = _create_c10d_store(master_addr, master_port, rank, world_size, timeout)
+  File "/home/zhaijidong/miniconda3/envs/yhy_easycontext/lib/python3.10/site-packages/torch/distributed/rendezvous.py", line 172, in _create_c10d_store
+    return TCPStore(
+RuntimeError: The server socket has failed to listen on any local network address. The server socket has failed to bind to [::]:17791 (errno: 98 - Address already in use). The server socket has failed to bind to ?UNKNOWN? (errno: 98 - Address already in use).
+tests/test_pynccl.py [WARN]: Overwriting environment variable %s from '%s' to '%s' MASTER_PORT 14885 17791
+Process Process-2:
+Traceback (most recent call last):
+  File "/home/zhaijidong/miniconda3/envs/yhy_easycontext/lib/python3.10/multiprocessing/process.py", line 314, in _bootstrap
+    self.run()
+  File "/home/zhaijidong/miniconda3/envs/yhy_easycontext/lib/python3.10/multiprocessing/process.py", line 108, in run
+    self._target(*self._args, **self._kwargs)
+  File "/home/zhaijidong/yhy/llm/EasyContext/tests/test_pynccl.py", line 54, in wrapped_fn
+    fn()
+  File "/home/zhaijidong/yhy/llm/EasyContext/tests/test_pynccl.py", line 66, in worker_fn
+    pynccl_comm.all_reduce(tensor)
+  File "/home/zhaijidong/yhy/llm/EasyContext/tests/distributed/device_communicators/pynccl.py", line 114, in all_reduce
+    assert tensor.device == self.device, (
+AttributeError: 'PyNcclCommunicator' object has no attribute 'device'
+[WARN]: Overwriting environment variable %s from '%s' to '%s' MASTER_PORT 14885 17791
+[INFO]: Found nccl from library %s libnccl.so.2
+[ERROR]: Failed to load NCCL library from %s .It is expected if you are not running on NVIDIA/AMD GPUs.Otherwise, the nccl library might not exist, be corrupted or it does not support the current platform %s.If you already have the library, please set the environment variable VLLM_NCCL_SO_PATH to point to the correct nccl library path. libnccl.so.2 Linux-5.4.0-144-generic-x86_64-with-glibc2.31
+Process Process-1:
+Traceback (most recent call last):
+  File "/home/zhaijidong/miniconda3/envs/yhy_easycontext/lib/python3.10/multiprocessing/process.py", line 314, in _bootstrap
+    self.run()
+  File "/home/zhaijidong/miniconda3/envs/yhy_easycontext/lib/python3.10/multiprocessing/process.py", line 108, in run
+    self._target(*self._args, **self._kwargs)
+  File "/home/zhaijidong/yhy/llm/EasyContext/tests/test_pynccl.py", line 54, in wrapped_fn
+    fn()
+  File "/home/zhaijidong/yhy/llm/EasyContext/tests/test_pynccl.py", line 66, in worker_fn
+    pynccl_comm.all_reduce(tensor)
+  File "/home/zhaijidong/yhy/llm/EasyContext/tests/distributed/device_communicators/pynccl.py", line 114, in all_reduce
+    assert tensor.device == self.device, (
+AttributeError: 'PyNcclCommunicator' object has no attribute 'device'
+tests/test_pynccl.py [WARN]: Overwriting environment variable %s from '%s' to '%s' MASTER_PORT 14885 17791
+[INFO]: Found nccl from library %s libnccl.so.2
+[ERROR]: Failed to load NCCL library from %s .It is expected if you are not running on NVIDIA/AMD GPUs.Otherwise, the nccl library might not exist, be corrupted or it does not support the current platform %s.If you already have the library, please set the environment variable VLLM_NCCL_SO_PATH to point to the correct nccl library path. libnccl.so.2 Linux-5.4.0-144-generic-x86_64-with-glibc2.31
+Process Process-4:
+Traceback (most recent call last):
+  File "/home/zhaijidong/miniconda3/envs/yhy_easycontext/lib/python3.10/multiprocessing/process.py", line 314, in _bootstrap
+    self.run()
+  File "/home/zhaijidong/miniconda3/envs/yhy_easycontext/lib/python3.10/multiprocessing/process.py", line 108, in run
+    self._target(*self._args, **self._kwargs)
+  File "/home/zhaijidong/yhy/llm/EasyContext/tests/test_pynccl.py", line 54, in wrapped_fn
+    fn()
+  File "/home/zhaijidong/yhy/llm/EasyContext/tests/test_pynccl.py", line 90, in multiple_allreduce_worker_fn
+    pynccl_comm.all_reduce(tensor)
+  File "/home/zhaijidong/yhy/llm/EasyContext/tests/distributed/device_communicators/pynccl.py", line 114, in all_reduce
+    assert tensor.device == self.device, (
+AttributeError: 'PyNcclCommunicator' object has no attribute 'device'
+F[WARN]: Overwriting environment variable %s from '%s' to '%s' MASTER_PORT 14885 17791
+[INFO]: Found nccl from library %s libnccl.so.2
+[ERROR]: Failed to load NCCL library from %s .It is expected if you are not running on NVIDIA/AMD GPUs.Otherwise, the nccl library might not exist, be corrupted or it does not support the current platform %s.If you already have the library, please set the environment variable VLLM_NCCL_SO_PATH to point to the correct nccl library path. libnccl.so.2 Linux-5.4.0-144-generic-x86_64-with-glibc2.31
+Process Process-3:
+Traceback (most recent call last):
+  File "/home/zhaijidong/miniconda3/envs/yhy_easycontext/lib/python3.10/multiprocessing/process.py", line 314, in _bootstrap
+    self.run()
+  File "/home/zhaijidong/miniconda3/envs/yhy_easycontext/lib/python3.10/multiprocessing/process.py", line 108, in run
+    self._target(*self._args, **self._kwargs)
+  File "/home/zhaijidong/yhy/llm/EasyContext/tests/test_pynccl.py", line 54, in wrapped_fn
+    fn()
+  File "/home/zhaijidong/yhy/llm/EasyContext/tests/test_pynccl.py", line 90, in multiple_allreduce_worker_fn
+    pynccl_comm.all_reduce(tensor)
+  File "/home/zhaijidong/yhy/llm/EasyContext/tests/distributed/device_communicators/pynccl.py", line 114, in all_reduce
+    assert tensor.device == self.device, (
+AttributeError: 'PyNcclCommunicator' object has no attribute 'device'
+[WARN]: Overwriting environment variable %s from '%s' to '%s' MASTER_PORT 14885 17791
+[INFO]: Found nccl from library %s libnccl.so.2
+[ERROR]: Failed to load NCCL library from %s .It is expected if you are not running on NVIDIA/AMD GPUs.Otherwise, the nccl library might not exist, be corrupted or it does not support the current platform %s.If you already have the library, please set the environment variable VLLM_NCCL_SO_PATH to point to the correct nccl library path. libnccl.so.2 Linux-5.4.0-144-generic-x86_64-with-glibc2.31
+Process Process-5:
+Traceback (most recent call last):
+  File "/home/zhaijidong/miniconda3/envs/yhy_easycontext/lib/python3.10/multiprocessing/process.py", line 314, in _bootstrap
+    self.run()
+  File "/home/zhaijidong/miniconda3/envs/yhy_easycontext/lib/python3.10/multiprocessing/process.py", line 108, in run
+    self._target(*self._args, **self._kwargs)
+  File "/home/zhaijidong/yhy/llm/EasyContext/tests/test_pynccl.py", line 54, in wrapped_fn
+    fn()
+  File "/home/zhaijidong/yhy/llm/EasyContext/tests/test_pynccl.py", line 95, in multiple_allreduce_worker_fn
+    pynccl_comm.all_reduce(tensor)
+  File "/home/zhaijidong/yhy/llm/EasyContext/tests/distributed/device_communicators/pynccl.py", line 114, in all_reduce
+    assert tensor.device == self.device, (
+AttributeError: 'PyNcclCommunicator' object has no attribute 'device'
+[WARN]: Overwriting environment variable %s from '%s' to '%s' MASTER_PORT 14885 17791
+[INFO]: Found nccl from library %s libnccl.so.2
+[ERROR]: Failed to load NCCL library from %s .It is expected if you are not running on NVIDIA/AMD GPUs.Otherwise, the nccl library might not exist, be corrupted or it does not support the current platform %s.If you already have the library, please set the environment variable VLLM_NCCL_SO_PATH to point to the correct nccl library path. libnccl.so.2 Linux-5.4.0-144-generic-x86_64-with-glibc2.31
+Process Process-6:
+Traceback (most recent call last):
+  File "/home/zhaijidong/miniconda3/envs/yhy_easycontext/lib/python3.10/multiprocessing/process.py", line 314, in _bootstrap
+    self.run()
+  File "/home/zhaijidong/miniconda3/envs/yhy_easycontext/lib/python3.10/multiprocessing/process.py", line 108, in run
+    self._target(*self._args, **self._kwargs)
+  File "/home/zhaijidong/yhy/llm/EasyContext/tests/test_pynccl.py", line 54, in wrapped_fn
+    fn()
+  File "/home/zhaijidong/yhy/llm/EasyContext/tests/test_pynccl.py", line 95, in multiple_allreduce_worker_fn
+    pynccl_comm.all_reduce(tensor)
+  File "/home/zhaijidong/yhy/llm/EasyContext/tests/distributed/device_communicators/pynccl.py", line 114, in all_reduce
+    assert tensor.device == self.device, (
+AttributeError: 'PyNcclCommunicator' object has no attribute 'device'
+[WARN]: Overwriting environment variable %s from '%s' to '%s' MASTER_PORT 14885 17791
+[INFO]: Found nccl from library %s libnccl.so.2
+[ERROR]: Failed to load NCCL library from %s .It is expected if you are not running on NVIDIA/AMD GPUs.Otherwise, the nccl library might not exist, be corrupted or it does not support the current platform %s.If you already have the library, please set the environment variable VLLM_NCCL_SO_PATH to point to the correct nccl library path. libnccl.so.2 Linux-5.4.0-144-generic-x86_64-with-glibc2.31
+Process Process-9:
+Traceback (most recent call last):
+  File "/home/zhaijidong/miniconda3/envs/yhy_easycontext/lib/python3.10/multiprocessing/process.py", line 314, in _bootstrap
+    self.run()
+  File "/home/zhaijidong/miniconda3/envs/yhy_easycontext/lib/python3.10/multiprocessing/process.py", line 108, in run
+    self._target(*self._args, **self._kwargs)
+  File "/home/zhaijidong/yhy/llm/EasyContext/tests/test_pynccl.py", line 54, in wrapped_fn
+    fn()
+  File "/home/zhaijidong/yhy/llm/EasyContext/tests/test_pynccl.py", line 121, in multiple_allreduce_with_vllm_worker_fn
+    tensor = tensor_model_parallel_all_reduce(tensor)
+  File "/home/zhaijidong/yhy/llm/EasyContext/tests/distributed/communication_op.py", line 11, in tensor_model_parallel_all_reduce
+    return get_tp_group().all_reduce(input_)
+  File "/home/zhaijidong/yhy/llm/EasyContext/tests/distributed/parallel_state.py", line 291, in all_reduce
+    pynccl_comm.all_reduce(input_)
+  File "/home/zhaijidong/yhy/llm/EasyContext/tests/distributed/device_communicators/pynccl.py", line 114, in all_reduce
+    assert tensor.device == self.device, (
+AttributeError: 'PyNcclCommunicator' object has no attribute 'device'
+F[WARN]: Overwriting environment variable %s from '%s' to '%s' MASTER_PORT 14885 17791
+[INFO]: Found nccl from library %s libnccl.so.2
+[ERROR]: Failed to load NCCL library from %s .It is expected if you are not running on NVIDIA/AMD GPUs.Otherwise, the nccl library might not exist, be corrupted or it does not support the current platform %s.If you already have the library, please set the environment variable VLLM_NCCL_SO_PATH to point to the correct nccl library path. libnccl.so.2 Linux-5.4.0-144-generic-x86_64-with-glibc2.31
+[INFO]: Found nccl from library %s libnccl.so.2
+[ERROR]: Failed to load NCCL library from %s .It is expected if you are not running on NVIDIA/AMD GPUs.Otherwise, the nccl library might not exist, be corrupted or it does not support the current platform %s.If you already have the library, please set the environment variable VLLM_NCCL_SO_PATH to point to the correct nccl library path. libnccl.so.2 Linux-5.4.0-144-generic-x86_64-with-glibc2.31
+Process Process-10:
+Process Process-7:
+Traceback (most recent call last):
+  File "/home/zhaijidong/miniconda3/envs/yhy_easycontext/lib/python3.10/multiprocessing/process.py", line 314, in _bootstrap
+    self.run()
+  File "/home/zhaijidong/miniconda3/envs/yhy_easycontext/lib/python3.10/multiprocessing/process.py", line 108, in run
+    self._target(*self._args, **self._kwargs)
+  File "/home/zhaijidong/yhy/llm/EasyContext/tests/test_pynccl.py", line 54, in wrapped_fn
+    fn()
+  File "/home/zhaijidong/yhy/llm/EasyContext/tests/test_pynccl.py", line 121, in multiple_allreduce_with_vllm_worker_fn
+    tensor = tensor_model_parallel_all_reduce(tensor)
+  File "/home/zhaijidong/yhy/llm/EasyContext/tests/distributed/communication_op.py", line 11, in tensor_model_parallel_all_reduce
+    return get_tp_group().all_reduce(input_)
+  File "/home/zhaijidong/yhy/llm/EasyContext/tests/distributed/parallel_state.py", line 291, in all_reduce
+    pynccl_comm.all_reduce(input_)
+  File "/home/zhaijidong/yhy/llm/EasyContext/tests/distributed/device_communicators/pynccl.py", line 114, in all_reduce
+    assert tensor.device == self.device, (
+AttributeError: 'PyNcclCommunicator' object has no attribute 'device'
+[WARN]: Overwriting environment variable %s from '%s' to '%s' MASTER_PORT 14885 17791
+[INFO]: Found nccl from library %s libnccl.so.2
+[ERROR]: Failed to load NCCL library from %s .It is expected if you are not running on NVIDIA/AMD GPUs.Otherwise, the nccl library might not exist, be corrupted or it does not support the current platform %s.If you already have the library, please set the environment variable VLLM_NCCL_SO_PATH to point to the correct nccl library path. libnccl.so.2 Linux-5.4.0-144-generic-x86_64-with-glibc2.31
+[INFO]: Found nccl from library %s libnccl.so.2
+[ERROR]: Failed to load NCCL library from %s .It is expected if you are not running on NVIDIA/AMD GPUs.Otherwise, the nccl library might not exist, be corrupted or it does not support the current platform %s.If you already have the library, please set the environment variable VLLM_NCCL_SO_PATH to point to the correct nccl library path. libnccl.so.2 Linux-5.4.0-144-generic-x86_64-with-glibc2.31
+Process Process-8:
+Traceback (most recent call last):
+  File "/home/zhaijidong/miniconda3/envs/yhy_easycontext/lib/python3.10/multiprocessing/process.py", line 314, in _bootstrap
+    self.run()
+  File "/home/zhaijidong/miniconda3/envs/yhy_easycontext/lib/python3.10/multiprocessing/process.py", line 108, in run
+    self._target(*self._args, **self._kwargs)
+  File "/home/zhaijidong/yhy/llm/EasyContext/tests/test_pynccl.py", line 54, in wrapped_fn
+    fn()
+  File "/home/zhaijidong/yhy/llm/EasyContext/tests/test_pynccl.py", line 116, in multiple_allreduce_with_vllm_worker_fn
+    tensor = tensor_model_parallel_all_reduce(tensor)
+  File "/home/zhaijidong/yhy/llm/EasyContext/tests/distributed/communication_op.py", line 11, in tensor_model_parallel_all_reduce
+    return get_tp_group().all_reduce(input_)
+  File "/home/zhaijidong/yhy/llm/EasyContext/tests/distributed/parallel_state.py", line 291, in all_reduce
+    pynccl_comm.all_reduce(input_)
+  File "/home/zhaijidong/yhy/llm/EasyContext/tests/distributed/device_communicators/pynccl.py", line 114, in all_reduce
+    assert tensor.device == self.device, (
+AttributeError: 'PyNcclCommunicator' object has no attribute 'device'
+[WARN]: Overwriting environment variable %s from '%s' to '%s' MASTER_PORT 14885 17791
+[INFO]: Found nccl from library %s libnccl.so.2
+[ERROR]: Failed to load NCCL library from %s .It is expected if you are not running on NVIDIA/AMD GPUs.Otherwise, the nccl library might not exist, be corrupted or it does not support the current platform %s.If you already have the library, please set the environment variable VLLM_NCCL_SO_PATH to point to the correct nccl library path. libnccl.so.2 Linux-5.4.0-144-generic-x86_64-with-glibc2.31
+[INFO]: Found nccl from library %s libnccl.so.2
+[ERROR]: Failed to load NCCL library from %s .It is expected if you are not running on NVIDIA/AMD GPUs.Otherwise, the nccl library might not exist, be corrupted or it does not support the current platform %s.If you already have the library, please set the environment variable VLLM_NCCL_SO_PATH to point to the correct nccl library path. libnccl.so.2 Linux-5.4.0-144-generic-x86_64-with-glibc2.31
+Traceback (most recent call last):
+  File "/home/zhaijidong/miniconda3/envs/yhy_easycontext/lib/python3.10/multiprocessing/process.py", line 314, in _bootstrap
+    self.run()
+  File "/home/zhaijidong/miniconda3/envs/yhy_easycontext/lib/python3.10/multiprocessing/process.py", line 108, in run
+    self._target(*self._args, **self._kwargs)
+  File "/home/zhaijidong/yhy/llm/EasyContext/tests/test_pynccl.py", line 54, in wrapped_fn
+    fn()
+  File "/home/zhaijidong/yhy/llm/EasyContext/tests/test_pynccl.py", line 116, in multiple_allreduce_with_vllm_worker_fn
+    tensor = tensor_model_parallel_all_reduce(tensor)
+  File "/home/zhaijidong/yhy/llm/EasyContext/tests/distributed/communication_op.py", line 11, in tensor_model_parallel_all_reduce
+    return get_tp_group().all_reduce(input_)
+  File "/home/zhaijidong/yhy/llm/EasyContext/tests/distributed/parallel_state.py", line 291, in all_reduce
+    pynccl_comm.all_reduce(input_)
+  File "/home/zhaijidong/yhy/llm/EasyContext/tests/distributed/device_communicators/pynccl.py", line 114, in all_reduce
+    assert tensor.device == self.device, (
+AttributeError: 'PyNcclCommunicator' object has no attribute 'device'
+[WARN]: Overwriting environment variable %s from '%s' to '%s' MASTER_PORT 14885 17791
+[INFO]: Found nccl from library %s libnccl.so.2
+[ERROR]: Failed to load NCCL library from %s .It is expected if you are not running on NVIDIA/AMD GPUs.Otherwise, the nccl library might not exist, be corrupted or it does not support the current platform %s.If you already have the library, please set the environment variable VLLM_NCCL_SO_PATH to point to the correct nccl library path. libnccl.so.2 Linux-5.4.0-144-generic-x86_64-with-glibc2.31
+[INFO]: Found nccl from library %s libnccl.so.2
+[ERROR]: Failed to load NCCL library from %s .It is expected if you are not running on NVIDIA/AMD GPUs.Otherwise, the nccl library might not exist, be corrupted or it does not support the current platform %s.If you already have the library, please set the environment variable VLLM_NCCL_SO_PATH to point to the correct nccl library path. libnccl.so.2 Linux-5.4.0-144-generic-x86_64-with-glibc2.31
+/home/zhaijidong/miniconda3/envs/yhy_easycontext/lib/python3.10/multiprocessing/resource_tracker.py:224: UserWarning: resource_tracker: There appear to be 1 leaked shared_memory objects to clean up at shutdown
+  warnings.warn('resource_tracker: There appear to be %d '
+/home/zhaijidong/miniconda3/envs/yhy_easycontext/lib/python3.10/multiprocessing/resource_tracker.py:224: UserWarning: resource_tracker: There appear to be 1 leaked shared_memory objects to clean up at shutdown
+  warnings.warn('resource_tracker: There appear to be %d '
+Process Process-12:
+Process Process-11:
+Traceback (most recent call last):
+  File "/home/zhaijidong/miniconda3/envs/yhy_easycontext/lib/python3.10/multiprocessing/process.py", line 314, in _bootstrap
+    self.run()
+  File "/home/zhaijidong/miniconda3/envs/yhy_easycontext/lib/python3.10/multiprocessing/process.py", line 108, in run
+    self._target(*self._args, **self._kwargs)
+  File "/home/zhaijidong/yhy/llm/EasyContext/tests/test_pynccl.py", line 54, in wrapped_fn
+    fn()
+  File "/home/zhaijidong/yhy/llm/EasyContext/tests/test_pynccl.py", line 148, in worker_fn_with_cudagraph
+    pynccl_comm.all_reduce(a)
+  File "/home/zhaijidong/yhy/llm/EasyContext/tests/distributed/device_communicators/pynccl.py", line 114, in all_reduce
+    assert tensor.device == self.device, (
+AttributeError: 'PyNcclCommunicator' object has no attribute 'device'
+Traceback (most recent call last):
+F[WARN]: Overwriting environment variable %s from '%s' to '%s' MASTER_PORT 14885 17791
+[INFO]: Found nccl from library %s libnccl.so.2
+[ERROR]: Failed to load NCCL library from %s .It is expected if you are not running on NVIDIA/AMD GPUs.Otherwise, the nccl library might not exist, be corrupted or it does not support the current platform %s.If you already have the library, please set the environment variable VLLM_NCCL_SO_PATH to point to the correct nccl library path. libnccl.so.2 Linux-5.4.0-144-generic-x86_64-with-glibc2.31
+  File "/home/zhaijidong/miniconda3/envs/yhy_easycontext/lib/python3.10/multiprocessing/process.py", line 314, in _bootstrap
+    self.run()
+  File "/home/zhaijidong/miniconda3/envs/yhy_easycontext/lib/python3.10/multiprocessing/process.py", line 108, in run
+    self._target(*self._args, **self._kwargs)
+  File "/home/zhaijidong/yhy/llm/EasyContext/tests/test_pynccl.py", line 54, in wrapped_fn
+    fn()
+  File "/home/zhaijidong/yhy/llm/EasyContext/tests/test_pynccl.py", line 148, in worker_fn_with_cudagraph
+    pynccl_comm.all_reduce(a)
+  File "/home/zhaijidong/yhy/llm/EasyContext/tests/distributed/device_communicators/pynccl.py", line 114, in all_reduce
+    assert tensor.device == self.device, (
+AttributeError: 'PyNcclCommunicator' object has no attribute 'device'
+[WARN]: Overwriting environment variable %s from '%s' to '%s' MASTER_PORT 14885 17791
+[INFO]: Found nccl from library %s libnccl.so.2
+[ERROR]: Failed to load NCCL library from %s .It is expected if you are not running on NVIDIA/AMD GPUs.Otherwise, the nccl library might not exist, be corrupted or it does not support the current platform %s.If you already have the library, please set the environment variable VLLM_NCCL_SO_PATH to point to the correct nccl library path. libnccl.so.2 Linux-5.4.0-144-generic-x86_64-with-glibc2.31
+Process Process-14:
+Traceback (most recent call last):
+  File "/home/zhaijidong/miniconda3/envs/yhy_easycontext/lib/python3.10/multiprocessing/process.py", line 314, in _bootstrap
+    self.run()
+  File "/home/zhaijidong/miniconda3/envs/yhy_easycontext/lib/python3.10/multiprocessing/process.py", line 108, in run
+    self._target(*self._args, **self._kwargs)
+  File "/home/zhaijidong/yhy/llm/EasyContext/tests/test_pynccl.py", line 54, in wrapped_fn
+    fn()
+  File "/home/zhaijidong/yhy/llm/EasyContext/tests/test_pynccl.py", line 178, in send_recv_worker_fn
+    pynccl_comm.recv(tensor,
+  File "/home/zhaijidong/yhy/llm/EasyContext/tests/distributed/device_communicators/pynccl.py", line 140, in recv
+    assert tensor.device == self.device, (
+AttributeError: 'PyNcclCommunicator' object has no attribute 'device'
+F[WARN]: Overwriting environment variable %s from '%s' to '%s' MASTER_PORT 14885 17791
+[INFO]: Found nccl from library %s libnccl.so.2
+[ERROR]: Failed to load NCCL library from %s .It is expected if you are not running on NVIDIA/AMD GPUs.Otherwise, the nccl library might not exist, be corrupted or it does not support the current platform %s.If you already have the library, please set the environment variable VLLM_NCCL_SO_PATH to point to the correct nccl library path. libnccl.so.2 Linux-5.4.0-144-generic-x86_64-with-glibc2.31
+Process Process-13:
+Traceback (most recent call last):
+  File "/home/zhaijidong/miniconda3/envs/yhy_easycontext/lib/python3.10/multiprocessing/process.py", line 314, in _bootstrap
+    self.run()
+  File "/home/zhaijidong/miniconda3/envs/yhy_easycontext/lib/python3.10/multiprocessing/process.py", line 108, in run
+    self._target(*self._args, **self._kwargs)
+  File "/home/zhaijidong/yhy/llm/EasyContext/tests/test_pynccl.py", line 54, in wrapped_fn
+    fn()
+  File "/home/zhaijidong/yhy/llm/EasyContext/tests/test_pynccl.py", line 174, in send_recv_worker_fn
+    pynccl_comm.send(tensor,
+  File "/home/zhaijidong/yhy/llm/EasyContext/tests/distributed/device_communicators/pynccl.py", line 128, in send
+    assert tensor.device == self.device, (
+AttributeError: 'PyNcclCommunicator' object has no attribute 'device'
+[WARN]: Overwriting environment variable %s from '%s' to '%s' MASTER_PORT 14885 17791
+[INFO]: Found nccl from library %s libnccl.so.2
+[ERROR]: Failed to load NCCL library from %s .It is expected if you are not running on NVIDIA/AMD GPUs.Otherwise, the nccl library might not exist, be corrupted or it does not support the current platform %s.If you already have the library, please set the environment variable VLLM_NCCL_SO_PATH to point to the correct nccl library path. libnccl.so.2 Linux-5.4.0-144-generic-x86_64-with-glibc2.31
+Process Process-16:
+Traceback (most recent call last):
+  File "/home/zhaijidong/miniconda3/envs/yhy_easycontext/lib/python3.10/multiprocessing/process.py", line 314, in _bootstrap
+    self.run()
+  File "/home/zhaijidong/miniconda3/envs/yhy_easycontext/lib/python3.10/multiprocessing/process.py", line 108, in run
+    self._target(*self._args, **self._kwargs)
+  File "/home/zhaijidong/yhy/llm/EasyContext/tests/test_pynccl.py", line 54, in wrapped_fn
+    fn()
+  File "/home/zhaijidong/yhy/llm/EasyContext/tests/test_pynccl.py", line 213, in multiple_send_recv_worker_fn
+    pynccl_comm.send(tensor,
+  File "/home/zhaijidong/yhy/llm/EasyContext/tests/distributed/device_communicators/pynccl.py", line 128, in send
+    assert tensor.device == self.device, (
+AttributeError: 'PyNcclCommunicator' object has no attribute 'device'
+F[WARN]: Overwriting environment variable %s from '%s' to '%s' MASTER_PORT 14885 17791
+[INFO]: Found nccl from library %s libnccl.so.2
+[ERROR]: Failed to load NCCL library from %s .It is expected if you are not running on NVIDIA/AMD GPUs.Otherwise, the nccl library might not exist, be corrupted or it does not support the current platform %s.If you already have the library, please set the environment variable VLLM_NCCL_SO_PATH to point to the correct nccl library path. libnccl.so.2 Linux-5.4.0-144-generic-x86_64-with-glibc2.31
+Process Process-18:
+Process Process-15:
+Traceback (most recent call last):
+  File "/home/zhaijidong/miniconda3/envs/yhy_easycontext/lib/python3.10/multiprocessing/process.py", line 314, in _bootstrap
+    self.run()
+  File "/home/zhaijidong/miniconda3/envs/yhy_easycontext/lib/python3.10/multiprocessing/process.py", line 108, in run
+    self._target(*self._args, **self._kwargs)
+  File "/home/zhaijidong/yhy/llm/EasyContext/tests/test_pynccl.py", line 54, in wrapped_fn
+    fn()
+  File "/home/zhaijidong/yhy/llm/EasyContext/tests/test_pynccl.py", line 217, in multiple_send_recv_worker_fn
+    pynccl_comm.recv(tensor,
+  File "/home/zhaijidong/yhy/llm/EasyContext/tests/distributed/device_communicators/pynccl.py", line 140, in recv
+    assert tensor.device == self.device, (
+AttributeError: 'PyNcclCommunicator' object has no attribute 'device'
+[WARN]: Overwriting environment variable %s from '%s' to '%s' MASTER_PORT 14885 17791
+[INFO]: Found nccl from library %s libnccl.so.2
+[ERROR]: Failed to load NCCL library from %s .It is expected if you are not running on NVIDIA/AMD GPUs.Otherwise, the nccl library might not exist, be corrupted or it does not support the current platform %s.If you already have the library, please set the environment variable VLLM_NCCL_SO_PATH to point to the correct nccl library path. libnccl.so.2 Linux-5.4.0-144-generic-x86_64-with-glibc2.31
+Process Process-17:
+Traceback (most recent call last):
+  File "/home/zhaijidong/miniconda3/envs/yhy_easycontext/lib/python3.10/multiprocessing/process.py", line 314, in _bootstrap
+    self.run()
+  File "/home/zhaijidong/miniconda3/envs/yhy_easycontext/lib/python3.10/multiprocessing/process.py", line 108, in run
+    self._target(*self._args, **self._kwargs)
+  File "/home/zhaijidong/yhy/llm/EasyContext/tests/test_pynccl.py", line 54, in wrapped_fn
+    fn()
+  File "/home/zhaijidong/yhy/llm/EasyContext/tests/test_pynccl.py", line 213, in multiple_send_recv_worker_fn
+    pynccl_comm.send(tensor,
+  File "/home/zhaijidong/yhy/llm/EasyContext/tests/distributed/device_communicators/pynccl.py", line 128, in send
+    assert tensor.device == self.device, (
+AttributeError: 'PyNcclCommunicator' object has no attribute 'device'
+[WARN]: Overwriting environment variable %s from '%s' to '%s' MASTER_PORT 14885 17791
+[INFO]: Found nccl from library %s libnccl.so.2
+[ERROR]: Failed to load NCCL library from %s .It is expected if you are not running on NVIDIA/AMD GPUs.Otherwise, the nccl library might not exist, be corrupted or it does not support the current platform %s.If you already have the library, please set the environment variable VLLM_NCCL_SO_PATH to point to the correct nccl library path. libnccl.so.2 Linux-5.4.0-144-generic-x86_64-with-glibc2.31
+Traceback (most recent call last):
+  File "/home/zhaijidong/miniconda3/envs/yhy_easycontext/lib/python3.10/multiprocessing/process.py", line 314, in _bootstrap
+    self.run()
+  File "/home/zhaijidong/miniconda3/envs/yhy_easycontext/lib/python3.10/multiprocessing/process.py", line 108, in run
+    self._target(*self._args, **self._kwargs)
+  File "/home/zhaijidong/yhy/llm/EasyContext/tests/test_pynccl.py", line 54, in wrapped_fn
+    fn()
+  File "/home/zhaijidong/yhy/llm/EasyContext/tests/test_pynccl.py", line 217, in multiple_send_recv_worker_fn
+    pynccl_comm.recv(tensor,
+  File "/home/zhaijidong/yhy/llm/EasyContext/tests/distributed/device_communicators/pynccl.py", line 140, in recv
+    assert tensor.device == self.device, (
+AttributeError: 'PyNcclCommunicator' object has no attribute 'device'
+[WARN]: Overwriting environment variable %s from '%s' to '%s' MASTER_PORT 14885 17791
+[INFO]: Found nccl from library %s libnccl.so.2
+[ERROR]: Failed to load NCCL library from %s .It is expected if you are not running on NVIDIA/AMD GPUs.Otherwise, the nccl library might not exist, be corrupted or it does not support the current platform %s.If you already have the library, please set the environment variable VLLM_NCCL_SO_PATH to point to the correct nccl library path. libnccl.so.2 Linux-5.4.0-144-generic-x86_64-with-glibc2.31
+F[INFO]: Found nccl from library %s libnccl.so.2
+[ERROR]: Failed to load NCCL library from %s .It is expected if you are not running on NVIDIA/AMD GPUs.Otherwise, the nccl library might not exist, be corrupted or it does not support the current platform %s.If you already have the library, please set the environment variable VLLM_NCCL_SO_PATH to point to the correct nccl library path. libnccl.so.2 Linux-5.4.0-144-generic-x86_64-with-glibc2.31
+F
+
+=================================== FAILURES ===================================
+_________________________________ test_pynccl __________________________________
+
+    @pytest.mark.skipif(torch.cuda.device_count() < 2,
+                        reason="Need at least 2 GPUs to run the test.")
+    def test_pynccl():
+>       distributed_run(worker_fn, 2)
+
+tests/test_pynccl.py:74: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+fn = <function worker_fn_wrapper.<locals>.wrapped_fn at 0x7f18d7e1e050>
+world_size = 2
+
+    def distributed_run(fn, world_size):
+        number_of_processes = world_size
+        processes: List[multiprocessing.Process] = []
+        for i in range(number_of_processes):
+            env: Dict[str, str] = {}
+            env['RANK'] = str(i)
+            env['LOCAL_RANK'] = str(i)
+            env['WORLD_SIZE'] = str(number_of_processes)
+            env['LOCAL_WORLD_SIZE'] = str(number_of_processes)
+            env['MASTER_ADDR'] = 'localhost'
+            env['MASTER_PORT'] = '17791'
+            p = multiprocessing.Process(target=fn, args=(env, ))
+            processes.append(p)
+            p.start()
+    
+        for p in processes:
+            p.join()
+    
+        for p in processes:
+>           assert p.exitcode == 0
+E           AssertionError: assert 1 == 0
+E            +  where 1 = <Process name='Process-1' pid=935412 parent=935336 stopped exitcode=1>.exitcode
+
+tests/test_pynccl.py:41: AssertionError
+________________________ test_pynccl_multiple_allreduce ________________________
+
+    @pytest.mark.skipif(torch.cuda.device_count() < 4,
+                        reason="Need at least 4 GPUs to run the test.")
+    def test_pynccl_multiple_allreduce():
+        # this tests pynccl for multiple tp groups, in a standalone way
+        # i.e. call `pynccl_comm.all_reduce` directly
+>       distributed_run(multiple_allreduce_worker_fn, 4)
+
+tests/test_pynccl.py:105: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+fn = <function worker_fn_wrapper.<locals>.wrapped_fn at 0x7f18d7e1e200>
+world_size = 4
+
+    def distributed_run(fn, world_size):
+        number_of_processes = world_size
+        processes: List[multiprocessing.Process] = []
+        for i in range(number_of_processes):
+            env: Dict[str, str] = {}
+            env['RANK'] = str(i)
+            env['LOCAL_RANK'] = str(i)
+            env['WORLD_SIZE'] = str(number_of_processes)
+            env['LOCAL_WORLD_SIZE'] = str(number_of_processes)
+            env['MASTER_ADDR'] = 'localhost'
+            env['MASTER_PORT'] = '17791'
+            p = multiprocessing.Process(target=fn, args=(env, ))
+            processes.append(p)
+            p.start()
+    
+        for p in processes:
+            p.join()
+    
+        for p in processes:
+>           assert p.exitcode == 0
+E           AssertionError: assert 1 == 0
+E            +  where 1 = <Process name='Process-3' pid=935484 parent=935336 stopped exitcode=1>.exitcode
+
+tests/test_pynccl.py:41: AssertionError
+___________________ test_pynccl_multiple_allreduce_with_vllm ___________________
+
+    @pytest.mark.skipif(torch.cuda.device_count() < 4,
+                        reason="Need at least 4 GPUs to run the test.")
+    def test_pynccl_multiple_allreduce_with_vllm():
+        # this tests pynccl for multiple tp groups, together with vllm
+        # i.e. call `tensor_model_parallel_all_reduce`
+>       distributed_run(multiple_allreduce_with_vllm_worker_fn, 4)
+
+tests/test_pynccl.py:131: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+fn = <function worker_fn_wrapper.<locals>.wrapped_fn at 0x7f18d7e1e3b0>
+world_size = 4
+
+    def distributed_run(fn, world_size):
+        number_of_processes = world_size
+        processes: List[multiprocessing.Process] = []
+        for i in range(number_of_processes):
+            env: Dict[str, str] = {}
+            env['RANK'] = str(i)
+            env['LOCAL_RANK'] = str(i)
+            env['WORLD_SIZE'] = str(number_of_processes)
+            env['LOCAL_WORLD_SIZE'] = str(number_of_processes)
+            env['MASTER_ADDR'] = 'localhost'
+            env['MASTER_PORT'] = '17791'
+            p = multiprocessing.Process(target=fn, args=(env, ))
+            processes.append(p)
+            p.start()
+    
+        for p in processes:
+            p.join()
+    
+        for p in processes:
+>           assert p.exitcode == 0
+E           AssertionError: assert 1 == 0
+E            +  where 1 = <Process name='Process-7' pid=935535 parent=935336 stopped exitcode=1>.exitcode
+
+tests/test_pynccl.py:41: AssertionError
+__________________________ test_pynccl_with_cudagraph __________________________
+
+    @pytest.mark.skipif(torch.cuda.device_count() < 2,
+                        reason="Need at least 2 GPUs to run the test.")
+    def test_pynccl_with_cudagraph():
+>       distributed_run(worker_fn_with_cudagraph, 2)
+
+tests/test_pynccl.py:159: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+fn = <function worker_fn_wrapper.<locals>.wrapped_fn at 0x7f18d7e1e560>
+world_size = 2
+
+    def distributed_run(fn, world_size):
+        number_of_processes = world_size
+        processes: List[multiprocessing.Process] = []
+        for i in range(number_of_processes):
+            env: Dict[str, str] = {}
+            env['RANK'] = str(i)
+            env['LOCAL_RANK'] = str(i)
+            env['WORLD_SIZE'] = str(number_of_processes)
+            env['LOCAL_WORLD_SIZE'] = str(number_of_processes)
+            env['MASTER_ADDR'] = 'localhost'
+            env['MASTER_PORT'] = '17791'
+            p = multiprocessing.Process(target=fn, args=(env, ))
+            processes.append(p)
+            p.start()
+    
+        for p in processes:
+            p.join()
+    
+        for p in processes:
+>           assert p.exitcode == 0
+E           AssertionError: assert 1 == 0
+E            +  where 1 = <Process name='Process-11' pid=935615 parent=935336 stopped exitcode=1>.exitcode
+
+tests/test_pynccl.py:41: AssertionError
+____________________________ test_pynccl_send_recv _____________________________
+
+    @pytest.mark.skipif(torch.cuda.device_count() < 2,
+                        reason="Need at least 2 GPUs to run the test.")
+    def test_pynccl_send_recv():
+>       distributed_run(send_recv_worker_fn, 2)
+
+tests/test_pynccl.py:188: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+fn = <function worker_fn_wrapper.<locals>.wrapped_fn at 0x7f18d7e1e710>
+world_size = 2
+
+    def distributed_run(fn, world_size):
+        number_of_processes = world_size
+        processes: List[multiprocessing.Process] = []
+        for i in range(number_of_processes):
+            env: Dict[str, str] = {}
+            env['RANK'] = str(i)
+            env['LOCAL_RANK'] = str(i)
+            env['WORLD_SIZE'] = str(number_of_processes)
+            env['LOCAL_WORLD_SIZE'] = str(number_of_processes)
+            env['MASTER_ADDR'] = 'localhost'
+            env['MASTER_PORT'] = '17791'
+            p = multiprocessing.Process(target=fn, args=(env, ))
+            processes.append(p)
+            p.start()
+    
+        for p in processes:
+            p.join()
+    
+        for p in processes:
+>           assert p.exitcode == 0
+E           AssertionError: assert 1 == 0
+E            +  where 1 = <Process name='Process-13' pid=935636 parent=935336 stopped exitcode=1>.exitcode
+
+tests/test_pynccl.py:41: AssertionError
+________________________ test_pynccl_multiple_send_recv ________________________
+
+    @pytest.mark.skipif(torch.cuda.device_count() < 4,
+                        reason="Need at least 4 GPUs to run the test.")
+    def test_pynccl_multiple_send_recv():
+>       distributed_run(multiple_send_recv_worker_fn, 4)
+
+tests/test_pynccl.py:230: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+fn = <function worker_fn_wrapper.<locals>.wrapped_fn at 0x7f18d7e1e8c0>
+world_size = 4
+
+    def distributed_run(fn, world_size):
+        number_of_processes = world_size
+        processes: List[multiprocessing.Process] = []
+        for i in range(number_of_processes):
+            env: Dict[str, str] = {}
+            env['RANK'] = str(i)
+            env['LOCAL_RANK'] = str(i)
+            env['WORLD_SIZE'] = str(number_of_processes)
+            env['LOCAL_WORLD_SIZE'] = str(number_of_processes)
+            env['MASTER_ADDR'] = 'localhost'
+            env['MASTER_PORT'] = '17791'
+            p = multiprocessing.Process(target=fn, args=(env, ))
+            processes.append(p)
+            p.start()
+    
+        for p in processes:
+            p.join()
+    
+        for p in processes:
+>           assert p.exitcode == 0
+E           AssertionError: assert 1 == 0
+E            +  where 1 = <Process name='Process-15' pid=935671 parent=935336 stopped exitcode=1>.exitcode
+
+tests/test_pynccl.py:41: AssertionError
+_____________________________ test_ncclGetUniqueId _____________________________
+
+    def test_ncclGetUniqueId():
+>       lib = NCCLLibrary()
+
+tests/test_pynccl.py:234: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+tests/distributed/device_communicators/pynccl_wrapper.py:206: in __init__
+    raise e
+tests/distributed/device_communicators/pynccl_wrapper.py:192: in __init__
+    lib = ctypes.CDLL(so_file)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = <CDLL 'libnccl.so.2', handle 0 at 0x7f18d7e51510>, name = 'libnccl.so.2'
+mode = 0, handle = None, use_errno = False, use_last_error = False
+winmode = None
+
+    def __init__(self, name, mode=DEFAULT_MODE, handle=None,
+                 use_errno=False,
+                 use_last_error=False,
+                 winmode=None):
+        self._name = name
+        flags = self._func_flags_
+        if use_errno:
+            flags |= _FUNCFLAG_USE_ERRNO
+        if use_last_error:
+            flags |= _FUNCFLAG_USE_LASTERROR
+        if _sys.platform.startswith("aix"):
+            """When the name contains ".a(" and ends with ")",
+               e.g., "libFOO.a(libFOO.so)" - this is taken to be an
+               archive(member) syntax for dlopen(), and the mode is adjusted.
+               Otherwise, name is presented to dlopen() as a file argument.
+            """
+            if name and name.endswith(")") and ".a(" in name:
+                mode |= ( _os.RTLD_MEMBER | _os.RTLD_NOW )
+        if _os.name == "nt":
+            if winmode is not None:
+                mode = winmode
+            else:
+                import nt
+                mode = nt._LOAD_LIBRARY_SEARCH_DEFAULT_DIRS
+                if '/' in name or '\\' in name:
+                    self._name = nt._getfullpathname(self._name)
+                    mode |= nt._LOAD_LIBRARY_SEARCH_DLL_LOAD_DIR
+    
+        class _FuncPtr(_CFuncPtr):
+            _flags_ = flags
+            _restype_ = self._func_restype_
+        self._FuncPtr = _FuncPtr
+    
+        if handle is None:
+>           self._handle = _dlopen(self._name, mode)
+E           OSError: libnccl.so.2: cannot open shared object file: No such file or directory
+
+../../../miniconda3/envs/yhy_easycontext/lib/python3.10/ctypes/__init__.py:374: OSError
+=========================== short test summary info ============================
+FAILED tests/test_pynccl.py::test_pynccl - AssertionError: assert 1 == 0
+FAILED tests/test_pynccl.py::test_pynccl_multiple_allreduce - AssertionError:...
+FAILED tests/test_pynccl.py::test_pynccl_multiple_allreduce_with_vllm - Asser...
+FAILED tests/test_pynccl.py::test_pynccl_with_cudagraph - AssertionError: ass...
+FAILED tests/test_pynccl.py::test_pynccl_send_recv - AssertionError: assert 1...
+FAILED tests/test_pynccl.py::test_pynccl_multiple_send_recv - AssertionError:...
+FAILED tests/test_pynccl.py::test_ncclGetUniqueId - OSError: libnccl.so.2: ca...
+============================== 7 failed in 25.43s ==============================
+srun: error: g3017: task 1: Exited with exit code 1
+srun: launch/slurm: _step_signal: Terminating StepId=8408.0
+slurmstepd: error: *** STEP 8408.0 ON g3017 CANCELLED AT 2024-07-10T22:27:01 ***
+srun: error: g3017: tasks 0,2-3: Terminated
+srun: Force Terminated StepId=8408.0
++ set +x

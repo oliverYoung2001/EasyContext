@@ -14,13 +14,6 @@ def execute_kernel(kernel: Cuda_Kernel, data_dict: dict, PROC_INFO, comp_func, c
     rank = PROC_INFO['rank']
     local_rank = PROC_INFO['local_rank']
     # get cuda stream on which kernel is executed
-    if isinstance(kernel, Comp_Kernel):
-        kernel.stream = get_global_var('streams')[0]
-    else:
-        if kernel.key[3] == local_rank:
-            kernel.stream = get_global_var('streams')[1]    # Send
-        else:
-            kernel.stream = get_global_var('streams')[2]    # Recv
     with torch.cuda.stream(kernel.stream):
         # step1: wait for precursors
         for precursor in kernel.precursors:
@@ -30,9 +23,9 @@ def execute_kernel(kernel: Cuda_Kernel, data_dict: dict, PROC_INFO, comp_func, c
         # step2: execute kernel
         # comp: (b_id, h_id, r_id, c_id, gpuid) -> Cuda_Kernel
         # comm: (b_id, h_id, r/c_id, send, recv, i/o, r/c) -> Cuda_Kernel
-        if not hasattr(kernel, 'in_ranks'): # [NOTE]: maybe need a lock here !!!
-            kernel.in_ranks = set()
-        kernel.in_ranks.add(local_rank)
+        # if not hasattr(kernel, 'in_ranks'): # [NOTE]: maybe need a lock here !!!
+        #     kernel.in_ranks = set()
+        # kernel.in_ranks.add(local_rank)
         if isinstance(kernel, Comp_Kernel):
             bid, hid, rid, cid = kernel.key[0: 4]
             causal = rid == cid
@@ -58,7 +51,7 @@ def execute_kernel(kernel: Cuda_Kernel, data_dict: dict, PROC_INFO, comp_func, c
         
         # step3: record event after kernel execution for successors
         kernel.event = torch.cuda.Event()
-        kernel.event.record()
+        kernel.event.record(kernel.stream)
 
 def intra_attn_forward(
     process_groups,
@@ -84,12 +77,6 @@ def intra_attn_forward(
     assert world_size % local_size == 0
     node_num = world_size // local_size
     assert local_size == execution_plan.tot_sp
-    if not is_exist_global_var('streams'):
-        streams = []
-        streams.append(torch.cuda.current_stream())
-        for _ in range(1, execution_plan.stream_num):
-            streams.append(torch.cuda.Stream(torch.cuda.current_device()))
-        set_global_var('streams', streams)
     streams = get_global_var('streams')
     data_dict = {}  # (b_id, h_id, r/c_id, i/o, r/c) -> Integrated_Data
     
@@ -125,7 +112,7 @@ def intra_attn_forward(
     }
     for kernel in execution_plan.gpu_kernel_lists[local_rank]:
         execute_kernel(kernel, data_dict, PROC_INFO, fwd_comp_func, comm, idata_buf)
-    print(f'rank{rank}, Out !!!', flush=True)
+    # print(f'rank{rank}, Out !!!', flush=True)
     return data_dict[(0, 0, local_rank, 'o', 'r')]
     
     
