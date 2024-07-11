@@ -21,12 +21,15 @@ def main():
     print(f'[INFO]: fwd schedules')
     for _ in range(len(search_engine.schedule_queues[fob])):
         schedule = search_engine.schedule_queues[fob].pop()
-        if _ == 1:  # qo schedule
-            example_schedule = schedule
+        # if _ == 1:  # qo schedule
+        #     example_schedule = schedule
         # if _ == 2:  # kv schedule
         #     example_schedule = schedule
+        if _ == 3:  # real example
+            example_schedule = schedule
         print(f'schedule:\n{schedule.schedule_table}', flush=True)
         print(f'fob: {fob}, get_e2e_time(): {schedule.get_e2e_time()}, get_absolute_cc_time:\n{schedule.get_absolute_cc_time()}')
+    # return
     d_graph = Dependent_Graph(example_schedule, fob, 1) # Intra-machine
     execute_plan = Execution_Plan(d_graph, fob)
     # dump plan

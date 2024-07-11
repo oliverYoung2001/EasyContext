@@ -431,7 +431,7 @@ class Search_Engine():
             SCHEDULE_UNIQUE_ID += 1
             set_global_var('SCHEDULE_UNIQUE_ID', SCHEDULE_UNIQUE_ID)
             # print(f'SCHEDULE_UNIQUE_ID: {SCHEDULE_UNIQUE_ID}')
-            # print(f'schedule:\n{schedule.schedule_table}', flush=True)
+            print(f'schedule:\n{schedule.schedule_table}', flush=True)
             # print(f'fob: {self.fob}, get_e2e_time(): {schedule.get_e2e_time()}, get_absolute_cc_time:\n{schedule.get_absolute_cc_time()}')
             return (- schedule.get_e2e_time()[self.fob], SCHEDULE_UNIQUE_ID, schedule)
         def unpack_func(q_item):
@@ -507,6 +507,7 @@ class Search_Engine():
         if self.is_end(cur_pos):
             new_schedule = copy.deepcopy(self.cur_schedule)
             self.schedule_queues[self.fob].push(new_schedule)
+            raise Exception()
             exit(0)
             return
         assert self.cur_schedule.schedule_table[cur_pos] == TASK_STATUS.UNSETTLED.value
@@ -527,7 +528,10 @@ class Search_Engine():
         # search for fwd
         self.fob = 0    # fwd
         self.reset_before_search()
-        # self.brute_force_search(self.get_next_unsettled_pos((0, 0, 0, 0)))
+        try:
+            self.brute_force_search(self.get_next_unsettled_pos((0, 0, 0, 0)))
+        except Exception as e:
+            pass
         
         # search for bwd
         self.fob = 1    # bwd
