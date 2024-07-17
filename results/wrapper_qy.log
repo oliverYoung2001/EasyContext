@@ -1,22 +1,14 @@
-+ export TORCH_SHOW_CPP_STACKTRACES=1
-+ TORCH_SHOW_CPP_STACKTRACES=1
 + export CUDA_LAUNCH_BLOCKING=1
 + CUDA_LAUNCH_BLOCKING=1
-+ export CUDA_DEVICE_MAX_CONNECTIONS=1
-+ CUDA_DEVICE_MAX_CONNECTIONS=1
-+ srun -p rag -N 1 --ntasks-per-node=4 --gres=gpu:4 --mem 256G -K -w g3017 -c 16 ./scripts/bench_ring_attn.sh python bench_ring_attn.py
-srun: job 8287 queued and waiting for resources
-srun: job 8287 has been allocated resources
++ srun -p rag -N 1 --ntasks-per-node=4 --gres=gpu:4 --mem 256G -K -c 16 ./scripts/bench_ring_attn.sh python bench_ring_attn.py
+srun: job 10208 queued and waiting for resources
+srun: job 10208 has been allocated resources
 torch distributed is already initialized, skipping initialization ...
 ************ Finish sequence pralell group Initialization. ***********
-Nh=32, S=65536
+Nh=32, S=4096
 # orchestrated_attn_func, fwd
-[W CUDAGraph.cpp:145] Warning: Waiting for pending NCCL work to finish before starting graph capture. (function operator())
-[W CUDAGraph.cpp:145] Warning: Waiting for pending NCCL work to finish before starting graph capture. (function operator())
-[W CUDAGraph.cpp:145] Warning: Waiting for pending NCCL work to finish before starting graph capture. (function operator())
-[W CUDAGraph.cpp:145] Warning: Waiting for pending NCCL work to finish before starting graph capture. (function operator())
 Traceback (most recent call last):
-  File "/home/zhaijidong/yhy/llm/EasyContext/bench_ring_attn.py", line 236, in benchmark
+  File "/home/zhaijidong/yhy/llm/EasyContext/bench_ring_attn.py", line 259, in benchmark
     _ = f(**inputs)
   File "/home/zhaijidong/yhy/llm/EasyContext/orchestrated_attn/orchestrated_attn_impl.py", line 262, in orchestrated_attn_func
     return OrchestratedAttnFunc.apply(
@@ -37,52 +29,15 @@ Traceback (most recent call last):
 RuntimeError: CUDA error: operation not permitted when stream is capturing
 Compile with `TORCH_USE_CUDA_DSA` to enable device-side assertions.
 
-Exception raised from c10_cuda_check_implementation at /opt/conda/conda-bld/pytorch_1702400366987/work/c10/cuda/CUDAException.cpp:44 (most recent call first):
-frame #0: c10::Error::Error(c10::SourceLocation, std::string) + 0x57 (0x7fd39a20f617 in /home/zhaijidong/miniconda3/envs/yhy_easycontext/lib/python3.10/site-packages/torch/lib/libc10.so)
-frame #1: c10::detail::torchCheckFail(char const*, char const*, unsigned int, std::string const&) + 0x64 (0x7fd39a1ca98d in /home/zhaijidong/miniconda3/envs/yhy_easycontext/lib/python3.10/site-packages/torch/lib/libc10.so)
-frame #2: c10::cuda::c10_cuda_check_implementation(int, char const*, char const*, int, bool) + 0x118 (0x7fd39a2cc128 in /home/zhaijidong/miniconda3/envs/yhy_easycontext/lib/python3.10/site-packages/torch/lib/libc10_cuda.so)
-frame #3: <unknown function> + 0x2c0f2 (0x7fd39a2aa0f2 in /home/zhaijidong/miniconda3/envs/yhy_easycontext/lib/python3.10/site-packages/torch/lib/libc10_cuda.so)
-frame #4: <unknown function> + 0x2fa1e (0x7fd39a2ada1e in /home/zhaijidong/miniconda3/envs/yhy_easycontext/lib/python3.10/site-packages/torch/lib/libc10_cuda.so)
-frame #5: <unknown function> + 0x3139e (0x7fd39a2af39e in /home/zhaijidong/miniconda3/envs/yhy_easycontext/lib/python3.10/site-packages/torch/lib/libc10_cuda.so)
-frame #6: <unknown function> + 0x3175e (0x7fd39a2af75e in /home/zhaijidong/miniconda3/envs/yhy_easycontext/lib/python3.10/site-packages/torch/lib/libc10_cuda.so)
-frame #7: <unknown function> + 0x134d53d (0x7fd3e883053d in /home/zhaijidong/miniconda3/envs/yhy_easycontext/lib/python3.10/site-packages/torch/lib/libtorch_cpu.so)
-frame #8: at::detail::empty_strided_generic(c10::ArrayRef<long>, c10::ArrayRef<long>, c10::Allocator*, c10::DispatchKeySet, c10::ScalarType) + 0x13 (0x7fd3e88299a3 in /home/zhaijidong/miniconda3/envs/yhy_easycontext/lib/python3.10/site-packages/torch/lib/libtorch_cpu.so)
-frame #9: at::detail::empty_strided_cuda(c10::ArrayRef<long>, c10::ArrayRef<long>, c10::ScalarType, c10::optional<c10::Device>) + 0x113 (0x7fd39b13e983 in /home/zhaijidong/miniconda3/envs/yhy_easycontext/lib/python3.10/site-packages/torch/lib/libtorch_cuda.so)
-frame #10: at::detail::empty_strided_cuda(c10::ArrayRef<long>, c10::ArrayRef<long>, c10::optional<c10::ScalarType>, c10::optional<c10::Layout>, c10::optional<c10::Device>, c10::optional<bool>) + 0x3e (0x7fd39b13ec5e in /home/zhaijidong/miniconda3/envs/yhy_easycontext/lib/python3.10/site-packages/torch/lib/libtorch_cuda.so)
-frame #11: at::native::empty_strided_cuda(c10::ArrayRef<long>, c10::ArrayRef<long>, c10::optional<c10::ScalarType>, c10::optional<c10::Layout>, c10::optional<c10::Device>, c10::optional<bool>) + 0x3a (0x7fd39b26c0da in /home/zhaijidong/miniconda3/envs/yhy_easycontext/lib/python3.10/site-packages/torch/lib/libtorch_cuda.so)
-frame #12: <unknown function> + 0x2d83136 (0x7fd39d07d136 in /home/zhaijidong/miniconda3/envs/yhy_easycontext/lib/python3.10/site-packages/torch/lib/libtorch_cuda.so)
-frame #13: <unknown function> + 0x2d83240 (0x7fd39d07d240 in /home/zhaijidong/miniconda3/envs/yhy_easycontext/lib/python3.10/site-packages/torch/lib/libtorch_cuda.so)
-frame #14: at::_ops::empty_strided::redispatch(c10::DispatchKeySet, c10::ArrayRef<c10::SymInt>, c10::ArrayRef<c10::SymInt>, c10::optional<c10::ScalarType>, c10::optional<c10::Layout>, c10::optional<c10::Device>, c10::optional<bool>) + 0xf3 (0x7fd3e9757fc3 in /home/zhaijidong/miniconda3/envs/yhy_easycontext/lib/python3.10/site-packages/torch/lib/libtorch_cpu.so)
-frame #15: <unknown function> + 0x25e9bae (0x7fd3e9accbae in /home/zhaijidong/miniconda3/envs/yhy_easycontext/lib/python3.10/site-packages/torch/lib/libtorch_cpu.so)
-frame #16: at::_ops::empty_strided::call(c10::ArrayRef<c10::SymInt>, c10::ArrayRef<c10::SymInt>, c10::optional<c10::ScalarType>, c10::optional<c10::Layout>, c10::optional<c10::Device>, c10::optional<bool>) + 0x1ac (0x7fd3e979e44c in /home/zhaijidong/miniconda3/envs/yhy_easycontext/lib/python3.10/site-packages/torch/lib/libtorch_cpu.so)
-frame #17: at::native::empty_like(at::Tensor const&, c10::optional<c10::ScalarType>, c10::optional<c10::Layout>, c10::optional<c10::Device>, c10::optional<bool>, c10::optional<c10::MemoryFormat>) + 0x521 (0x7fd3e8f37991 in /home/zhaijidong/miniconda3/envs/yhy_easycontext/lib/python3.10/site-packages/torch/lib/libtorch_cpu.so)
-frame #18: <unknown function> + 0x27ba1d5 (0x7fd3e9c9d1d5 in /home/zhaijidong/miniconda3/envs/yhy_easycontext/lib/python3.10/site-packages/torch/lib/libtorch_cpu.so)
-frame #19: at::_ops::empty_like::call(at::Tensor const&, c10::optional<c10::ScalarType>, c10::optional<c10::Layout>, c10::optional<c10::Device>, c10::optional<bool>, c10::optional<c10::MemoryFormat>) + 0x1ea (0x7fd3e991636a in /home/zhaijidong/miniconda3/envs/yhy_easycontext/lib/python3.10/site-packages/torch/lib/libtorch_cpu.so)
-frame #20: torch::empty_like(at::Tensor const&, c10::TensorOptions, c10::optional<c10::MemoryFormat>) + 0x1d3 (0x7fd340f9e753 in /home/zhaijidong/miniconda3/envs/yhy_easycontext/lib/python3.10/site-packages/flash_attn_2_cuda.cpython-310-x86_64-linux-gnu.so)
-frame #21: mha_fwd(at::Tensor&, at::Tensor const&, at::Tensor const&, c10::optional<at::Tensor>&, c10::optional<at::Tensor>&, float, float, bool, int, int, bool, c10::optional<at::Generator>) + 0x10cd (0x7fd340f8efdd in /home/zhaijidong/miniconda3/envs/yhy_easycontext/lib/python3.10/site-packages/flash_attn_2_cuda.cpython-310-x86_64-linux-gnu.so)
-frame #22: <unknown function> + 0x138c6b (0x7fd340fadc6b in /home/zhaijidong/miniconda3/envs/yhy_easycontext/lib/python3.10/site-packages/flash_attn_2_cuda.cpython-310-x86_64-linux-gnu.so)
-frame #23: <unknown function> + 0x135279 (0x7fd340faa279 in /home/zhaijidong/miniconda3/envs/yhy_easycontext/lib/python3.10/site-packages/flash_attn_2_cuda.cpython-310-x86_64-linux-gnu.so)
-frame #24: python() [0x4fd907]
-<omitting python frames>
-frame #38: THPFunction_apply(_object*, _object*) + 0x1010 (0x7fd3f3c26f40 in /home/zhaijidong/miniconda3/envs/yhy_easycontext/lib/python3.10/site-packages/torch/lib/libtorch_python.so)
-frame #39: python() [0x4fd930]
-frame #42: python() [0x5095ce]
-frame #51: python() [0x5951c2]
-frame #53: python() [0x5c5ef7]
-frame #54: python() [0x5c1030]
-frame #55: python() [0x459781]
-frame #60: __libc_start_main + 0xf3 (0x7fd43f65e083 in /lib/x86_64-linux-gnu/libc.so.6)
-frame #61: python() [0x5882ae]
-
 
 During handling of the above exception, another exception occurred:
 
 Traceback (most recent call last):
-  File "/home/zhaijidong/yhy/llm/EasyContext/bench_ring_attn.py", line 412, in <module>
+  File "/home/zhaijidong/yhy/llm/EasyContext/bench_ring_attn.py", line 455, in <module>
     main(parse_args())
-  File "/home/zhaijidong/yhy/llm/EasyContext/bench_ring_attn.py", line 407, in main
+  File "/home/zhaijidong/yhy/llm/EasyContext/bench_ring_attn.py", line 450, in main
     benchmark(args, f, shapes, qkv_buf, dout_buf, forward_only=True, log=True)
-  File "/home/zhaijidong/yhy/llm/EasyContext/bench_ring_attn.py", line 232, in benchmark
+  File "/home/zhaijidong/yhy/llm/EasyContext/bench_ring_attn.py", line 252, in benchmark
     with torch.cuda.graph(g):
   File "/home/zhaijidong/miniconda3/envs/yhy_easycontext/lib/python3.10/site-packages/torch/cuda/graphs.py", line 197, in __exit__
     self.cuda_graph.capture_end()
@@ -91,28 +46,42 @@ Traceback (most recent call last):
 RuntimeError: CUDA error: operation failed due to a previous error during capture
 Compile with `TORCH_USE_CUDA_DSA` to enable device-side assertions.
 
-Exception raised from c10_cuda_check_implementation at /opt/conda/conda-bld/pytorch_1702400366987/work/c10/cuda/CUDAException.cpp:44 (most recent call first):
-frame #0: c10::Error::Error(c10::SourceLocation, std::string) + 0x57 (0x7fd39a20f617 in /home/zhaijidong/miniconda3/envs/yhy_easycontext/lib/python3.10/site-packages/torch/lib/libc10.so)
-frame #1: c10::detail::torchCheckFail(char const*, char const*, unsigned int, std::string const&) + 0x64 (0x7fd39a1ca98d in /home/zhaijidong/miniconda3/envs/yhy_easycontext/lib/python3.10/site-packages/torch/lib/libc10.so)
-frame #2: c10::cuda::c10_cuda_check_implementation(int, char const*, char const*, int, bool) + 0x118 (0x7fd39a2cc128 in /home/zhaijidong/miniconda3/envs/yhy_easycontext/lib/python3.10/site-packages/torch/lib/libc10_cuda.so)
-frame #3: at::cuda::CUDAGraph::capture_end() + 0x97 (0x7fd39b12f1d7 in /home/zhaijidong/miniconda3/envs/yhy_easycontext/lib/python3.10/site-packages/torch/lib/libtorch_cuda.so)
-frame #4: <unknown function> + 0xbd3f41 (0x7fd3f4055f41 in /home/zhaijidong/miniconda3/envs/yhy_easycontext/lib/python3.10/site-packages/torch/lib/libtorch_python.so)
-frame #5: <unknown function> + 0xbd4716 (0x7fd3f4056716 in /home/zhaijidong/miniconda3/envs/yhy_easycontext/lib/python3.10/site-packages/torch/lib/libtorch_python.so)
-frame #6: <unknown function> + 0x3eec14 (0x7fd3f3870c14 in /home/zhaijidong/miniconda3/envs/yhy_easycontext/lib/python3.10/site-packages/torch/lib/libtorch_python.so)
-frame #7: python() [0x4fd907]
-<omitting python frames>
-frame #9: python() [0x5098bf]
-frame #13: python() [0x5095ce]
-frame #14: python() [0x4e79e5]
-frame #20: python() [0x5951c2]
-frame #22: python() [0x5c5ef7]
-frame #23: python() [0x5c1030]
-frame #24: python() [0x459781]
-frame #29: __libc_start_main + 0xf3 (0x7fd43f65e083 in /lib/x86_64-linux-gnu/libc.so.6)
-frame #30: python() [0x5882ae]
-
+[E ProcessGroupGloo.cpp:138] Gloo connectFullMesh failed with Connection reset by peer
 Traceback (most recent call last):
-  File "/home/zhaijidong/yhy/llm/EasyContext/bench_ring_attn.py", line 236, in benchmark
+  File "/home/zhaijidong/yhy/llm/EasyContext/bench_ring_attn.py", line 455, in <module>
+    main(parse_args())
+  File "/home/zhaijidong/yhy/llm/EasyContext/bench_ring_attn.py", line 450, in main
+    benchmark(args, f, shapes, qkv_buf, dout_buf, forward_only=True, log=True)
+  File "/home/zhaijidong/yhy/llm/EasyContext/bench_ring_attn.py", line 228, in benchmark
+    new_group = torch.distributed.new_group(key, backend='gloo')    # group must be create on every process ???
+  File "/home/zhaijidong/miniconda3/envs/yhy_easycontext/lib/python3.10/site-packages/torch/distributed/c10d_logger.py", line 74, in wrapper
+    func_return = func(*args, **kwargs)
+  File "/home/zhaijidong/miniconda3/envs/yhy_easycontext/lib/python3.10/site-packages/torch/distributed/distributed_c10d.py", line 3881, in new_group
+    return _new_group_with_tag(ranks, timeout, backend, pg_options, None, use_local_synchronization=use_local_synchronization)
+  File "/home/zhaijidong/miniconda3/envs/yhy_easycontext/lib/python3.10/site-packages/torch/distributed/distributed_c10d.py", line 3944, in _new_group_with_tag
+    pg, pg_store = _new_process_group_helper(
+  File "/home/zhaijidong/miniconda3/envs/yhy_easycontext/lib/python3.10/site-packages/torch/distributed/distributed_c10d.py", line 1264, in _new_process_group_helper
+    backend_class = ProcessGroupGloo(backend_prefix_store, group_rank, group_size, timeout=timeout)
+RuntimeError: Gloo connectFullMesh failed with Connection reset by peer
+[E ProcessGroupGloo.cpp:138] Gloo connectFullMesh failed with Broken pipe
+Traceback (most recent call last):
+  File "/home/zhaijidong/yhy/llm/EasyContext/bench_ring_attn.py", line 455, in <module>
+    main(parse_args())
+  File "/home/zhaijidong/yhy/llm/EasyContext/bench_ring_attn.py", line 450, in main
+    benchmark(args, f, shapes, qkv_buf, dout_buf, forward_only=True, log=True)
+  File "/home/zhaijidong/yhy/llm/EasyContext/bench_ring_attn.py", line 228, in benchmark
+    new_group = torch.distributed.new_group(key, backend='gloo')    # group must be create on every process ???
+  File "/home/zhaijidong/miniconda3/envs/yhy_easycontext/lib/python3.10/site-packages/torch/distributed/c10d_logger.py", line 74, in wrapper
+    func_return = func(*args, **kwargs)
+  File "/home/zhaijidong/miniconda3/envs/yhy_easycontext/lib/python3.10/site-packages/torch/distributed/distributed_c10d.py", line 3881, in new_group
+    return _new_group_with_tag(ranks, timeout, backend, pg_options, None, use_local_synchronization=use_local_synchronization)
+  File "/home/zhaijidong/miniconda3/envs/yhy_easycontext/lib/python3.10/site-packages/torch/distributed/distributed_c10d.py", line 3944, in _new_group_with_tag
+    pg, pg_store = _new_process_group_helper(
+  File "/home/zhaijidong/miniconda3/envs/yhy_easycontext/lib/python3.10/site-packages/torch/distributed/distributed_c10d.py", line 1264, in _new_process_group_helper
+    backend_class = ProcessGroupGloo(backend_prefix_store, group_rank, group_size, timeout=timeout)
+RuntimeError: Gloo connectFullMesh failed with Broken pipe
+Traceback (most recent call last):
+  File "/home/zhaijidong/yhy/llm/EasyContext/bench_ring_attn.py", line 259, in benchmark
     _ = f(**inputs)
   File "/home/zhaijidong/yhy/llm/EasyContext/orchestrated_attn/orchestrated_attn_impl.py", line 262, in orchestrated_attn_func
     return OrchestratedAttnFunc.apply(
@@ -133,52 +102,15 @@ Traceback (most recent call last):
 RuntimeError: CUDA error: operation not permitted when stream is capturing
 Compile with `TORCH_USE_CUDA_DSA` to enable device-side assertions.
 
-Exception raised from c10_cuda_check_implementation at /opt/conda/conda-bld/pytorch_1702400366987/work/c10/cuda/CUDAException.cpp:44 (most recent call first):
-frame #0: c10::Error::Error(c10::SourceLocation, std::string) + 0x57 (0x7f206438e617 in /home/zhaijidong/miniconda3/envs/yhy_easycontext/lib/python3.10/site-packages/torch/lib/libc10.so)
-frame #1: c10::detail::torchCheckFail(char const*, char const*, unsigned int, std::string const&) + 0x64 (0x7f206434998d in /home/zhaijidong/miniconda3/envs/yhy_easycontext/lib/python3.10/site-packages/torch/lib/libc10.so)
-frame #2: c10::cuda::c10_cuda_check_implementation(int, char const*, char const*, int, bool) + 0x118 (0x7f206444b128 in /home/zhaijidong/miniconda3/envs/yhy_easycontext/lib/python3.10/site-packages/torch/lib/libc10_cuda.so)
-frame #3: <unknown function> + 0x2c0f2 (0x7f20644290f2 in /home/zhaijidong/miniconda3/envs/yhy_easycontext/lib/python3.10/site-packages/torch/lib/libc10_cuda.so)
-frame #4: <unknown function> + 0x2fa1e (0x7f206442ca1e in /home/zhaijidong/miniconda3/envs/yhy_easycontext/lib/python3.10/site-packages/torch/lib/libc10_cuda.so)
-frame #5: <unknown function> + 0x3139e (0x7f206442e39e in /home/zhaijidong/miniconda3/envs/yhy_easycontext/lib/python3.10/site-packages/torch/lib/libc10_cuda.so)
-frame #6: <unknown function> + 0x3175e (0x7f206442e75e in /home/zhaijidong/miniconda3/envs/yhy_easycontext/lib/python3.10/site-packages/torch/lib/libc10_cuda.so)
-frame #7: <unknown function> + 0x134d53d (0x7f20b29af53d in /home/zhaijidong/miniconda3/envs/yhy_easycontext/lib/python3.10/site-packages/torch/lib/libtorch_cpu.so)
-frame #8: at::detail::empty_strided_generic(c10::ArrayRef<long>, c10::ArrayRef<long>, c10::Allocator*, c10::DispatchKeySet, c10::ScalarType) + 0x13 (0x7f20b29a89a3 in /home/zhaijidong/miniconda3/envs/yhy_easycontext/lib/python3.10/site-packages/torch/lib/libtorch_cpu.so)
-frame #9: at::detail::empty_strided_cuda(c10::ArrayRef<long>, c10::ArrayRef<long>, c10::ScalarType, c10::optional<c10::Device>) + 0x113 (0x7f20652bd983 in /home/zhaijidong/miniconda3/envs/yhy_easycontext/lib/python3.10/site-packages/torch/lib/libtorch_cuda.so)
-frame #10: at::detail::empty_strided_cuda(c10::ArrayRef<long>, c10::ArrayRef<long>, c10::optional<c10::ScalarType>, c10::optional<c10::Layout>, c10::optional<c10::Device>, c10::optional<bool>) + 0x3e (0x7f20652bdc5e in /home/zhaijidong/miniconda3/envs/yhy_easycontext/lib/python3.10/site-packages/torch/lib/libtorch_cuda.so)
-frame #11: at::native::empty_strided_cuda(c10::ArrayRef<long>, c10::ArrayRef<long>, c10::optional<c10::ScalarType>, c10::optional<c10::Layout>, c10::optional<c10::Device>, c10::optional<bool>) + 0x3a (0x7f20653eb0da in /home/zhaijidong/miniconda3/envs/yhy_easycontext/lib/python3.10/site-packages/torch/lib/libtorch_cuda.so)
-frame #12: <unknown function> + 0x2d83136 (0x7f20671fc136 in /home/zhaijidong/miniconda3/envs/yhy_easycontext/lib/python3.10/site-packages/torch/lib/libtorch_cuda.so)
-frame #13: <unknown function> + 0x2d83240 (0x7f20671fc240 in /home/zhaijidong/miniconda3/envs/yhy_easycontext/lib/python3.10/site-packages/torch/lib/libtorch_cuda.so)
-frame #14: at::_ops::empty_strided::redispatch(c10::DispatchKeySet, c10::ArrayRef<c10::SymInt>, c10::ArrayRef<c10::SymInt>, c10::optional<c10::ScalarType>, c10::optional<c10::Layout>, c10::optional<c10::Device>, c10::optional<bool>) + 0xf3 (0x7f20b38d6fc3 in /home/zhaijidong/miniconda3/envs/yhy_easycontext/lib/python3.10/site-packages/torch/lib/libtorch_cpu.so)
-frame #15: <unknown function> + 0x25e9bae (0x7f20b3c4bbae in /home/zhaijidong/miniconda3/envs/yhy_easycontext/lib/python3.10/site-packages/torch/lib/libtorch_cpu.so)
-frame #16: at::_ops::empty_strided::call(c10::ArrayRef<c10::SymInt>, c10::ArrayRef<c10::SymInt>, c10::optional<c10::ScalarType>, c10::optional<c10::Layout>, c10::optional<c10::Device>, c10::optional<bool>) + 0x1ac (0x7f20b391d44c in /home/zhaijidong/miniconda3/envs/yhy_easycontext/lib/python3.10/site-packages/torch/lib/libtorch_cpu.so)
-frame #17: at::native::empty_like(at::Tensor const&, c10::optional<c10::ScalarType>, c10::optional<c10::Layout>, c10::optional<c10::Device>, c10::optional<bool>, c10::optional<c10::MemoryFormat>) + 0x521 (0x7f20b30b6991 in /home/zhaijidong/miniconda3/envs/yhy_easycontext/lib/python3.10/site-packages/torch/lib/libtorch_cpu.so)
-frame #18: <unknown function> + 0x27ba1d5 (0x7f20b3e1c1d5 in /home/zhaijidong/miniconda3/envs/yhy_easycontext/lib/python3.10/site-packages/torch/lib/libtorch_cpu.so)
-frame #19: at::_ops::empty_like::call(at::Tensor const&, c10::optional<c10::ScalarType>, c10::optional<c10::Layout>, c10::optional<c10::Device>, c10::optional<bool>, c10::optional<c10::MemoryFormat>) + 0x1ea (0x7f20b3a9536a in /home/zhaijidong/miniconda3/envs/yhy_easycontext/lib/python3.10/site-packages/torch/lib/libtorch_cpu.so)
-frame #20: torch::empty_like(at::Tensor const&, c10::TensorOptions, c10::optional<c10::MemoryFormat>) + 0x1d3 (0x7f200b01d753 in /home/zhaijidong/miniconda3/envs/yhy_easycontext/lib/python3.10/site-packages/flash_attn_2_cuda.cpython-310-x86_64-linux-gnu.so)
-frame #21: mha_fwd(at::Tensor&, at::Tensor const&, at::Tensor const&, c10::optional<at::Tensor>&, c10::optional<at::Tensor>&, float, float, bool, int, int, bool, c10::optional<at::Generator>) + 0x10cd (0x7f200b00dfdd in /home/zhaijidong/miniconda3/envs/yhy_easycontext/lib/python3.10/site-packages/flash_attn_2_cuda.cpython-310-x86_64-linux-gnu.so)
-frame #22: <unknown function> + 0x138c6b (0x7f200b02cc6b in /home/zhaijidong/miniconda3/envs/yhy_easycontext/lib/python3.10/site-packages/flash_attn_2_cuda.cpython-310-x86_64-linux-gnu.so)
-frame #23: <unknown function> + 0x135279 (0x7f200b029279 in /home/zhaijidong/miniconda3/envs/yhy_easycontext/lib/python3.10/site-packages/flash_attn_2_cuda.cpython-310-x86_64-linux-gnu.so)
-frame #24: python() [0x4fd907]
-<omitting python frames>
-frame #38: THPFunction_apply(_object*, _object*) + 0x1010 (0x7f20bdda5f40 in /home/zhaijidong/miniconda3/envs/yhy_easycontext/lib/python3.10/site-packages/torch/lib/libtorch_python.so)
-frame #39: python() [0x4fd930]
-frame #42: python() [0x5095ce]
-frame #51: python() [0x5951c2]
-frame #53: python() [0x5c5ef7]
-frame #54: python() [0x5c1030]
-frame #55: python() [0x459781]
-frame #60: __libc_start_main + 0xf3 (0x7f21097dd083 in /lib/x86_64-linux-gnu/libc.so.6)
-frame #61: python() [0x5882ae]
-
 
 During handling of the above exception, another exception occurred:
 
 Traceback (most recent call last):
-  File "/home/zhaijidong/yhy/llm/EasyContext/bench_ring_attn.py", line 412, in <module>
+  File "/home/zhaijidong/yhy/llm/EasyContext/bench_ring_attn.py", line 455, in <module>
     main(parse_args())
-  File "/home/zhaijidong/yhy/llm/EasyContext/bench_ring_attn.py", line 407, in main
+  File "/home/zhaijidong/yhy/llm/EasyContext/bench_ring_attn.py", line 450, in main
     benchmark(args, f, shapes, qkv_buf, dout_buf, forward_only=True, log=True)
-  File "/home/zhaijidong/yhy/llm/EasyContext/bench_ring_attn.py", line 232, in benchmark
+  File "/home/zhaijidong/yhy/llm/EasyContext/bench_ring_attn.py", line 252, in benchmark
     with torch.cuda.graph(g):
   File "/home/zhaijidong/miniconda3/envs/yhy_easycontext/lib/python3.10/site-packages/torch/cuda/graphs.py", line 197, in __exit__
     self.cuda_graph.capture_end()
@@ -187,221 +119,11 @@ Traceback (most recent call last):
 RuntimeError: CUDA error: operation failed due to a previous error during capture
 Compile with `TORCH_USE_CUDA_DSA` to enable device-side assertions.
 
-Exception raised from c10_cuda_check_implementation at /opt/conda/conda-bld/pytorch_1702400366987/work/c10/cuda/CUDAException.cpp:44 (most recent call first):
-frame #0: c10::Error::Error(c10::SourceLocation, std::string) + 0x57 (0x7f206438e617 in /home/zhaijidong/miniconda3/envs/yhy_easycontext/lib/python3.10/site-packages/torch/lib/libc10.so)
-frame #1: c10::detail::torchCheckFail(char const*, char const*, unsigned int, std::string const&) + 0x64 (0x7f206434998d in /home/zhaijidong/miniconda3/envs/yhy_easycontext/lib/python3.10/site-packages/torch/lib/libc10.so)
-frame #2: c10::cuda::c10_cuda_check_implementation(int, char const*, char const*, int, bool) + 0x118 (0x7f206444b128 in /home/zhaijidong/miniconda3/envs/yhy_easycontext/lib/python3.10/site-packages/torch/lib/libc10_cuda.so)
-frame #3: at::cuda::CUDAGraph::capture_end() + 0x97 (0x7f20652ae1d7 in /home/zhaijidong/miniconda3/envs/yhy_easycontext/lib/python3.10/site-packages/torch/lib/libtorch_cuda.so)
-frame #4: <unknown function> + 0xbd3f41 (0x7f20be1d4f41 in /home/zhaijidong/miniconda3/envs/yhy_easycontext/lib/python3.10/site-packages/torch/lib/libtorch_python.so)
-frame #5: <unknown function> + 0xbd4716 (0x7f20be1d5716 in /home/zhaijidong/miniconda3/envs/yhy_easycontext/lib/python3.10/site-packages/torch/lib/libtorch_python.so)
-frame #6: <unknown function> + 0x3eec14 (0x7f20bd9efc14 in /home/zhaijidong/miniconda3/envs/yhy_easycontext/lib/python3.10/site-packages/torch/lib/libtorch_python.so)
-frame #7: python() [0x4fd907]
-<omitting python frames>
-frame #9: python() [0x5098bf]
-frame #13: python() [0x5095ce]
-frame #14: python() [0x4e79e5]
-frame #20: python() [0x5951c2]
-frame #22: python() [0x5c5ef7]
-frame #23: python() [0x5c1030]
-frame #24: python() [0x459781]
-frame #29: __libc_start_main + 0xf3 (0x7f21097dd083 in /lib/x86_64-linux-gnu/libc.so.6)
-frame #30: python() [0x5882ae]
-
-Traceback (most recent call last):
-  File "/home/zhaijidong/yhy/llm/EasyContext/bench_ring_attn.py", line 236, in benchmark
-    _ = f(**inputs)
-  File "/home/zhaijidong/yhy/llm/EasyContext/orchestrated_attn/orchestrated_attn_impl.py", line 262, in orchestrated_attn_func
-    return OrchestratedAttnFunc.apply(
-  File "/home/zhaijidong/miniconda3/envs/yhy_easycontext/lib/python3.10/site-packages/torch/autograd/function.py", line 539, in apply
-    return super().apply(*args, **kwargs)  # type: ignore[misc]
-  File "/home/zhaijidong/yhy/llm/EasyContext/orchestrated_attn/orchestrated_attn_impl.py", line 197, in forward
-    out_row = orchestrated_attn_forward(
-  File "/home/zhaijidong/yhy/llm/EasyContext/orchestrated_attn/orchestrated_attn_impl.py", line 139, in orchestrated_attn_forward
-    return intra_attn_forward(
-  File "/home/zhaijidong/yhy/llm/EasyContext/orchestrated_attn/orchestrated_attn_impl.py", line 114, in intra_attn_forward
-    execute_kernel(kernel, data_dict, PROC_INFO, fwd_comp_func, comm, idata_buf)
-  File "/home/zhaijidong/yhy/llm/EasyContext/orchestrated_attn/orchestrated_attn_impl.py", line 32, in execute_kernel
-    out = comp_func(data_dict[(bid, hid, rid, 'i', 'r')], data_dict[(bid, hid, cid, 'i', 'c')], causal=causal)
-  File "/home/zhaijidong/yhy/llm/EasyContext/orchestrated_attn/orchestrated_attn_impl.py", line 88, in fwd_comp_func
-    O, _, _, _, _, lse, _, _ = _flash_attn_forward(
-  File "/home/zhaijidong/miniconda3/envs/yhy_easycontext/lib/python3.10/site-packages/flash_attn/flash_attn_interface.py", line 57, in _flash_attn_forward
-    out, q, k, v, out_padded, softmax_lse, S_dmask, rng_state = flash_attn_cuda.fwd(
-RuntimeError: CUDA error: operation not permitted when stream is capturing
-Compile with `TORCH_USE_CUDA_DSA` to enable device-side assertions.
-
-Exception raised from c10_cuda_check_implementation at /opt/conda/conda-bld/pytorch_1702400366987/work/c10/cuda/CUDAException.cpp:44 (most recent call first):
-frame #0: c10::Error::Error(c10::SourceLocation, std::string) + 0x57 (0x7f54aaefa617 in /home/zhaijidong/miniconda3/envs/yhy_easycontext/lib/python3.10/site-packages/torch/lib/libc10.so)
-frame #1: c10::detail::torchCheckFail(char const*, char const*, unsigned int, std::string const&) + 0x64 (0x7f54aaeb598d in /home/zhaijidong/miniconda3/envs/yhy_easycontext/lib/python3.10/site-packages/torch/lib/libc10.so)
-frame #2: c10::cuda::c10_cuda_check_implementation(int, char const*, char const*, int, bool) + 0x118 (0x7f54aafb7128 in /home/zhaijidong/miniconda3/envs/yhy_easycontext/lib/python3.10/site-packages/torch/lib/libc10_cuda.so)
-frame #3: <unknown function> + 0x2c0f2 (0x7f54aaf950f2 in /home/zhaijidong/miniconda3/envs/yhy_easycontext/lib/python3.10/site-packages/torch/lib/libc10_cuda.so)
-frame #4: <unknown function> + 0x2fa1e (0x7f54aaf98a1e in /home/zhaijidong/miniconda3/envs/yhy_easycontext/lib/python3.10/site-packages/torch/lib/libc10_cuda.so)
-frame #5: <unknown function> + 0x3139e (0x7f54aaf9a39e in /home/zhaijidong/miniconda3/envs/yhy_easycontext/lib/python3.10/site-packages/torch/lib/libc10_cuda.so)
-frame #6: <unknown function> + 0x3175e (0x7f54aaf9a75e in /home/zhaijidong/miniconda3/envs/yhy_easycontext/lib/python3.10/site-packages/torch/lib/libc10_cuda.so)
-frame #7: <unknown function> + 0x134d53d (0x7f54f951b53d in /home/zhaijidong/miniconda3/envs/yhy_easycontext/lib/python3.10/site-packages/torch/lib/libtorch_cpu.so)
-frame #8: at::detail::empty_strided_generic(c10::ArrayRef<long>, c10::ArrayRef<long>, c10::Allocator*, c10::DispatchKeySet, c10::ScalarType) + 0x13 (0x7f54f95149a3 in /home/zhaijidong/miniconda3/envs/yhy_easycontext/lib/python3.10/site-packages/torch/lib/libtorch_cpu.so)
-frame #9: at::detail::empty_strided_cuda(c10::ArrayRef<long>, c10::ArrayRef<long>, c10::ScalarType, c10::optional<c10::Device>) + 0x113 (0x7f54abe29983 in /home/zhaijidong/miniconda3/envs/yhy_easycontext/lib/python3.10/site-packages/torch/lib/libtorch_cuda.so)
-frame #10: at::detail::empty_strided_cuda(c10::ArrayRef<long>, c10::ArrayRef<long>, c10::optional<c10::ScalarType>, c10::optional<c10::Layout>, c10::optional<c10::Device>, c10::optional<bool>) + 0x3e (0x7f54abe29c5e in /home/zhaijidong/miniconda3/envs/yhy_easycontext/lib/python3.10/site-packages/torch/lib/libtorch_cuda.so)
-frame #11: at::native::empty_strided_cuda(c10::ArrayRef<long>, c10::ArrayRef<long>, c10::optional<c10::ScalarType>, c10::optional<c10::Layout>, c10::optional<c10::Device>, c10::optional<bool>) + 0x3a (0x7f54abf570da in /home/zhaijidong/miniconda3/envs/yhy_easycontext/lib/python3.10/site-packages/torch/lib/libtorch_cuda.so)
-frame #12: <unknown function> + 0x2d83136 (0x7f54add68136 in /home/zhaijidong/miniconda3/envs/yhy_easycontext/lib/python3.10/site-packages/torch/lib/libtorch_cuda.so)
-frame #13: <unknown function> + 0x2d83240 (0x7f54add68240 in /home/zhaijidong/miniconda3/envs/yhy_easycontext/lib/python3.10/site-packages/torch/lib/libtorch_cuda.so)
-frame #14: at::_ops::empty_strided::redispatch(c10::DispatchKeySet, c10::ArrayRef<c10::SymInt>, c10::ArrayRef<c10::SymInt>, c10::optional<c10::ScalarType>, c10::optional<c10::Layout>, c10::optional<c10::Device>, c10::optional<bool>) + 0xf3 (0x7f54fa442fc3 in /home/zhaijidong/miniconda3/envs/yhy_easycontext/lib/python3.10/site-packages/torch/lib/libtorch_cpu.so)
-frame #15: <unknown function> + 0x25e9bae (0x7f54fa7b7bae in /home/zhaijidong/miniconda3/envs/yhy_easycontext/lib/python3.10/site-packages/torch/lib/libtorch_cpu.so)
-frame #16: at::_ops::empty_strided::call(c10::ArrayRef<c10::SymInt>, c10::ArrayRef<c10::SymInt>, c10::optional<c10::ScalarType>, c10::optional<c10::Layout>, c10::optional<c10::Device>, c10::optional<bool>) + 0x1ac (0x7f54fa48944c in /home/zhaijidong/miniconda3/envs/yhy_easycontext/lib/python3.10/site-packages/torch/lib/libtorch_cpu.so)
-frame #17: at::native::empty_like(at::Tensor const&, c10::optional<c10::ScalarType>, c10::optional<c10::Layout>, c10::optional<c10::Device>, c10::optional<bool>, c10::optional<c10::MemoryFormat>) + 0x521 (0x7f54f9c22991 in /home/zhaijidong/miniconda3/envs/yhy_easycontext/lib/python3.10/site-packages/torch/lib/libtorch_cpu.so)
-frame #18: <unknown function> + 0x27ba1d5 (0x7f54fa9881d5 in /home/zhaijidong/miniconda3/envs/yhy_easycontext/lib/python3.10/site-packages/torch/lib/libtorch_cpu.so)
-frame #19: at::_ops::empty_like::call(at::Tensor const&, c10::optional<c10::ScalarType>, c10::optional<c10::Layout>, c10::optional<c10::Device>, c10::optional<bool>, c10::optional<c10::MemoryFormat>) + 0x1ea (0x7f54fa60136a in /home/zhaijidong/miniconda3/envs/yhy_easycontext/lib/python3.10/site-packages/torch/lib/libtorch_cpu.so)
-frame #20: torch::empty_like(at::Tensor const&, c10::TensorOptions, c10::optional<c10::MemoryFormat>) + 0x1d3 (0x7f5451b89753 in /home/zhaijidong/miniconda3/envs/yhy_easycontext/lib/python3.10/site-packages/flash_attn_2_cuda.cpython-310-x86_64-linux-gnu.so)
-frame #21: mha_fwd(at::Tensor&, at::Tensor const&, at::Tensor const&, c10::optional<at::Tensor>&, c10::optional<at::Tensor>&, float, float, bool, int, int, bool, c10::optional<at::Generator>) + 0x10cd (0x7f5451b79fdd in /home/zhaijidong/miniconda3/envs/yhy_easycontext/lib/python3.10/site-packages/flash_attn_2_cuda.cpython-310-x86_64-linux-gnu.so)
-frame #22: <unknown function> + 0x138c6b (0x7f5451b98c6b in /home/zhaijidong/miniconda3/envs/yhy_easycontext/lib/python3.10/site-packages/flash_attn_2_cuda.cpython-310-x86_64-linux-gnu.so)
-frame #23: <unknown function> + 0x135279 (0x7f5451b95279 in /home/zhaijidong/miniconda3/envs/yhy_easycontext/lib/python3.10/site-packages/flash_attn_2_cuda.cpython-310-x86_64-linux-gnu.so)
-frame #24: python() [0x4fd907]
-<omitting python frames>
-frame #38: THPFunction_apply(_object*, _object*) + 0x1010 (0x7f5504911f40 in /home/zhaijidong/miniconda3/envs/yhy_easycontext/lib/python3.10/site-packages/torch/lib/libtorch_python.so)
-frame #39: python() [0x4fd930]
-frame #42: python() [0x5095ce]
-frame #51: python() [0x5951c2]
-frame #53: python() [0x5c5ef7]
-frame #54: python() [0x5c1030]
-frame #55: python() [0x459781]
-frame #60: __libc_start_main + 0xf3 (0x7f5550349083 in /lib/x86_64-linux-gnu/libc.so.6)
-frame #61: python() [0x5882ae]
-
-
-During handling of the above exception, another exception occurred:
-
-Traceback (most recent call last):
-  File "/home/zhaijidong/yhy/llm/EasyContext/bench_ring_attn.py", line 412, in <module>
-    main(parse_args())
-  File "/home/zhaijidong/yhy/llm/EasyContext/bench_ring_attn.py", line 407, in main
-    benchmark(args, f, shapes, qkv_buf, dout_buf, forward_only=True, log=True)
-  File "/home/zhaijidong/yhy/llm/EasyContext/bench_ring_attn.py", line 232, in benchmark
-    with torch.cuda.graph(g):
-  File "/home/zhaijidong/miniconda3/envs/yhy_easycontext/lib/python3.10/site-packages/torch/cuda/graphs.py", line 197, in __exit__
-    self.cuda_graph.capture_end()
-  File "/home/zhaijidong/miniconda3/envs/yhy_easycontext/lib/python3.10/site-packages/torch/cuda/graphs.py", line 88, in capture_end
-    super().capture_end()
-RuntimeError: CUDA error: operation failed due to a previous error during capture
-Compile with `TORCH_USE_CUDA_DSA` to enable device-side assertions.
-
-Exception raised from c10_cuda_check_implementation at /opt/conda/conda-bld/pytorch_1702400366987/work/c10/cuda/CUDAException.cpp:44 (most recent call first):
-frame #0: c10::Error::Error(c10::SourceLocation, std::string) + 0x57 (0x7f54aaefa617 in /home/zhaijidong/miniconda3/envs/yhy_easycontext/lib/python3.10/site-packages/torch/lib/libc10.so)
-frame #1: c10::detail::torchCheckFail(char const*, char const*, unsigned int, std::string const&) + 0x64 (0x7f54aaeb598d in /home/zhaijidong/miniconda3/envs/yhy_easycontext/lib/python3.10/site-packages/torch/lib/libc10.so)
-frame #2: c10::cuda::c10_cuda_check_implementation(int, char const*, char const*, int, bool) + 0x118 (0x7f54aafb7128 in /home/zhaijidong/miniconda3/envs/yhy_easycontext/lib/python3.10/site-packages/torch/lib/libc10_cuda.so)
-frame #3: at::cuda::CUDAGraph::capture_end() + 0x97 (0x7f54abe1a1d7 in /home/zhaijidong/miniconda3/envs/yhy_easycontext/lib/python3.10/site-packages/torch/lib/libtorch_cuda.so)
-frame #4: <unknown function> + 0xbd3f41 (0x7f5504d40f41 in /home/zhaijidong/miniconda3/envs/yhy_easycontext/lib/python3.10/site-packages/torch/lib/libtorch_python.so)
-frame #5: <unknown function> + 0xbd4716 (0x7f5504d41716 in /home/zhaijidong/miniconda3/envs/yhy_easycontext/lib/python3.10/site-packages/torch/lib/libtorch_python.so)
-frame #6: <unknown function> + 0x3eec14 (0x7f550455bc14 in /home/zhaijidong/miniconda3/envs/yhy_easycontext/lib/python3.10/site-packages/torch/lib/libtorch_python.so)
-frame #7: python() [0x4fd907]
-<omitting python frames>
-frame #9: python() [0x5098bf]
-frame #13: python() [0x5095ce]
-frame #14: python() [0x4e79e5]
-frame #20: python() [0x5951c2]
-frame #22: python() [0x5c5ef7]
-frame #23: python() [0x5c1030]
-frame #24: python() [0x459781]
-frame #29: __libc_start_main + 0xf3 (0x7f5550349083 in /lib/x86_64-linux-gnu/libc.so.6)
-frame #30: python() [0x5882ae]
-
-Traceback (most recent call last):
-  File "/home/zhaijidong/yhy/llm/EasyContext/bench_ring_attn.py", line 236, in benchmark
-    _ = f(**inputs)
-  File "/home/zhaijidong/yhy/llm/EasyContext/orchestrated_attn/orchestrated_attn_impl.py", line 262, in orchestrated_attn_func
-    return OrchestratedAttnFunc.apply(
-  File "/home/zhaijidong/miniconda3/envs/yhy_easycontext/lib/python3.10/site-packages/torch/autograd/function.py", line 539, in apply
-    return super().apply(*args, **kwargs)  # type: ignore[misc]
-  File "/home/zhaijidong/yhy/llm/EasyContext/orchestrated_attn/orchestrated_attn_impl.py", line 197, in forward
-    out_row = orchestrated_attn_forward(
-  File "/home/zhaijidong/yhy/llm/EasyContext/orchestrated_attn/orchestrated_attn_impl.py", line 139, in orchestrated_attn_forward
-    return intra_attn_forward(
-  File "/home/zhaijidong/yhy/llm/EasyContext/orchestrated_attn/orchestrated_attn_impl.py", line 114, in intra_attn_forward
-    execute_kernel(kernel, data_dict, PROC_INFO, fwd_comp_func, comm, idata_buf)
-  File "/home/zhaijidong/yhy/llm/EasyContext/orchestrated_attn/orchestrated_attn_impl.py", line 32, in execute_kernel
-    out = comp_func(data_dict[(bid, hid, rid, 'i', 'r')], data_dict[(bid, hid, cid, 'i', 'c')], causal=causal)
-  File "/home/zhaijidong/yhy/llm/EasyContext/orchestrated_attn/orchestrated_attn_impl.py", line 88, in fwd_comp_func
-    O, _, _, _, _, lse, _, _ = _flash_attn_forward(
-  File "/home/zhaijidong/miniconda3/envs/yhy_easycontext/lib/python3.10/site-packages/flash_attn/flash_attn_interface.py", line 57, in _flash_attn_forward
-    out, q, k, v, out_padded, softmax_lse, S_dmask, rng_state = flash_attn_cuda.fwd(
-RuntimeError: CUDA error: operation not permitted when stream is capturing
-Compile with `TORCH_USE_CUDA_DSA` to enable device-side assertions.
-
-Exception raised from c10_cuda_check_implementation at /opt/conda/conda-bld/pytorch_1702400366987/work/c10/cuda/CUDAException.cpp:44 (most recent call first):
-frame #0: c10::Error::Error(c10::SourceLocation, std::string) + 0x57 (0x7f350d457617 in /home/zhaijidong/miniconda3/envs/yhy_easycontext/lib/python3.10/site-packages/torch/lib/libc10.so)
-frame #1: c10::detail::torchCheckFail(char const*, char const*, unsigned int, std::string const&) + 0x64 (0x7f350d41298d in /home/zhaijidong/miniconda3/envs/yhy_easycontext/lib/python3.10/site-packages/torch/lib/libc10.so)
-frame #2: c10::cuda::c10_cuda_check_implementation(int, char const*, char const*, int, bool) + 0x118 (0x7f350d514128 in /home/zhaijidong/miniconda3/envs/yhy_easycontext/lib/python3.10/site-packages/torch/lib/libc10_cuda.so)
-frame #3: <unknown function> + 0x2c0f2 (0x7f350d4f20f2 in /home/zhaijidong/miniconda3/envs/yhy_easycontext/lib/python3.10/site-packages/torch/lib/libc10_cuda.so)
-frame #4: <unknown function> + 0x2fa1e (0x7f350d4f5a1e in /home/zhaijidong/miniconda3/envs/yhy_easycontext/lib/python3.10/site-packages/torch/lib/libc10_cuda.so)
-frame #5: <unknown function> + 0x3139e (0x7f350d4f739e in /home/zhaijidong/miniconda3/envs/yhy_easycontext/lib/python3.10/site-packages/torch/lib/libc10_cuda.so)
-frame #6: <unknown function> + 0x3175e (0x7f350d4f775e in /home/zhaijidong/miniconda3/envs/yhy_easycontext/lib/python3.10/site-packages/torch/lib/libc10_cuda.so)
-frame #7: <unknown function> + 0x134d53d (0x7f355ba7853d in /home/zhaijidong/miniconda3/envs/yhy_easycontext/lib/python3.10/site-packages/torch/lib/libtorch_cpu.so)
-frame #8: at::detail::empty_strided_generic(c10::ArrayRef<long>, c10::ArrayRef<long>, c10::Allocator*, c10::DispatchKeySet, c10::ScalarType) + 0x13 (0x7f355ba719a3 in /home/zhaijidong/miniconda3/envs/yhy_easycontext/lib/python3.10/site-packages/torch/lib/libtorch_cpu.so)
-frame #9: at::detail::empty_strided_cuda(c10::ArrayRef<long>, c10::ArrayRef<long>, c10::ScalarType, c10::optional<c10::Device>) + 0x113 (0x7f350e386983 in /home/zhaijidong/miniconda3/envs/yhy_easycontext/lib/python3.10/site-packages/torch/lib/libtorch_cuda.so)
-frame #10: at::detail::empty_strided_cuda(c10::ArrayRef<long>, c10::ArrayRef<long>, c10::optional<c10::ScalarType>, c10::optional<c10::Layout>, c10::optional<c10::Device>, c10::optional<bool>) + 0x3e (0x7f350e386c5e in /home/zhaijidong/miniconda3/envs/yhy_easycontext/lib/python3.10/site-packages/torch/lib/libtorch_cuda.so)
-frame #11: at::native::empty_strided_cuda(c10::ArrayRef<long>, c10::ArrayRef<long>, c10::optional<c10::ScalarType>, c10::optional<c10::Layout>, c10::optional<c10::Device>, c10::optional<bool>) + 0x3a (0x7f350e4b40da in /home/zhaijidong/miniconda3/envs/yhy_easycontext/lib/python3.10/site-packages/torch/lib/libtorch_cuda.so)
-frame #12: <unknown function> + 0x2d83136 (0x7f35102c5136 in /home/zhaijidong/miniconda3/envs/yhy_easycontext/lib/python3.10/site-packages/torch/lib/libtorch_cuda.so)
-frame #13: <unknown function> + 0x2d83240 (0x7f35102c5240 in /home/zhaijidong/miniconda3/envs/yhy_easycontext/lib/python3.10/site-packages/torch/lib/libtorch_cuda.so)
-frame #14: at::_ops::empty_strided::redispatch(c10::DispatchKeySet, c10::ArrayRef<c10::SymInt>, c10::ArrayRef<c10::SymInt>, c10::optional<c10::ScalarType>, c10::optional<c10::Layout>, c10::optional<c10::Device>, c10::optional<bool>) + 0xf3 (0x7f355c99ffc3 in /home/zhaijidong/miniconda3/envs/yhy_easycontext/lib/python3.10/site-packages/torch/lib/libtorch_cpu.so)
-frame #15: <unknown function> + 0x25e9bae (0x7f355cd14bae in /home/zhaijidong/miniconda3/envs/yhy_easycontext/lib/python3.10/site-packages/torch/lib/libtorch_cpu.so)
-frame #16: at::_ops::empty_strided::call(c10::ArrayRef<c10::SymInt>, c10::ArrayRef<c10::SymInt>, c10::optional<c10::ScalarType>, c10::optional<c10::Layout>, c10::optional<c10::Device>, c10::optional<bool>) + 0x1ac (0x7f355c9e644c in /home/zhaijidong/miniconda3/envs/yhy_easycontext/lib/python3.10/site-packages/torch/lib/libtorch_cpu.so)
-frame #17: at::native::empty_like(at::Tensor const&, c10::optional<c10::ScalarType>, c10::optional<c10::Layout>, c10::optional<c10::Device>, c10::optional<bool>, c10::optional<c10::MemoryFormat>) + 0x521 (0x7f355c17f991 in /home/zhaijidong/miniconda3/envs/yhy_easycontext/lib/python3.10/site-packages/torch/lib/libtorch_cpu.so)
-frame #18: <unknown function> + 0x27ba1d5 (0x7f355cee51d5 in /home/zhaijidong/miniconda3/envs/yhy_easycontext/lib/python3.10/site-packages/torch/lib/libtorch_cpu.so)
-frame #19: at::_ops::empty_like::call(at::Tensor const&, c10::optional<c10::ScalarType>, c10::optional<c10::Layout>, c10::optional<c10::Device>, c10::optional<bool>, c10::optional<c10::MemoryFormat>) + 0x1ea (0x7f355cb5e36a in /home/zhaijidong/miniconda3/envs/yhy_easycontext/lib/python3.10/site-packages/torch/lib/libtorch_cpu.so)
-frame #20: torch::empty_like(at::Tensor const&, c10::TensorOptions, c10::optional<c10::MemoryFormat>) + 0x1d3 (0x7f34b40e6753 in /home/zhaijidong/miniconda3/envs/yhy_easycontext/lib/python3.10/site-packages/flash_attn_2_cuda.cpython-310-x86_64-linux-gnu.so)
-frame #21: mha_fwd(at::Tensor&, at::Tensor const&, at::Tensor const&, c10::optional<at::Tensor>&, c10::optional<at::Tensor>&, float, float, bool, int, int, bool, c10::optional<at::Generator>) + 0x10cd (0x7f34b40d6fdd in /home/zhaijidong/miniconda3/envs/yhy_easycontext/lib/python3.10/site-packages/flash_attn_2_cuda.cpython-310-x86_64-linux-gnu.so)
-frame #22: <unknown function> + 0x138c6b (0x7f34b40f5c6b in /home/zhaijidong/miniconda3/envs/yhy_easycontext/lib/python3.10/site-packages/flash_attn_2_cuda.cpython-310-x86_64-linux-gnu.so)
-frame #23: <unknown function> + 0x135279 (0x7f34b40f2279 in /home/zhaijidong/miniconda3/envs/yhy_easycontext/lib/python3.10/site-packages/flash_attn_2_cuda.cpython-310-x86_64-linux-gnu.so)
-frame #24: python() [0x4fd907]
-<omitting python frames>
-frame #38: THPFunction_apply(_object*, _object*) + 0x1010 (0x7f3566e6ef40 in /home/zhaijidong/miniconda3/envs/yhy_easycontext/lib/python3.10/site-packages/torch/lib/libtorch_python.so)
-frame #39: python() [0x4fd930]
-frame #42: python() [0x5095ce]
-frame #51: python() [0x5951c2]
-frame #53: python() [0x5c5ef7]
-frame #54: python() [0x5c1030]
-frame #55: python() [0x459781]
-frame #60: __libc_start_main + 0xf3 (0x7f35b28a6083 in /lib/x86_64-linux-gnu/libc.so.6)
-frame #61: python() [0x5882ae]
-
-
-During handling of the above exception, another exception occurred:
-
-Traceback (most recent call last):
-  File "/home/zhaijidong/yhy/llm/EasyContext/bench_ring_attn.py", line 412, in <module>
-    main(parse_args())
-  File "/home/zhaijidong/yhy/llm/EasyContext/bench_ring_attn.py", line 407, in main
-    benchmark(args, f, shapes, qkv_buf, dout_buf, forward_only=True, log=True)
-  File "/home/zhaijidong/yhy/llm/EasyContext/bench_ring_attn.py", line 232, in benchmark
-    with torch.cuda.graph(g):
-  File "/home/zhaijidong/miniconda3/envs/yhy_easycontext/lib/python3.10/site-packages/torch/cuda/graphs.py", line 197, in __exit__
-    self.cuda_graph.capture_end()
-  File "/home/zhaijidong/miniconda3/envs/yhy_easycontext/lib/python3.10/site-packages/torch/cuda/graphs.py", line 88, in capture_end
-    super().capture_end()
-RuntimeError: CUDA error: operation failed due to a previous error during capture
-Compile with `TORCH_USE_CUDA_DSA` to enable device-side assertions.
-
-Exception raised from c10_cuda_check_implementation at /opt/conda/conda-bld/pytorch_1702400366987/work/c10/cuda/CUDAException.cpp:44 (most recent call first):
-frame #0: c10::Error::Error(c10::SourceLocation, std::string) + 0x57 (0x7f350d457617 in /home/zhaijidong/miniconda3/envs/yhy_easycontext/lib/python3.10/site-packages/torch/lib/libc10.so)
-frame #1: c10::detail::torchCheckFail(char const*, char const*, unsigned int, std::string const&) + 0x64 (0x7f350d41298d in /home/zhaijidong/miniconda3/envs/yhy_easycontext/lib/python3.10/site-packages/torch/lib/libc10.so)
-frame #2: c10::cuda::c10_cuda_check_implementation(int, char const*, char const*, int, bool) + 0x118 (0x7f350d514128 in /home/zhaijidong/miniconda3/envs/yhy_easycontext/lib/python3.10/site-packages/torch/lib/libc10_cuda.so)
-frame #3: at::cuda::CUDAGraph::capture_end() + 0x97 (0x7f350e3771d7 in /home/zhaijidong/miniconda3/envs/yhy_easycontext/lib/python3.10/site-packages/torch/lib/libtorch_cuda.so)
-frame #4: <unknown function> + 0xbd3f41 (0x7f356729df41 in /home/zhaijidong/miniconda3/envs/yhy_easycontext/lib/python3.10/site-packages/torch/lib/libtorch_python.so)
-frame #5: <unknown function> + 0xbd4716 (0x7f356729e716 in /home/zhaijidong/miniconda3/envs/yhy_easycontext/lib/python3.10/site-packages/torch/lib/libtorch_python.so)
-frame #6: <unknown function> + 0x3eec14 (0x7f3566ab8c14 in /home/zhaijidong/miniconda3/envs/yhy_easycontext/lib/python3.10/site-packages/torch/lib/libtorch_python.so)
-frame #7: python() [0x4fd907]
-<omitting python frames>
-frame #9: python() [0x5098bf]
-frame #13: python() [0x5095ce]
-frame #14: python() [0x4e79e5]
-frame #20: python() [0x5951c2]
-frame #22: python() [0x5c5ef7]
-frame #23: python() [0x5c1030]
-frame #24: python() [0x459781]
-frame #29: __libc_start_main + 0xf3 (0x7f35b28a6083 in /lib/x86_64-linux-gnu/libc.so.6)
-frame #30: python() [0x5882ae]
-
-srun: error: g3017: task 1: Exited with exit code 1
-srun: launch/slurm: _step_signal: Terminating StepId=8287.0
-slurmstepd: error: *** STEP 8287.0 ON g3017 CANCELLED AT 2024-07-10T14:13:44 ***
-srun: error: g3017: tasks 0,3: Exited with exit code 1
-srun: error: g3017: task 2: Exited with exit code 1
+srun: error: g3013: task 0: Exited with exit code 1
+srun: launch/slurm: _step_signal: Terminating StepId=10208.0
+slurmstepd: error: *** STEP 10208.0 ON g3013 CANCELLED AT 2024-07-17T15:59:48 ***
+srun: error: g3013: task 3: Terminated
+srun: error: g3013: task 2: Terminated
+srun: error: g3013: task 1: Terminated
+srun: Force Terminated StepId=10208.0
 + set +x

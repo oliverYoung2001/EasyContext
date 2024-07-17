@@ -1,7 +1,7 @@
 import sys
 import os
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__),
-                                             os.path.pardir, os.path.pardir)))
+                                             os.path.pardir)))
 import torch
 import torch.distributed as dist
 from typing import Optional, Tuple
@@ -9,6 +9,8 @@ from collections.abc import Iterable
 from functools import partial
 from search_algo.execute_plan import Execution_Plan
 import math
+from tests.distributed.device_communicators.pynccl import PyNcclCommunicator
+from .global_vars import *
 
 def print_rank_0(message):
     """If distributed is initialized, print only on rank 0."""
@@ -148,20 +150,28 @@ class IntraComm:
                     process_groups['intra'] = group
         self.process_groups = process_groups
         
-    def send(self, dst: int, idata: Integrated_Data, stream: torch.cuda.Stream):
+    def send(self, dst: int, idata: Integrated_Data, stream: torch.cuda.Stream, ncclcomm: PyNcclCommunicator) -> None:
         # cur_stream = torch.cuda.current_stream()
         # print_rank_0(f'send, stream: {stream.cuda_stream}, cur_stream: {cur_stream.cuda_stream}')
         # with torch.cuda.stream(stream):
         # print(f'rank{self.rank}, peer{self.node_id * self.local_size + dst}, send In, {idata.data.numel()} !!!', flush=True)
-        dist.send(idata.data, self.node_id * self.local_size + dst, group=self.process_groups['intra'])
+        
+        global_dst = self.node_id * self.local_size + dst
+        ncclcomm.send(idata.data, self.rank < global_dst, stream)
+        
+        # dist.send(idata.data, self.node_id * self.local_size + dst, group=self.process_groups['intra'])
         # print(f'rank{self.rank}, send Out !!!', flush=True)
     
-    def recv(self, src: int, idata: Integrated_Data, stream: torch.cuda.Stream) -> Integrated_Data:
+    def recv(self, src: int, idata: Integrated_Data, stream: torch.cuda.Stream, ncclcomm: PyNcclCommunicator) -> Integrated_Data:
         # cur_stream = torch.cuda.current_stream()
         # print_rank_0(f'recv, stream: {stream.cuda_stream}, cur_stream: {cur_stream.cuda_stream}')
         # with torch.cuda.stream(stream):
         # print(f'rank{self.rank}, peer{self.node_id * self.local_size + src}, recv In, {idata.data.numel()} !!!', flush=True)
-        dist.recv(idata.data, self.node_id * self.local_size + src, group=self.process_groups['intra'])
+        
+        global_src = self.node_id * self.local_size + src
+        ncclcomm.recv(idata.data, self.rank < global_src, stream)
+        
+        # dist.recv(idata.data, self.node_id * self.local_size + src, group=self.process_groups['intra'])
         # print(f'rank{self.rank}, recv Out !!!', flush=True)
         return idata
 

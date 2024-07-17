@@ -23,9 +23,6 @@ def execute_kernel(kernel: Cuda_Kernel, data_dict: dict, PROC_INFO, comp_func, c
         # step2: execute kernel
         # comp: (b_id, h_id, r_id, c_id, gpuid) -> Cuda_Kernel
         # comm: (b_id, h_id, r/c_id, send, recv, i/o, r/c) -> Cuda_Kernel
-        # if not hasattr(kernel, 'in_ranks'): # [NOTE]: maybe need a lock here !!!
-        #     kernel.in_ranks = set()
-        # kernel.in_ranks.add(local_rank)
         if isinstance(kernel, Comp_Kernel):
             bid, hid, rid, cid = kernel.key[0: 4]
             causal = rid == cid
@@ -40,10 +37,10 @@ def execute_kernel(kernel: Cuda_Kernel, data_dict: dict, PROC_INFO, comp_func, c
             d_key = kernel.key[: 3] + kernel.key[5:]
             if kernel.key[3] == local_rank: # Send
                 assert d_key in data_dict.keys()
-                comm.send(kernel.key[4], data_dict[d_key], kernel.stream)
+                comm.send(kernel.key[4], data_dict[d_key], kernel.stream, kernel.ncclcomm)
             else:                           # Recv
                 idata_tmp = idata_buf[kernel.key[-2:]]
-                comm.recv(kernel.key[3], idata_tmp, kernel.stream)
+                comm.recv(kernel.key[3], idata_tmp, kernel.stream, kernel.ncclcomm)
                 if d_key in data_dict.keys():
                     data_dict[d_key].reduce(idata_tmp)
                 else:

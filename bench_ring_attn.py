@@ -21,6 +21,7 @@ from easy_context.dist_flash_attn.lightseq_async_attn import attention as lights
 from easy_context.dist_flash_attn.async_communication import initialize_distributed
 from search_algo.search_engine import Dist_Attn_Config
 from search_algo.dependent_graph import Cuda_Kernel, Comp_Kernel, Comm_Kernel
+from tests.distributed.device_communicators.pynccl import PyNcclCommunicator
 from orchestrated_attn.global_vars import *
 from orchestrated_attn.utils import print_rank_0
 import inspect
@@ -207,15 +208,30 @@ def benchmark(args, f, shapes:dict, qkv_buf, dout_buf, warmup=5, num_iter=20, fo
             for _ in range(1, execution_plan.stream_num):
                 streams.append(torch.cuda.Stream(torch.cuda.current_device()))
             set_global_var('streams', streams)
+        streams = get_global_var('streams')
         # set stream for eash kernel
         for kernel in execution_plan.gpu_kernel_lists[local_rank]:
             if isinstance(kernel, Comp_Kernel):
-                kernel.stream = get_global_var('streams')[0]
+                kernel.stream = streams[0]
             else:
                 if kernel.key[3] == local_rank:
-                    kernel.stream = get_global_var('streams')[1]    # Send
+                    kernel.stream = streams[1]    # Send
                 else:
-                    kernel.stream = get_global_var('streams')[2]    # Recv
+                    kernel.stream = streams[2]    # Recv
+        # build nccl communicator for each pair of ranks
+        ncclcomm_dict = get_global_var('ncclcomm_dict')
+        # for kernel in execution_plan.gpu_kernel_lists[local_rank]:
+        for kernel in execution_plan.valid_kernels:
+            if isinstance(kernel, Comm_Kernel):
+                key = (kernel.key[3], kernel.key[4])    # (send, recv)
+                if key not in ncclcomm_dict.keys():
+                    new_group = torch.distributed.new_group(key, backend='gloo')    # group must be create on every process ???
+                    if rank in key:
+                        # print(f'rank{rank}, key: {key}', flush=True)
+                        ncclcomm_dict[key] = PyNcclCommunicator(new_group, device=rank)
+                if rank in key:
+                    kernel.ncclcomm = ncclcomm_dict[key]
+        set_global_var('ncclcomm_dict', ncclcomm_dict)
         # # print kernel orders
         # for r in range(local_size):
         #     print_rank_0(f'rank{r}:')
@@ -226,21 +242,33 @@ def benchmark(args, f, shapes:dict, qkv_buf, dout_buf, warmup=5, num_iter=20, fo
         inputs['execution_plan'] = execution_plan
     inputs = filter_kwargs(f, inputs)
     
+    use_cudagraph = False
     if f == orchestrated_attn_func:
+        use_cudagraph = True    # can be annotated
+        pass
+    if use_cudagraph:
         # Capture cuda graph
         g = torch.cuda.CUDAGraph()
         with torch.cuda.graph(g):
+            # preprocess
+            for stream in streams[1:]:
+                stream.wait_stream(torch.cuda.current_stream())
+            
             if forward_only:
                 with torch.no_grad():
-                    for _ in range(warmup):
-                        _ = f(**inputs)
+                    _ = f(**inputs)
             else:
                 qkv.grad = None
                 out = f(**inputs)
                 out.backward(dout)
+                
+            # postprocess
+            for stream in streams[1:]:
+                torch.cuda.current_stream().wait_stream(stream)
+                
         print_rank_0(f'Cuda Graph captured: {g}')
 
-    return
+    # return
 
     is_runned = False
     
@@ -248,18 +276,23 @@ def benchmark(args, f, shapes:dict, qkv_buf, dout_buf, warmup=5, num_iter=20, fo
     torch.distributed.barrier()
     t1 = time.time()
     # warmup
-    if forward_only:
-        with torch.no_grad():
-            for _ in range(warmup):
-                _ = f(**inputs)
-                torch.cuda.synchronize()
-                torch.distributed.barrier()
-
-    else:
+    if use_cudagraph:
         for _ in range(warmup):
-            qkv.grad = None
-            out = f(**inputs)
-            out.backward(dout)
+            g.replay()
+            torch.cuda.synchronize()
+            torch.distributed.barrier()
+    else:
+        if forward_only:
+            with torch.no_grad():
+                for _ in range(warmup):
+                    _ = f(**inputs)
+                    torch.cuda.synchronize()
+                    torch.distributed.barrier()
+        else:
+            for _ in range(warmup):
+                qkv.grad = None
+                out = f(**inputs)
+                out.backward(dout)
                 
     torch.cuda.synchronize()
     torch.distributed.barrier()
@@ -288,13 +321,16 @@ def benchmark(args, f, shapes:dict, qkv_buf, dout_buf, warmup=5, num_iter=20, fo
         ) as prof:
             for iter in range(TOTAL_TURNS):
                 # torch.distributed.all_reduce(sync_tensor, async_op=False)    # for sync and alignment
-                if forward_only:
-                    with torch.no_grad():
-                        _ = f(**inputs)
+                if use_cudagraph:
+                    g.replay()
                 else:
-                    qkv.grad = None
-                    out = f(**inputs)
-                    out.backward(dout)
+                    if forward_only:
+                        with torch.no_grad():
+                            _ = f(**inputs)
+                    else:
+                        qkv.grad = None
+                        out = f(**inputs)
+                        out.backward(dout)
                 if (iter + 1) % BARRIER_FREQ == 0:
                     torch.cuda.synchronize()
                     torch.distributed.barrier()
@@ -304,22 +340,26 @@ def benchmark(args, f, shapes:dict, qkv_buf, dout_buf, warmup=5, num_iter=20, fo
         
     if not is_runned: 
         # run
-        if forward_only:
-            with torch.no_grad():
-                for _ in range(num_iter):
-                    _ = f(**inputs)
-                    # print(f'rank{rank}, cpu out !!!', flush=True)
-                    # torch.cuda.synchronize()
-                    # print(f'rank{rank}, sync out !!!', flush=True)
-                    # torch.distributed.barrier()
-                    # print(f'rank{rank}, real out !!!', flush=True)
-                    # for kernel in execution_plan.gpu_kernel_lists[rank]:
-                    #     print(f'rank{rank}, {kernel.key}, {kernel.in_ranks} !!!', flush=True)
-        else:
+        if use_cudagraph:
             for _ in range(num_iter):
-                qkv.grad = None
-                out = f(**inputs)
-                out.backward(dout)
+                g.replay()
+        else:
+            if forward_only:
+                with torch.no_grad():
+                    for _ in range(num_iter):
+                        _ = f(**inputs)
+                        # print(f'rank{rank}, cpu out !!!', flush=True)
+                        # torch.cuda.synchronize()
+                        # print(f'rank{rank}, sync out !!!', flush=True)
+                        # torch.distributed.barrier()
+                        # print(f'rank{rank}, real out !!!', flush=True)
+                        # for kernel in execution_plan.gpu_kernel_lists[rank]:
+                        #     print(f'rank{rank}, {kernel.key}, {kernel.in_ranks} !!!', flush=True)
+            else:
+                for _ in range(num_iter):
+                    qkv.grad = None
+                    out = f(**inputs)
+                    out.backward(dout)
      
     
     torch.cuda.synchronize()
@@ -337,9 +377,10 @@ def main(args):
     PROC_INFO = get_proc_info()
     
     MASTER_ADDR = os.getenv('MASTER_ADDR', None)
+    MASTER_ADDR = 'localhost'
     MASTER_PORT = os.getenv('MASTER_PORT', None)
     init_method = f'tcp://[{MASTER_ADDR}]:{MASTER_PORT}'
-    # print(f'rank{RANK}, init_method: {init_method}')
+    # print(f'init_method: {init_method}')
     dist.init_process_group(backend="nccl", init_method=init_method, rank=PROC_INFO['rank'], world_size=PROC_INFO['world_size'])
     rank = dist.get_rank()
     world_size = dist.get_world_size()
@@ -372,13 +413,15 @@ def main(args):
     bs = 1
     D = 128
     Ss = [
-        # 4 * 1024,   # 4K
+        4 * 1024,   # 4K
         # 8 * 1024,   # 8K
         # 16 * 1024,  # 16K
         # 32 * 1024,   # 32K
-        64 * 1024,   # 64K
+        # 64 * 1024,   # 64K
         # 128 * 1024,   # 128K
         # 256 * 1024,   # 256K
+        # 512 * 1024,   # 512K
+        # 1024 * 1024,   # 1M
     ]
     Nhs = [ # configs of llama2
        32,  # 7b

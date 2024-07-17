@@ -1,7 +1,7 @@
 import sys
 import os
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__),
-                                             os.path.pardir, os.path.pardir)))
+                                             os.path.pardir)))
 from search_algo.search_engine import Search_Engine, get_configs, get_profile_data, get_init_schedule_list
 from search_algo.dependent_graph import Dependent_Graph
 from search_algo.execute_plan import Execution_Plan

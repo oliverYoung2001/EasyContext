@@ -14,6 +14,7 @@ HOST="g3015,g3018"
 # GPU_NUMs="24"
 HOST="g3015,g3018,g3021"
 HOST="g3017"
+HOST="g3021"
 # PARTITION=hit
 # HOST="g4004"
 
@@ -29,7 +30,7 @@ MEM_PER_NODE=256G
 SLURM_ARGS="
 -p $PARTITION \
 -N $NNODES \
---ntasks-per-node=$GPUS_PER_NODE \
+--ntasks-per-node=1 \
 --gres=gpu:$GPUS_PER_NODE \
 --mem $MEM_PER_NODE \
 -K \
@@ -66,8 +67,8 @@ RUNNER_CMD="srun $SLURM_ARGS"
 set -x
 # export TORCH_USE_CUDA_DSA=1 # use it in **compile-time** of pytorch for debugging
 # export TORCH_SHOW_CPP_STACKTRACES=1 # for debugging
-export CUDA_LAUNCH_BLOCKING=1 # for debugging
-export CUDA_DEVICE_MAX_CONNECTIONS=1    # [NOTE]: important for cc overlap !!!
+# export CUDA_LAUNCH_BLOCKING=1 # for debugging
+# export CUDA_DEVICE_MAX_CONNECTIONS=1    # [NOTE]: important for cc overlap !!!
 $RUNNER_CMD \
 -c 16 \
 pytest ./tests/test_pynccl.py \

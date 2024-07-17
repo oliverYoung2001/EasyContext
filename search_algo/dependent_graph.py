@@ -113,11 +113,11 @@ class Dependent_Graph():
                         if dst_g_id >= 0 and dst_g_id != cur_g_id and dst_g_id not in dst_set:
                             dst_set.add(dst_g_id)
                             # input col broadcast
-                            comm_key = (i, j, k, cur_g_id, dst_g_id, 'i', 'c')
+                            comm_key = (i, j, l, cur_g_id, dst_g_id, 'i', 'c')
                             assert comm_key not in self.kernel_dict.keys()
                             self.kernel_dict[comm_key] = Comm_Kernel(comm_key, schedule.m_config, comm_raw_map_key, schedule.u_inp_col, hierarchy)
                             # output col reduce
-                            comm_key = (i, j, k, dst_g_id, cur_g_id, 'o', 'c')
+                            comm_key = (i, j, l, dst_g_id, cur_g_id, 'o', 'c')
                             assert comm_key not in self.kernel_dict.keys()
                             self.kernel_dict[comm_key] = Comm_Kernel(comm_key, schedule.m_config, comm_raw_map_key, schedule.u_out_col, hierarchy)
         # [NOTE]: every nonempty kernel in self.kernel_dict should be launched by Execute_Engine
@@ -144,10 +144,10 @@ class Dependent_Graph():
                             cur_g_id = schedule.S_map[i, l]
                             if dst_g_id != cur_g_id:
                                 # input col broadcast
-                                comm_key = (i, j, k, cur_g_id, dst_g_id, 'i', 'c')
+                                comm_key = (i, j, l, cur_g_id, dst_g_id, 'i', 'c')
                                 self.kernel_dict[comm_key].add_edge(comp_kernel, fob)
                                 # output col reduce
-                                comm_key = (i, j, k, dst_g_id, cur_g_id, 'o', 'c')
+                                comm_key = (i, j, l, dst_g_id, cur_g_id, 'o', 'c')
                                 comp_kernel.add_edge(self.kernel_dict[comm_key], fob)
         
         

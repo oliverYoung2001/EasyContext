@@ -173,6 +173,9 @@ class NCCLLibrary:
         # it is better not to call it at all.
         # ncclResult_t  ncclCommDestroy(ncclComm_t comm);
         Function("ncclCommDestroy", ncclResult_t, [ncclComm_t]),
+        
+        Function("ncclGroupStart", ncclResult_t, []),
+        Function("ncclGroupEnd", ncclResult_t, []),
     ]
 
     # class attribute to store the mapping from the path to the library
@@ -184,9 +187,15 @@ class NCCLLibrary:
     path_to_dict_mapping: Dict[str, Dict[str, Any]] = {}
 
     def __init__(self, so_file: Optional[str] = None):
-
+        so_file = '/home/zhaijidong/miniconda3/envs/yhy_easycontext/lib/python3.10/site-packages/nvidia/nccl/lib/libnccl.so.2'  # 2.20.5, failed with cudagraph
+        so_file = '/home/zhaijidong/yhy/llm/comm_test/third_party/nccl/build/lib/libnccl.so.2'  # 2.21.5, passed with cudagraph
         so_file = so_file or find_nccl_library()
-
+        # print(f'so_file: {so_file}')
+        try:
+            lib = ctypes.CDLL(so_file)
+        except Exception as e:
+            print(f'[ERROR]: Not found {so_file} !!!')
+            raise e
         try:
             if so_file not in NCCLLibrary.path_to_dict_mapping:
                 lib = ctypes.CDLL(so_file)
@@ -195,10 +204,10 @@ class NCCLLibrary:
         except Exception as e:
             # logger.error(
             print(f'[ERROR]: '
-                "Failed to load NCCL library from %s ."
+                f"Failed to load NCCL library from {so_file} ."
                 "It is expected if you are not running on NVIDIA/AMD GPUs."
                 "Otherwise, the nccl library might not exist, be corrupted "
-                "or it does not support the current platform %s."
+                f"or it does not support the current platform {platform.platform()}. "
                 "If you already have the library, please set the "
                 "environment variable VLLM_NCCL_SO_PATH"
                 " to point to the correct nccl library path.", so_file,
@@ -271,6 +280,12 @@ class NCCLLibrary:
 
     def ncclCommDestroy(self, comm: ncclComm_t) -> None:
         self.NCCL_CHECK(self._funcs["ncclCommDestroy"](comm))
+    
+    def ncclGroupStart(self) -> None:
+        self.NCCL_CHECK(self._funcs["ncclGroupStart"]())
+    
+    def ncclGroupEnd(self) -> None:
+        self.NCCL_CHECK(self._funcs["ncclGroupEnd"]())
 
 
 __all__ = [

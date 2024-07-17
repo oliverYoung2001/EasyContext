@@ -34,6 +34,7 @@ class PyNcclCommunicator:
         is bind to a unique device.
         """
         assert dist.is_initialized()
+        # print(f'dist.get_backend(group): {dist.get_backend(group)}')
         assert dist.get_backend(group) != dist.Backend.NCCL, (
             "PyNcclCommunicator should be attached to a non-NCCL group.")
         self.group = group
@@ -61,7 +62,7 @@ class PyNcclCommunicator:
         self.disabled = False
 
         # logger.info("vLLM is using nccl==%s", self.nccl.ncclGetVersion())
-        print("[INFO]: vLLM is using nccl==%s", self.nccl.ncclGetVersion())
+        # print("[INFO]: vLLM is using nccl==%s", self.nccl.ncclGetVersion())
 
         if self.rank == 0:
             # get the unique id from NCCL
@@ -76,6 +77,7 @@ class PyNcclCommunicator:
         byte_list = tensor.tolist()
         for i, byte in enumerate(byte_list):
             self.unique_id.internal[i] = byte
+        # print(f'rank{torch.distributed.get_rank()}, ranks: {torch.distributed.get_process_group_ranks(group)}, group_rank: {self.rank}, device: {device}', flush=True)
         if isinstance(device, int):
             device = torch.device(f"cuda:{device}")
         elif isinstance(device, str):
@@ -100,7 +102,7 @@ class PyNcclCommunicator:
         # by default it is disabled, e.g. in profiling models and prefill phase.
         # to use it, use under `with obj.change_state(enable=True)`, usually
         # when we are using CUDA graph.
-        self.disabled = True
+        # self.disabled = True
 
     def all_reduce(self,
                    tensor: torch.Tensor,
@@ -146,6 +148,16 @@ class PyNcclCommunicator:
                            ncclDataTypeEnum.from_torch(tensor.dtype), src,
                            self.comm, cudaStream_t(stream.cuda_stream))
 
+    def group_start(self):
+        if self.disabled:
+            return
+        self.nccl.ncclGroupStart()
+    
+    def group_end(self):
+        if self.disabled:
+            return
+        self.nccl.ncclGroupEnd()
+        
     @contextmanager
     def change_state(self,
                      enable: Optional[bool] = None,

@@ -5,7 +5,7 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__),
 import multiprocessing
 from typing import Dict, List
 
-import pytest
+# import pytest
 import torch
 import torch.distributed
 
@@ -57,7 +57,42 @@ def worker_fn_wrapper(fn):
 
     return wrapped_fn
 
-def execute_func(a, b, d, pynccl_comm: PyNcclCommunicator, streams: list):
+def execute_func(a, b, d, pynccl_comm: PyNcclCommunicator, streams: list):  # send + recv
+    peer = (pynccl_comm.rank + 1) % pynccl_comm.world_size
+    # if pynccl_comm.rank == 0:   # avoid deadlock
+    #     pynccl_comm.send(a, peer, stream=streams[1])
+    #     pynccl_comm.recv(b, peer, stream=streams[2])
+    # else:
+    #     pynccl_comm.recv(b, peer, stream=streams[2])
+    #     pynccl_comm.send(a, peer, stream=streams[1])
+    if pynccl_comm.rank == 0:   # avoid deadlock
+        torch.distributed.isend(a, peer)
+        reqr = torch.distributed.irecv(b, peer)
+    else:
+        reqr = torch.distributed.irecv(b, peer)
+        torch.distributed.isend(a, peer)
+    reqr.wait()
+    return a, b
+
+def execute_func_1(a, b, d, pynccl_comm: PyNcclCommunicator, streams: list):    # send/recv + comp
+    peer = (pynccl_comm.rank + 1) % pynccl_comm.world_size
+    if pynccl_comm.rank == 0:
+        pynccl_comm.send(a, peer, stream=streams[1])
+    else:
+        pynccl_comm.recv(b, peer, stream=streams[2])
+    torch.cuda.current_stream().wait_stream(streams[2])
+    c = a + b
+    c *= (pynccl_comm.rank + 2)
+    streams[1].wait_stream(torch.cuda.current_stream())
+    if pynccl_comm.rank == 0:   # avoid deadlock
+        pynccl_comm.recv(d, peer, stream=streams[2])
+    else:
+        pynccl_comm.send(c, peer, stream=streams[1])
+    torch.cuda.current_stream().wait_stream(streams[2])
+    e = d + (pynccl_comm.rank + 3)
+    return c, e
+  
+def execute_func_0(a, b, d, pynccl_comm: PyNcclCommunicator, streams: list):  # send + recv + comp
     peer = (pynccl_comm.rank + 1) % pynccl_comm.world_size
     if pynccl_comm.rank == 0:   # avoid deadlock
         pynccl_comm.send(a, peer, stream=streams[1])
@@ -65,32 +100,49 @@ def execute_func(a, b, d, pynccl_comm: PyNcclCommunicator, streams: list):
     else:
         pynccl_comm.recv(b, peer, stream=streams[2])
         pynccl_comm.send(a, peer, stream=streams[1])
-    torch.cuda.current_stream().wait_stream(streams[2])
-    c = (a + b) * (pynccl_comm.rank + 2)
-    streams[1].wait_stream(torch.cuda.current_stream())
     if pynccl_comm.rank == 0:   # avoid deadlock
-        pynccl_comm.send(c, peer, stream=streams[1])
-        pynccl_comm.recv(d, peer, stream=streams[2])
+        torch.distributed.isend(a, peer)
+        reqr = torch.distributed.irecv(b, peer)
     else:
-        pynccl_comm.recv(d, peer, stream=streams[2])
-        pynccl_comm.send(c, peer, stream=streams[1])
+        reqr = torch.distributed.irecv(b, peer)
+        torch.distributed.isend(a, peer)
     torch.cuda.current_stream().wait_stream(streams[2])
+    reqr.wait()
+    c = a + b
+    c *= (pynccl_comm.rank + 2)
+    streams[1].wait_stream(torch.cuda.current_stream())
+    # if pynccl_comm.rank == 0:   # avoid deadlock
+    #     pynccl_comm.send(c, peer, stream=streams[1])
+    #     pynccl_comm.recv(d, peer, stream=streams[2])
+    # else:
+    #     pynccl_comm.recv(d, peer, stream=streams[2])
+    #     pynccl_comm.send(c, peer, stream=streams[1])
+    if pynccl_comm.rank == 0:   # avoid deadlock
+        torch.distributed.isend(c, peer)
+        reqr = torch.distributed.irecv(d, peer)
+    else:
+        reqr = torch.distributed.irecv(d, peer)
+        torch.distributed.isend(c, peer)
+    torch.cuda.current_stream().wait_stream(streams[2])
+    reqr.wait()
     d += pynccl_comm.rank + 3
+    return c
                 
 @worker_fn_wrapper
 def worker_fn_with_cudagraph_multistreams():
     nelem = 1024 * 1024 * 1024  # 1G
-    nelem = 128 * 1024 * 1024  # 128M
-    nelem = 1024  # 1K
-    nelem = 16
+    # nelem = 128 * 1024 * 1024  # 128M
+    # nelem = 1024  # 1K
+    # nelem = 16
     with torch.no_grad():
         graph = torch.cuda.CUDAGraph()
         pynccl_comm = PyNcclCommunicator(get_world_group().cpu_group,
                                          device=get_world_group().device)
         # run something in the default stream to initialize torch engine
         a = torch.ones(nelem, device=f'cuda:{pynccl_comm.rank}', dtype=torch.bfloat16)
-        b = torch.empty(nelem, device=f'cuda:{pynccl_comm.rank}', dtype=torch.bfloat16)
-        d = torch.empty(nelem, device=f'cuda:{pynccl_comm.rank}', dtype=torch.bfloat16)
+        b = torch.zeros(nelem, device=f'cuda:{pynccl_comm.rank}', dtype=torch.bfloat16)
+        # c = torch.empty(nelem, device=f'cuda:{pynccl_comm.rank}', dtype=torch.bfloat16)
+        d = torch.zeros(nelem, device=f'cuda:{pynccl_comm.rank}', dtype=torch.bfloat16)
         a *= pynccl_comm.rank + 1
         # print(f'torch.cuda.current_device(): {torch.cuda.current_device()}')
         streams = [
@@ -103,20 +155,20 @@ def worker_fn_with_cudagraph_multistreams():
         world_size = pynccl_comm.world_size
         torch.cuda.synchronize()
         
-        with torch.profiler.profile():  # workaround of issue 75504 of PyTorch
-            pass
+        # with torch.profiler.profile():  # workaround of issue 75504 of PyTorch
+        #     pass
         
-        with torch.cuda.graph(graph), pynccl_comm.change_state(enable=True):
-            # preprocess
-            for stream in streams[1:]:
-                stream.wait_stream(torch.cuda.current_stream())
+        # with torch.cuda.graph(graph), pynccl_comm.change_state(enable=True):
+        #     # preprocess
+        #     for stream in streams[1:]:
+        #         stream.wait_stream(torch.cuda.current_stream())
             
-            # execute kernels
-            execute_func(a, b, d, pynccl_comm, streams)
+        #     # execute kernels
+        #     c, e = execute_func(a, b, d, pynccl_comm, streams)
             
-            # postprocess
-            for stream in streams[1:]:
-                torch.cuda.current_stream().wait_stream(stream)
+        #     # postprocess
+        #     for stream in streams[1:]:
+        #         torch.cuda.current_stream().wait_stream(stream)
 
         BARRIER_FREQ = 4
         WAIT, WARMUP, ACTIVE, REPEAT = BARRIER_FREQ * 1, BARRIER_FREQ * 1, BARRIER_FREQ * 3, 1
@@ -143,29 +195,42 @@ def worker_fn_with_cudagraph_multistreams():
             profile_memory=True,
             with_stack=True,
         ) as prof:
+        # if True:
             for iter in range(TOTAL_TURNS):
                 # graph.replay()
                 
-                # preprocess
-                for stream in streams[1:]:
-                    stream.wait_stream(torch.cuda.current_stream())
+                # # preprocess
+                # for stream in streams[1:]:
+                #     stream.wait_stream(torch.cuda.current_stream())
                 
                 # execute kernels
-                execute_func(a, b, d, pynccl_comm, streams)
+                with pynccl_comm.change_state(enable=True):
+                    c, e = execute_func(a, b, d, pynccl_comm, streams)
                 
-                # postprocess
-                for stream in streams[1:]:
-                    torch.cuda.current_stream().wait_stream(stream)
+                # # postprocess
+                # for stream in streams[1:]:
+                #     torch.cuda.current_stream().wait_stream(stream)
+                    
+                # torch.cuda.synchronize()
                 
                 if (iter + 1) % BARRIER_FREQ == 0:
                     torch.cuda.synchronize()
                     torch.distributed.barrier()
-                # print(f'rank{rank}, iter{iter}', flush=True)
-                prof.step()
+                    print(f'rank{rank}, a: {a.mean()}, b: {b.mean()}, c: {c.mean()}, d: {d.mean()}, e: {e.mean()}', flush=True)
+                if 'prof' in locals().keys():
+                    locals()['prof'].step()
         # print(f'rank{rank}, Out !!!')
         # print(f'rank{rank}, a: {a.mean()}, b: {b.mean()}, c: {c.mean()}, d: {d.mean()}', flush=True)
         
-@pytest.mark.skipif(torch.cuda.device_count() < 2,
-                    reason="Need at least 2 GPUs to run the test.")
+# @pytest.mark.skipif(torch.cuda.device_count() < 2,
+#                     reason="Need at least 2 GPUs to run the test.")
 def test_pynccl_with_cudagraph_multistreams():
     distributed_run(worker_fn_with_cudagraph_multistreams, 2)
+    
+
+def main():
+    assert torch.cuda.device_count() >= 2, "Need at least 2 GPUs to run the test."
+    test_pynccl_with_cudagraph_multistreams()
+    
+if __name__ == '__main__':
+    main()

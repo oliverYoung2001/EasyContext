@@ -11,9 +11,10 @@ import torch
 try:
     import vllm._C
 except ImportError as e:
+    pass
     # logger.warning(
-    print(f'[WARN]: '
-        "Failed to import from vllm._C with %r", e)
+    # print(f'[WARN]: '
+    #     "Failed to import from vllm._C with %r", e)
 
 with contextlib.suppress(ImportError):
     import vllm._moe_C

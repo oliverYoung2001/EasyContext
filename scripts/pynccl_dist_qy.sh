@@ -3,13 +3,8 @@
 CLUSTER_NAME=qy
 # PARTITION=gpu3-2-low
 NNODES=1
-# NNODES=3
 GPUS_PER_NODE=2
-GPUS_PER_NODE=3
-GPUS_PER_NODE=4
-# GPUS_PER_NODE=8
-PARTITION=arch
-# HOST="g3025"
+# GPUS_PER_NODE=3
 PARTITION=rag
 # HOST="g3017,g3018"
 # HOST="g3017,g3022"
@@ -19,8 +14,11 @@ HOST="g3015,g3018"
 HOST="g3015,g3018,g3021"
 HOST="g3017"
 HOST="g3021"
+HOST="g3015"
+# PARTITION=arch
+# HOST="g3024"
 # PARTITION=hit
-# HOST="g4008"
+# HOST="g4004"
 
 
 HOST=None
@@ -56,13 +54,15 @@ LOGGING_ARGS=""
 # "
 
 # NCCL Args:
-export NCCL_DEBUG=INFO
-export NCCL_DEBUG=WARN
-export NCCL_DEBUG=ERROR
-export NCCL_NET_GDR_LEVEL=5
-# export NCCL_NET_GDR_LEVEL=0   # Disable GDR
-export NCCL_IB_DISABLE=0
-export NCCL_DEBUG_SUBSYS=NET
+# export NCCL_DEBUG=INFO
+# export NCCL_DEBUG=WARN
+# export NCCL_DEBUG=ERROR
+# export NCCL_NET_GDR_LEVEL=5
+# # export NCCL_NET_GDR_LEVEL=0   # Disable GDR
+# export NCCL_IB_DISABLE=0
+# export NCCL_DEBUG_SUBSYS=NET
+# export NCCL_MAX_NCHANNELS=1
+# export NCCL_NTHREADS=1  # 512
 
 # # Run with Slurm
 RUNNER_CMD="srun $SLURM_ARGS"
@@ -71,14 +71,14 @@ RUNNER_CMD="srun $SLURM_ARGS"
 set -x
 # export TORCH_USE_CUDA_DSA=1 # use it in **compile-time** of pytorch for debugging
 # export TORCH_SHOW_CPP_STACKTRACES=1 # for debugging
-export CUDA_LAUNCH_BLOCKING=1 # for debugging
+# export CUDA_LAUNCH_BLOCKING=1 # for debugging
 # export CUDA_DEVICE_MAX_CONNECTIONS=1    # [NOTE]: important for cc overlap !!!
 $RUNNER_CMD \
 -c 16 \
 ./scripts/bench_ring_attn.sh \
-python bench_ring_attn.py \
-    $LOGGING_ARGS \
-
+python ./tests/pynccl_dist.py \
+    -s \
+    
 set +x
 
 

@@ -1,6 +1,8 @@
 
 # GLOBAL VARS
 
+ncclcomm_dict = {}
+
 def is_exist_global_var(key: str):
     return key in globals().keys()
 
