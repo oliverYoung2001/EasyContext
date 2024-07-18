@@ -1,129 +1,39 @@
-+ export CUDA_LAUNCH_BLOCKING=1
-+ CUDA_LAUNCH_BLOCKING=1
-+ srun -p rag -N 1 --ntasks-per-node=4 --gres=gpu:4 --mem 256G -K -c 16 ./scripts/bench_ring_attn.sh python bench_ring_attn.py
-srun: job 10208 queued and waiting for resources
-srun: job 10208 has been allocated resources
++ srun -p hit -N 1 --ntasks-per-node=4 --gres=gpu:4 --mem 256G -K -c 16 ./scripts/bench_ring_attn.sh python bench_ring_attn.py --profiler-with-tensorboard --tb-dir ./tb
+srun: job 10373 queued and waiting for resources
+srun: job 10373 has been allocated resources
 torch distributed is already initialized, skipping initialization ...
 ************ Finish sequence pralell group Initialization. ***********
 Nh=32, S=4096
 # orchestrated_attn_func, fwd
-Traceback (most recent call last):
-  File "/home/zhaijidong/yhy/llm/EasyContext/bench_ring_attn.py", line 259, in benchmark
-    _ = f(**inputs)
-  File "/home/zhaijidong/yhy/llm/EasyContext/orchestrated_attn/orchestrated_attn_impl.py", line 262, in orchestrated_attn_func
-    return OrchestratedAttnFunc.apply(
-  File "/home/zhaijidong/miniconda3/envs/yhy_easycontext/lib/python3.10/site-packages/torch/autograd/function.py", line 539, in apply
-    return super().apply(*args, **kwargs)  # type: ignore[misc]
-  File "/home/zhaijidong/yhy/llm/EasyContext/orchestrated_attn/orchestrated_attn_impl.py", line 197, in forward
-    out_row = orchestrated_attn_forward(
-  File "/home/zhaijidong/yhy/llm/EasyContext/orchestrated_attn/orchestrated_attn_impl.py", line 139, in orchestrated_attn_forward
-    return intra_attn_forward(
-  File "/home/zhaijidong/yhy/llm/EasyContext/orchestrated_attn/orchestrated_attn_impl.py", line 114, in intra_attn_forward
-    execute_kernel(kernel, data_dict, PROC_INFO, fwd_comp_func, comm, idata_buf)
-  File "/home/zhaijidong/yhy/llm/EasyContext/orchestrated_attn/orchestrated_attn_impl.py", line 32, in execute_kernel
-    out = comp_func(data_dict[(bid, hid, rid, 'i', 'r')], data_dict[(bid, hid, cid, 'i', 'c')], causal=causal)
-  File "/home/zhaijidong/yhy/llm/EasyContext/orchestrated_attn/orchestrated_attn_impl.py", line 88, in fwd_comp_func
-    O, _, _, _, _, lse, _, _ = _flash_attn_forward(
-  File "/home/zhaijidong/miniconda3/envs/yhy_easycontext/lib/python3.10/site-packages/flash_attn/flash_attn_interface.py", line 57, in _flash_attn_forward
-    out, q, k, v, out_padded, softmax_lse, S_dmask, rng_state = flash_attn_cuda.fwd(
-RuntimeError: CUDA error: operation not permitted when stream is capturing
-Compile with `TORCH_USE_CUDA_DSA` to enable device-side assertions.
-
-
-During handling of the above exception, another exception occurred:
-
-Traceback (most recent call last):
-  File "/home/zhaijidong/yhy/llm/EasyContext/bench_ring_attn.py", line 455, in <module>
-    main(parse_args())
-  File "/home/zhaijidong/yhy/llm/EasyContext/bench_ring_attn.py", line 450, in main
-    benchmark(args, f, shapes, qkv_buf, dout_buf, forward_only=True, log=True)
-  File "/home/zhaijidong/yhy/llm/EasyContext/bench_ring_attn.py", line 252, in benchmark
-    with torch.cuda.graph(g):
-  File "/home/zhaijidong/miniconda3/envs/yhy_easycontext/lib/python3.10/site-packages/torch/cuda/graphs.py", line 197, in __exit__
-    self.cuda_graph.capture_end()
-  File "/home/zhaijidong/miniconda3/envs/yhy_easycontext/lib/python3.10/site-packages/torch/cuda/graphs.py", line 88, in capture_end
-    super().capture_end()
-RuntimeError: CUDA error: operation failed due to a previous error during capture
-Compile with `TORCH_USE_CUDA_DSA` to enable device-side assertions.
-
-[E ProcessGroupGloo.cpp:138] Gloo connectFullMesh failed with Connection reset by peer
-Traceback (most recent call last):
-  File "/home/zhaijidong/yhy/llm/EasyContext/bench_ring_attn.py", line 455, in <module>
-    main(parse_args())
-  File "/home/zhaijidong/yhy/llm/EasyContext/bench_ring_attn.py", line 450, in main
-    benchmark(args, f, shapes, qkv_buf, dout_buf, forward_only=True, log=True)
-  File "/home/zhaijidong/yhy/llm/EasyContext/bench_ring_attn.py", line 228, in benchmark
-    new_group = torch.distributed.new_group(key, backend='gloo')    # group must be create on every process ???
-  File "/home/zhaijidong/miniconda3/envs/yhy_easycontext/lib/python3.10/site-packages/torch/distributed/c10d_logger.py", line 74, in wrapper
-    func_return = func(*args, **kwargs)
-  File "/home/zhaijidong/miniconda3/envs/yhy_easycontext/lib/python3.10/site-packages/torch/distributed/distributed_c10d.py", line 3881, in new_group
-    return _new_group_with_tag(ranks, timeout, backend, pg_options, None, use_local_synchronization=use_local_synchronization)
-  File "/home/zhaijidong/miniconda3/envs/yhy_easycontext/lib/python3.10/site-packages/torch/distributed/distributed_c10d.py", line 3944, in _new_group_with_tag
-    pg, pg_store = _new_process_group_helper(
-  File "/home/zhaijidong/miniconda3/envs/yhy_easycontext/lib/python3.10/site-packages/torch/distributed/distributed_c10d.py", line 1264, in _new_process_group_helper
-    backend_class = ProcessGroupGloo(backend_prefix_store, group_rank, group_size, timeout=timeout)
-RuntimeError: Gloo connectFullMesh failed with Connection reset by peer
-[E ProcessGroupGloo.cpp:138] Gloo connectFullMesh failed with Broken pipe
-Traceback (most recent call last):
-  File "/home/zhaijidong/yhy/llm/EasyContext/bench_ring_attn.py", line 455, in <module>
-    main(parse_args())
-  File "/home/zhaijidong/yhy/llm/EasyContext/bench_ring_attn.py", line 450, in main
-    benchmark(args, f, shapes, qkv_buf, dout_buf, forward_only=True, log=True)
-  File "/home/zhaijidong/yhy/llm/EasyContext/bench_ring_attn.py", line 228, in benchmark
-    new_group = torch.distributed.new_group(key, backend='gloo')    # group must be create on every process ???
-  File "/home/zhaijidong/miniconda3/envs/yhy_easycontext/lib/python3.10/site-packages/torch/distributed/c10d_logger.py", line 74, in wrapper
-    func_return = func(*args, **kwargs)
-  File "/home/zhaijidong/miniconda3/envs/yhy_easycontext/lib/python3.10/site-packages/torch/distributed/distributed_c10d.py", line 3881, in new_group
-    return _new_group_with_tag(ranks, timeout, backend, pg_options, None, use_local_synchronization=use_local_synchronization)
-  File "/home/zhaijidong/miniconda3/envs/yhy_easycontext/lib/python3.10/site-packages/torch/distributed/distributed_c10d.py", line 3944, in _new_group_with_tag
-    pg, pg_store = _new_process_group_helper(
-  File "/home/zhaijidong/miniconda3/envs/yhy_easycontext/lib/python3.10/site-packages/torch/distributed/distributed_c10d.py", line 1264, in _new_process_group_helper
-    backend_class = ProcessGroupGloo(backend_prefix_store, group_rank, group_size, timeout=timeout)
-RuntimeError: Gloo connectFullMesh failed with Broken pipe
-Traceback (most recent call last):
-  File "/home/zhaijidong/yhy/llm/EasyContext/bench_ring_attn.py", line 259, in benchmark
-    _ = f(**inputs)
-  File "/home/zhaijidong/yhy/llm/EasyContext/orchestrated_attn/orchestrated_attn_impl.py", line 262, in orchestrated_attn_func
-    return OrchestratedAttnFunc.apply(
-  File "/home/zhaijidong/miniconda3/envs/yhy_easycontext/lib/python3.10/site-packages/torch/autograd/function.py", line 539, in apply
-    return super().apply(*args, **kwargs)  # type: ignore[misc]
-  File "/home/zhaijidong/yhy/llm/EasyContext/orchestrated_attn/orchestrated_attn_impl.py", line 197, in forward
-    out_row = orchestrated_attn_forward(
-  File "/home/zhaijidong/yhy/llm/EasyContext/orchestrated_attn/orchestrated_attn_impl.py", line 139, in orchestrated_attn_forward
-    return intra_attn_forward(
-  File "/home/zhaijidong/yhy/llm/EasyContext/orchestrated_attn/orchestrated_attn_impl.py", line 114, in intra_attn_forward
-    execute_kernel(kernel, data_dict, PROC_INFO, fwd_comp_func, comm, idata_buf)
-  File "/home/zhaijidong/yhy/llm/EasyContext/orchestrated_attn/orchestrated_attn_impl.py", line 32, in execute_kernel
-    out = comp_func(data_dict[(bid, hid, rid, 'i', 'r')], data_dict[(bid, hid, cid, 'i', 'c')], causal=causal)
-  File "/home/zhaijidong/yhy/llm/EasyContext/orchestrated_attn/orchestrated_attn_impl.py", line 88, in fwd_comp_func
-    O, _, _, _, _, lse, _, _ = _flash_attn_forward(
-  File "/home/zhaijidong/miniconda3/envs/yhy_easycontext/lib/python3.10/site-packages/flash_attn/flash_attn_interface.py", line 57, in _flash_attn_forward
-    out, q, k, v, out_padded, softmax_lse, S_dmask, rng_state = flash_attn_cuda.fwd(
-RuntimeError: CUDA error: operation not permitted when stream is capturing
-Compile with `TORCH_USE_CUDA_DSA` to enable device-side assertions.
-
-
-During handling of the above exception, another exception occurred:
-
-Traceback (most recent call last):
-  File "/home/zhaijidong/yhy/llm/EasyContext/bench_ring_attn.py", line 455, in <module>
-    main(parse_args())
-  File "/home/zhaijidong/yhy/llm/EasyContext/bench_ring_attn.py", line 450, in main
-    benchmark(args, f, shapes, qkv_buf, dout_buf, forward_only=True, log=True)
-  File "/home/zhaijidong/yhy/llm/EasyContext/bench_ring_attn.py", line 252, in benchmark
-    with torch.cuda.graph(g):
-  File "/home/zhaijidong/miniconda3/envs/yhy_easycontext/lib/python3.10/site-packages/torch/cuda/graphs.py", line 197, in __exit__
-    self.cuda_graph.capture_end()
-  File "/home/zhaijidong/miniconda3/envs/yhy_easycontext/lib/python3.10/site-packages/torch/cuda/graphs.py", line 88, in capture_end
-    super().capture_end()
-RuntimeError: CUDA error: operation failed due to a previous error during capture
-Compile with `TORCH_USE_CUDA_DSA` to enable device-side assertions.
-
-srun: error: g3013: task 0: Exited with exit code 1
-srun: launch/slurm: _step_signal: Terminating StepId=10208.0
-slurmstepd: error: *** STEP 10208.0 ON g3013 CANCELLED AT 2024-07-17T15:59:48 ***
-srun: error: g3013: task 3: Terminated
-srun: error: g3013: task 2: Terminated
-srun: error: g3013: task 1: Terminated
-srun: Force Terminated StepId=10208.0
+Warmup done !!!
+STAGE:2024-07-17 21:31:52 1700166:1700166 ActivityProfilerController.cpp:312] Completed Stage: Warm Up
+STAGE:2024-07-17 21:31:52 1700166:1700166 ActivityProfilerController.cpp:318] Completed Stage: Collection
+STAGE:2024-07-17 21:31:52 1700166:1700166 ActivityProfilerController.cpp:322] Completed Stage: Post Processing
+STAGE:2024-07-17 21:31:54 1700167:1700167 ActivityProfilerController.cpp:312] Completed Stage: Warm Up
+STAGE:2024-07-17 21:31:54 1700167:1700167 ActivityProfilerController.cpp:318] Completed Stage: Collection
+STAGE:2024-07-17 21:31:54 1700167:1700167 ActivityProfilerController.cpp:322] Completed Stage: Post Processing
+STAGE:2024-07-17 21:31:56 1700170:1700170 ActivityProfilerController.cpp:312] Completed Stage: Warm Up
+STAGE:2024-07-17 21:31:56 1700170:1700170 ActivityProfilerController.cpp:318] Completed Stage: Collection
+STAGE:2024-07-17 21:31:56 1700170:1700170 ActivityProfilerController.cpp:322] Completed Stage: Post Processing
+STAGE:2024-07-17 21:31:56 1700169:1700169 ActivityProfilerController.cpp:312] Completed Stage: Warm Up
+STAGE:2024-07-17 21:31:56 1700169:1700169 ActivityProfilerController.cpp:318] Completed Stage: Collection
+STAGE:2024-07-17 21:31:56 1700169:1700169 ActivityProfilerController.cpp:322] Completed Stage: Post Processing
+Warmup cudagraph done !!!
+STAGE:2024-07-17 21:31:57 1700167:1700167 ActivityProfilerController.cpp:312] Completed Stage: Warm Up
+STAGE:2024-07-17 21:31:57 1700169:1700169 ActivityProfilerController.cpp:312] Completed Stage: Warm Up
+STAGE:2024-07-17 21:31:57 1700170:1700170 ActivityProfilerController.cpp:312] Completed Stage: Warm Up
+STAGE:2024-07-17 21:31:57 1700166:1700166 ActivityProfilerController.cpp:312] Completed Stage: Warm Up
+[W CPUAllocator.cpp:235] Memory block of unknown size was allocated before the profiling started, profiler results will not include the deallocation event
+[W CPUAllocator.cpp:235] Memory block of unknown size was allocated before the profiling started, profiler results will not include the deallocation event
+[W CPUAllocator.cpp:235] Memory block of unknown size was allocated before the profiling started, profiler results will not include the deallocation event
+[W CPUAllocator.cpp:235] Memory block of unknown size was allocated before the profiling started, profiler results will not include the deallocation event
+STAGE:2024-07-17 21:31:57 1700170:1700170 ActivityProfilerController.cpp:318] Completed Stage: Collection
+STAGE:2024-07-17 21:31:57 1700167:1700167 ActivityProfilerController.cpp:318] Completed Stage: Collection
+STAGE:2024-07-17 21:31:57 1700169:1700169 ActivityProfilerController.cpp:318] Completed Stage: Collection
+STAGE:2024-07-17 21:31:57 1700170:1700170 ActivityProfilerController.cpp:322] Completed Stage: Post Processing
+STAGE:2024-07-17 21:31:57 1700166:1700166 ActivityProfilerController.cpp:318] Completed Stage: Collection
+STAGE:2024-07-17 21:31:57 1700167:1700167 ActivityProfilerController.cpp:322] Completed Stage: Post Processing
+STAGE:2024-07-17 21:31:57 1700169:1700169 ActivityProfilerController.cpp:322] Completed Stage: Post Processing
+STAGE:2024-07-17 21:31:57 1700166:1700166 ActivityProfilerController.cpp:322] Completed Stage: Post Processing
+mfu: 3.73 Tflops/s, hfu: 3.73 Tflops/s, 108.551 iter/s, (7.794, 0.000, 0.184) sec
 + set +x

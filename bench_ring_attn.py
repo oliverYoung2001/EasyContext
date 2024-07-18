@@ -122,8 +122,8 @@ def calc_flops(mbs, S, Nh, D, causal=True, forward_only=False):
         h_flops = (1 + 2.5) * flops
     return m_flops, h_flops # model flops & hardware flops
     
-def benchmark(args, f, shapes:dict, qkv_buf, dout_buf, warmup=5, num_iter=20, forward_only=True, log=True):
-    # warmup = 0
+def benchmark(args, f, shapes:dict, qkv_buf, dout_buf, warmup=11, num_iter=20, forward_only=True, log=True):
+    warmup = 0
     # num_iter = 20
     torch.cuda.synchronize()
     torch.distributed.barrier()
@@ -203,9 +203,9 @@ def benchmark(args, f, shapes:dict, qkv_buf, dout_buf, warmup=5, num_iter=20, fo
         # create streams
         if not is_exist_global_var('streams'):
             streams = []
-            streams.append(torch.cuda.current_stream())
+            # streams.append(torch.cuda.current_stream())
             # print(f'rank{rank}, current_device: {torch.cuda.current_device()}')
-            for _ in range(1, execution_plan.stream_num):
+            for _ in range(0, execution_plan.stream_num):
                 streams.append(torch.cuda.Stream(torch.cuda.current_device()))
             set_global_var('streams', streams)
         streams = get_global_var('streams')
@@ -221,35 +221,61 @@ def benchmark(args, f, shapes:dict, qkv_buf, dout_buf, warmup=5, num_iter=20, fo
         # build nccl communicator for each pair of ranks
         ncclcomm_dict = get_global_var('ncclcomm_dict')
         # for kernel in execution_plan.gpu_kernel_lists[local_rank]:
+        group_dict = {}
+        for kernel in execution_plan.valid_kernels:
+            if isinstance(kernel, Comm_Kernel):
+                key = tuple(sorted([kernel.key[3], kernel.key[4]]))
+                if key not in group_dict.keys():
+                    group_dict[key] = torch.distributed.new_group(key, backend='gloo')
         for kernel in execution_plan.valid_kernels:
             if isinstance(kernel, Comm_Kernel):
                 key = (kernel.key[3], kernel.key[4])    # (send, recv)
                 if key not in ncclcomm_dict.keys():
-                    new_group = torch.distributed.new_group(key, backend='gloo')    # group must be create on every process ???
+                    # print_rank_0(f'key: {key}')
+                    # new_group = torch.distributed.new_group(key, backend='gloo')    # group must be create on every process ???
+                    new_group = group_dict[tuple(sorted(key))]
                     if rank in key:
                         # print(f'rank{rank}, key: {key}', flush=True)
                         ncclcomm_dict[key] = PyNcclCommunicator(new_group, device=rank)
                 if rank in key:
                     kernel.ncclcomm = ncclcomm_dict[key]
         set_global_var('ncclcomm_dict', ncclcomm_dict)
-        # # print kernel orders
+        # print kernel orders
         # for r in range(local_size):
         #     print_rank_0(f'rank{r}:')
         #     for kernel in execution_plan.gpu_kernel_lists[r]:
-        #         # if isinstance(kernel, Comp_Kernel) or kernel.key[- 2] == 'o':
-        #         print_rank_0(f'{kernel.key}')
+        #         # if isinstance(kernel, Comp_Kernel) or kernel.key[- 2] == 'o': # comm + output comm
+        #         if kernel.key[- 2] == 'i':  # only input comm
+        #             print_rank_0(f'{kernel.key}')
                 
         inputs['execution_plan'] = execution_plan
     inputs = filter_kwargs(f, inputs)
+    
+    # warmup
+    if forward_only:
+        with torch.no_grad():
+            for _ in range(warmup):
+                _ = f(**inputs)
+                torch.cuda.synchronize()
+                torch.distributed.barrier()
+    else:
+        for _ in range(warmup):
+            qkv.grad = None
+            out = f(**inputs)
+            out.backward(dout)
+    print_rank_0(f'Warmup done !!!')
     
     use_cudagraph = False
     if f == orchestrated_attn_func:
         use_cudagraph = True    # can be annotated
         pass
     if use_cudagraph:
+        with torch.profiler.profile():  # workaround of issue 75504 of PyTorch
+                pass
         # Capture cuda graph
         g = torch.cuda.CUDAGraph()
-        with torch.cuda.graph(g):
+        with torch.cuda.graph(g, stream=streams[0]):
+            pass
             # preprocess
             for stream in streams[1:]:
                 stream.wait_stream(torch.cuda.current_stream())
@@ -266,8 +292,7 @@ def benchmark(args, f, shapes:dict, qkv_buf, dout_buf, warmup=5, num_iter=20, fo
             for stream in streams[1:]:
                 torch.cuda.current_stream().wait_stream(stream)
                 
-        print_rank_0(f'Cuda Graph captured: {g}')
-
+        # print_rank_0(f'Cuda Graph captured: {g}')
     # return
 
     is_runned = False
@@ -275,24 +300,15 @@ def benchmark(args, f, shapes:dict, qkv_buf, dout_buf, warmup=5, num_iter=20, fo
     torch.cuda.synchronize()
     torch.distributed.barrier()
     t1 = time.time()
-    # warmup
+    
+    # warmup cudagraph
     if use_cudagraph:
         for _ in range(warmup):
             g.replay()
             torch.cuda.synchronize()
             torch.distributed.barrier()
-    else:
-        if forward_only:
-            with torch.no_grad():
-                for _ in range(warmup):
-                    _ = f(**inputs)
-                    torch.cuda.synchronize()
-                    torch.distributed.barrier()
-        else:
-            for _ in range(warmup):
-                qkv.grad = None
-                out = f(**inputs)
-                out.backward(dout)
+        print_rank_0(f'Warmup cudagraph done !!!')
+
                 
     torch.cuda.synchronize()
     torch.distributed.barrier()
@@ -381,7 +397,7 @@ def main(args):
     MASTER_PORT = os.getenv('MASTER_PORT', None)
     init_method = f'tcp://[{MASTER_ADDR}]:{MASTER_PORT}'
     # print(f'init_method: {init_method}')
-    dist.init_process_group(backend="nccl", init_method=init_method, rank=PROC_INFO['rank'], world_size=PROC_INFO['world_size'])
+    dist.init_process_group(backend="gloo", init_method=init_method, rank=PROC_INFO['rank'], world_size=PROC_INFO['world_size'])
     rank = dist.get_rank()
     world_size = dist.get_world_size()
     # print(f'rank{rank}, world_size{world_size}, hostname: {socket.gethostname()}')

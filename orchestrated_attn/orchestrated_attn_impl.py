@@ -13,19 +13,24 @@ from search_algo.dependent_graph import Cuda_Kernel, Comp_Kernel, Comm_Kernel
 def execute_kernel(kernel: Cuda_Kernel, data_dict: dict, PROC_INFO, comp_func, comm: IntraComm, idata_buf: dict):
     rank = PROC_INFO['rank']
     local_rank = PROC_INFO['local_rank']
+    # print(f'rank{local_rank}, execute_kernel: {kernel.key}', flush=True)
     # get cuda stream on which kernel is executed
     with torch.cuda.stream(kernel.stream):
+    # if True:
         # step1: wait for precursors
         for precursor in kernel.precursors:
             if hasattr(precursor, 'in_ranks') and local_rank in precursor.in_ranks:
                 kernel.stream.wait_event(precursor.event)
+                pass
         
         # step2: execute kernel
         # comp: (b_id, h_id, r_id, c_id, gpuid) -> Cuda_Kernel
         # comm: (b_id, h_id, r/c_id, send, recv, i/o, r/c) -> Cuda_Kernel
         if isinstance(kernel, Comp_Kernel):
+            # bid, hid, rid, cid = 0, 0, local_rank, local_rank
             bid, hid, rid, cid = kernel.key[0: 4]
             causal = rid == cid
+            # print(f'rank{local_rank}, causal: {causal}, rid: {rid}, cid: {cid}', flush=True)
             out = comp_func(data_dict[(bid, hid, rid, 'i', 'r')], data_dict[(bid, hid, cid, 'i', 'c')], causal=causal)
             o_keys = (bid, hid, rid, 'o', 'r'), (bid, hid, cid, 'o', 'c')   # (or, oc)
             for t in range(2):  # 0 -> r, 1 -> c
@@ -82,6 +87,7 @@ def intra_attn_forward(
     
     # Comp Func
     def fwd_comp_func(inp_row: Input_Row_Fwd, inp_col: Input_Col_Fwd, causal) -> tuple:
+        # print(f'rank{local_rank}, dropout_p: {dropout_p}, softmax_scale: {softmax_scale}, , causal: {causal}, window_size: {window_size}, alibi_slopes: {alibi_slopes}, return_softmax: {True and dropout_p > 0}', flush=True)
         O, _, _, _, _, lse, _, _ = _flash_attn_forward(
             inp_row.Q,
             inp_col.K,
@@ -108,8 +114,15 @@ def intra_attn_forward(
         ('o', 'c'): Output_Col_Fwd(),
     }
     for kernel in execution_plan.gpu_kernel_lists[local_rank]:
-        execute_kernel(kernel, data_dict, PROC_INFO, fwd_comp_func, comm, idata_buf)
+        # if kernel.key[- 2] == 'i':  # only input comm, cudagraph OK !!!
+        # if isinstance(kernel, Comp_Kernel) or kernel.key[- 2] == 'i':   # input comm + comp
+        # if isinstance(kernel, Comp_Kernel):   # only comp
+        # if isinstance(kernel, Comp_Kernel) and kernel.key[2: 4] == (local_rank, local_rank):   # only comp on diagnal, cudagraph failed
+        # if False:
+        if True:
+            execute_kernel(kernel, data_dict, PROC_INFO, fwd_comp_func, comm, idata_buf)
     # print(f'rank{rank}, Out !!!', flush=True)
+    # return None
     return data_dict[(0, 0, local_rank, 'o', 'r')]
     
     
@@ -191,6 +204,7 @@ class OrchestratedAttnFunc(torch.autograd.Function):
         assert alibi_slopes is None
         k = k.contiguous()
         v = v.contiguous()
+        # return
         out_row = orchestrated_attn_forward(
             groups,
             q,
@@ -205,6 +219,7 @@ class OrchestratedAttnFunc(torch.autograd.Function):
             PROC_INFO=PROC_INFO,
             execution_plan=execution_plan,
         )
+        return
         out, softmax_lse = out_row.O, out_row.lse
         # this should be out_padded
         ctx.save_for_backward(q, k, v, out, softmax_lse)

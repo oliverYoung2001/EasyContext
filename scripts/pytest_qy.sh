@@ -18,7 +18,7 @@ HOST="g3017"
 # HOST="g4004"
 
 
-# HOST=None
+HOST=None
 
 export MASTER_PORT=$((RANDOM % 12000 + 10000))
 

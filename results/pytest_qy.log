@@ -1,0 +1,21 @@
++ export CUDA_LAUNCH_BLOCKING=1
++ CUDA_LAUNCH_BLOCKING=1
++ export CUDA_DEVICE_MAX_CONNECTIONS=1
++ CUDA_DEVICE_MAX_CONNECTIONS=1
++ srun -p rag -N 1 --ntasks-per-node=1 --gres=gpu:1 --mem 256G -K -c 16 pytest ./tests -s
+srun: job 10361 queued and waiting for resources
+srun: job 10361 has been allocated resources
+============================= test session starts ==============================
+platform linux -- Python 3.10.14, pytest-8.1.1, pluggy-1.4.0
+rootdir: /home/zhaijidong/yhy/llm/EasyContext
+collected 4 items
+
+tests/test_cuda_graph.py current stream: 0
+graph stream: 111391984
+current stream: 111391984
+..
+tests/test_pynccl.py s
+tests/test_sample.py .
+
+========================= 3 passed, 1 skipped in 4.60s =========================
++ set +x

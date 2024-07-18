@@ -14,8 +14,11 @@ D = 128
 DTYPES = torch.bfloat16
 
 # Comp Func
-def fwd_comp_func(inp_row: Input_Row_Fwd, inp_col: Input_Col_Fwd, causal,
-                  dropout_p, softmax_scale, window_size, alibi_slopes) -> tuple:
+# def fwd_comp_func(inp_row: Input_Row_Fwd, inp_col: Input_Col_Fwd,
+def fwd_comp_func(Q, K, V,
+                  causal, dropout_p, softmax_scale, window_size, alibi_slopes) -> tuple:
+    inp_row, inp_col = Input_Row_Fwd(Q), Input_Col_Fwd(K, V)
+    # print(f'rank{0}, dropout_p: {dropout_p}, softmax_scale: {softmax_scale}, , causal: {causal}, window_size: {window_size}, alibi_slopes: {alibi_slopes}, return_softmax: {True and dropout_p > 0}', flush=True)
     O, _, _, _, _, lse, _, _ = _flash_attn_forward(
         inp_row.Q,
         inp_col.K,
@@ -37,7 +40,7 @@ def fwd_comp_func(inp_row: Input_Row_Fwd, inp_col: Input_Col_Fwd, causal,
 @pytest.mark.parametrize("D", [D])
 @pytest.mark.parametrize("dtype", [DTYPES])
 @pytest.mark.parametrize("dropout_p", [0])
-@pytest.mark.parametrize("causal", [False])
+@pytest.mark.parametrize("causal", [True])
 @pytest.mark.parametrize("window_size", [(-1, -1)])
 @pytest.mark.parametrize("alibi_slopes", [None])
 def test_cuda_graph_with_flashattn(
@@ -45,19 +48,41 @@ def test_cuda_graph_with_flashattn(
     dropout_p: float, causal: bool, 
     window_size: tuple, alibi_slopes: torch.Tensor
 ):
+    WARMUP = 11
+    WARMUP = 0
+    TIMES = 20
     Q = torch.empty((mbs, S, Nh, D), dtype=dtype, device='cuda')
     K = torch.empty((mbs, S, Nh, D), dtype=dtype, device='cuda')
     V = torch.empty((mbs, S, Nh, D), dtype=dtype, device='cuda')
     sm_scale = Q.shape[-1] ** (-0.5)
-    inp_row, inp_col = Input_Row_Fwd(Q), Input_Col_Fwd(K, V)
+    for _ in range(WARMUP):
+        for __ in range(4):
+            outs = fwd_comp_func(
+                # inp_row, inp_col, 
+                Q, K, V,
+                causal, dropout_p, sm_scale, window_size, alibi_slopes
+            )
+        torch.cuda.synchronize()
     g = torch.cuda.CUDAGraph()
-    with torch.cuda.graph(g):
-        outs = fwd_comp_func(
-            inp_row, inp_col, causal,
-            dropout_p, sm_scale, window_size, alibi_slopes
-        )
+    graph_stream = torch.cuda.Stream(device='cuda')
+    print(f'current stream: {torch.cuda.current_stream().cuda_stream}', flush=True)
+    print(f'graph stream: {graph_stream.cuda_stream}', flush=True)
+    # with torch.cuda.graph(g, stream=torch.cuda.current_stream()):   # stream must not be the same as default stream, i.e. stream 0 !!!
+    with torch.cuda.graph(g, stream=graph_stream):
+        print(f'current stream: {torch.cuda.current_stream().cuda_stream}', flush=True) # new current stream
+        # for __ in range(4):
+        with torch.no_grad():
+            with torch.cuda.stream(graph_stream):
+                outs = fwd_comp_func(
+                    # inp_row, inp_col, 
+                    Q, K, V,
+                    causal, dropout_p, sm_scale, window_size, alibi_slopes
+                )
+    torch.cuda.synchronize()
     # print(f'outs: {outs[0].data.shape}, {outs[1].data.shape}')
-    g.replay()
+    for _ in range(TIMES):
+        g.replay()
+    torch.cuda.synchronize()
     # print(f'outs: {outs[0].data.shape}, {outs[1].data.shape}')
 
 

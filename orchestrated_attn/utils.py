@@ -142,13 +142,13 @@ class IntraComm:
         self.local_rank = PROC_INFO['local_rank']
         self.local_size = PROC_INFO['tasks_per_node']
         self.node_id = PROC_INFO['nodeid']
-        if 'intra' not in process_groups.keys():
-            for i in range(self.world_size // self.local_size):
-                ranks = range(i * self.local_size, (i + 1) * self.local_size)
-                group = dist.new_group(ranks)
-                if self.rank in ranks:
-                    process_groups['intra'] = group
-        self.process_groups = process_groups
+        # if 'intra' not in process_groups.keys():
+        #     for i in range(self.world_size // self.local_size):
+        #         ranks = range(i * self.local_size, (i + 1) * self.local_size)
+        #         group = dist.new_group(ranks)
+        #         if self.rank in ranks:
+        #             process_groups['intra'] = group
+        # self.process_groups = process_groups
         
     def send(self, dst: int, idata: Integrated_Data, stream: torch.cuda.Stream, ncclcomm: PyNcclCommunicator) -> None:
         # cur_stream = torch.cuda.current_stream()
