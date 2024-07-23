@@ -12,4 +12,5 @@ mistral_data_1M
 # results/
 tb*/
 search_algo/execution_plans/
+search_algo/tmp/
 prof_results/
