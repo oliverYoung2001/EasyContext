@@ -1,3 +1,0 @@
-+ srun -p rag -N 1 --ntasks-per-node=1 --gres=gpu:4 --mem 256G -K -w g3021 -c 16 pytest ./tests/test_pynccl.py -s
-srun: job 9171 queued and waiting for resources
-srun: job 9171 has been allocated resources
