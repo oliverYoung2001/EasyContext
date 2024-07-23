@@ -16,8 +16,8 @@ class Execution_Plan(): # input: kernel streams of gpus
         self.split_degrees = d_graph.split_degrees
         self.fob = fob  # fwd or bwd
         self.tot_sp = d_graph.tot_sp
-        print(f'schedule:\n{d_graph.schedule.schedule_table}', flush=True)
-        print(f'fob: {fob}, get_e2e_time(): {d_graph.schedule.get_e2e_time()}, get_absolute_cc_time:\n{d_graph.schedule.get_absolute_cc_time()}', flush=True)
+        # print(f'schedule:\n{d_graph.schedule.schedule_table}', flush=True)
+        # print(f'fob: {fob}, get_e2e_time(): {d_graph.schedule.get_e2e_time()}, get_absolute_cc_time:\n{d_graph.schedule.get_absolute_cc_time()}', flush=True)
         self.generate_execution_plan()
     
     def get_plan_name(self):
@@ -28,7 +28,7 @@ class Execution_Plan(): # input: kernel streams of gpus
         fob = self.fob
         d_graph = self.d_graph
         TOT_TIME_UP = d_graph.schedule.get_e2e_time()[fob] * 1000
-        print(f'TOT_TIME_UP: {TOT_TIME_UP}')
+        # print(f'TOT_TIME_UP: {TOT_TIME_UP}')
         # Using LP to optimize the execution order
         mylp = pulp.LpProblem(f"Cuda_Stream_Events", pulp.LpMinimize)
         # Variables
@@ -91,8 +91,9 @@ class Execution_Plan(): # input: kernel streams of gpus
         mylp += end_time
         
         # Solve
-        solver = pulp.getSolver('GUROBI')
-        mylp.solve()
+        # solver = pulp.getSolver('GUROBI')
+        mylp.solve(pulp.PULP_CBC_CMD(msg=0))
+        # pulp.GUROBI(mgs=0).solve(mylp)
         self.mylp = mylp
         self.stream_kernel_lists = stream_kernel_lists
         

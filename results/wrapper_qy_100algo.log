@@ -1,0 +1,114 @@
++ export CUDA_DEVICE_MAX_CONNECTIONS=32
++ CUDA_DEVICE_MAX_CONNECTIONS=32
++ srun -p rag -N 1 --ntasks-per-node=4 --gres=gpu:4 --mem 256G -K -w g3017 -c 16 ./scripts/bench_ring_attn.sh python bench_ring_attn.py
+srun: job 12617 queued and waiting for resources
+srun: job 12617 has been allocated resources
+torch distributed is already initialized, skipping initialization ...
+************ Finish sequence pralell group Initialization. ***********
+Nh=32, S=4096
+# zigzag_ring_flash_attn_func, fwd
+mfu: 48.03 Tflops/s, hfu: 48.03 Tflops/s, 1397.864 iter/s, 7.154e-04 s/iter, (1.373, 0.000, 0.072) sec
+# orchestrated_attn_func, fwd
+suffix: _example, mfu: 55.907 Tflops/s, hfu: 55.907 Tflops/s, 1627.096 iter/s, 6.146e-04 s/iter, (4.212, 0.061, 0.123) sec
+suffix: _qo, mfu: 62.113 Tflops/s, hfu: 62.113 Tflops/s, 1807.714 iter/s, 5.532e-04 s/iter, (5.129, 0.055, 0.111) sec
+suffix: _kv, mfu: 57.57 Tflops/s, hfu: 57.57 Tflops/s, 1675.507 iter/s, 5.968e-04 s/iter, (5.394, 0.060, 0.119) sec
+suffix: _alg0, mfu: 59.149 Tflops/s, hfu: 59.149 Tflops/s, 1721.453 iter/s, 5.809e-04 s/iter, (5.677, 0.058, 0.116) sec
+suffix: _alg1, mfu: 57.669 Tflops/s, hfu: 57.669 Tflops/s, 1678.403 iter/s, 5.958e-04 s/iter, (5.966, 0.060, 0.119) sec
+suffix: _alg2, mfu: 60.348 Tflops/s, hfu: 60.348 Tflops/s, 1756.357 iter/s, 5.694e-04 s/iter, (6.257, 0.058, 0.114) sec
+suffix: _alg3, mfu: 60.616 Tflops/s, hfu: 60.616 Tflops/s, 1764.147 iter/s, 5.668e-04 s/iter, (6.534, 0.057, 0.113) sec
+suffix: _alg4, mfu: 65.972 Tflops/s, hfu: 65.972 Tflops/s, 1920.042 iter/s, 5.208e-04 s/iter, (6.837, 0.052, 0.104) sec
+suffix: _alg5, mfu: 64.373 Tflops/s, hfu: 64.373 Tflops/s, 1873.511 iter/s, 5.338e-04 s/iter, (7.130, 0.054, 0.107) sec
+suffix: _alg6, mfu: 65.722 Tflops/s, hfu: 65.722 Tflops/s, 1912.757 iter/s, 5.228e-04 s/iter, (7.395, 0.052, 0.105) sec
+suffix: _alg7, mfu: 61.884 Tflops/s, hfu: 61.884 Tflops/s, 1801.054 iter/s, 5.552e-04 s/iter, (7.662, 0.055, 0.111) sec
+suffix: _alg8, mfu: 66.466 Tflops/s, hfu: 66.466 Tflops/s, 1934.401 iter/s, 5.170e-04 s/iter, (7.940, 0.052, 0.103) sec
+suffix: _alg9, mfu: 66.427 Tflops/s, hfu: 66.427 Tflops/s, 1933.287 iter/s, 5.173e-04 s/iter, (8.203, 0.052, 0.103) sec
+suffix: _alg10, mfu: 61.327 Tflops/s, hfu: 61.327 Tflops/s, 1784.863 iter/s, 5.603e-04 s/iter, (8.466, 0.056, 0.112) sec
+suffix: _alg11, mfu: 66.211 Tflops/s, hfu: 66.211 Tflops/s, 1926.985 iter/s, 5.189e-04 s/iter, (8.748, 0.052, 0.104) sec
+suffix: _alg12, mfu: 76.08 Tflops/s, hfu: 76.08 Tflops/s, 2214.206 iter/s, 4.516e-04 s/iter, (9.008, 0.046, 0.090) sec
+suffix: _alg13, mfu: 69.584 Tflops/s, hfu: 69.584 Tflops/s, 2025.153 iter/s, 4.938e-04 s/iter, (9.246, 0.049, 0.099) sec
+suffix: _alg14, mfu: 58.802 Tflops/s, hfu: 58.802 Tflops/s, 1711.364 iter/s, 5.843e-04 s/iter, (9.513, 0.058, 0.117) sec
+suffix: _alg15, mfu: 65.207 Tflops/s, hfu: 65.207 Tflops/s, 1897.781 iter/s, 5.269e-04 s/iter, (9.800, 0.053, 0.105) sec
+suffix: _alg16, mfu: 58.811 Tflops/s, hfu: 58.811 Tflops/s, 1711.629 iter/s, 5.842e-04 s/iter, (10.063, 0.057, 0.117) sec
+suffix: _alg17, mfu: 56.804 Tflops/s, hfu: 56.804 Tflops/s, 1653.205 iter/s, 6.049e-04 s/iter, (10.349, 0.061, 0.121) sec
+suffix: _alg18, mfu: 58.066 Tflops/s, hfu: 58.066 Tflops/s, 1689.953 iter/s, 5.917e-04 s/iter, (10.640, 0.060, 0.118) sec
+suffix: _alg19, mfu: 60.19 Tflops/s, hfu: 60.19 Tflops/s, 1751.747 iter/s, 5.709e-04 s/iter, (10.927, 0.057, 0.114) sec
+suffix: _alg20, mfu: 68.706 Tflops/s, hfu: 68.706 Tflops/s, 1999.616 iter/s, 5.001e-04 s/iter, (11.209, 0.050, 0.100) sec
+suffix: _alg21, mfu: 62.812 Tflops/s, hfu: 62.812 Tflops/s, 1828.069 iter/s, 5.470e-04 s/iter, (11.470, 0.055, 0.109) sec
+suffix: _alg22, mfu: 57.841 Tflops/s, hfu: 57.841 Tflops/s, 1683.391 iter/s, 5.940e-04 s/iter, (11.743, 0.060, 0.119) sec
+suffix: _alg23, mfu: 65.231 Tflops/s, hfu: 65.231 Tflops/s, 1898.481 iter/s, 5.267e-04 s/iter, (12.028, 0.053, 0.105) sec
+suffix: _alg24, mfu: 58.141 Tflops/s, hfu: 58.141 Tflops/s, 1692.115 iter/s, 5.910e-04 s/iter, (12.294, 0.060, 0.118) sec
+suffix: _alg25, mfu: 69.101 Tflops/s, hfu: 69.101 Tflops/s, 2011.097 iter/s, 4.972e-04 s/iter, (12.628, 0.050, 0.099) sec
+suffix: _alg26, mfu: 69.164 Tflops/s, hfu: 69.164 Tflops/s, 2012.936 iter/s, 4.968e-04 s/iter, (12.918, 0.050, 0.099) sec
+suffix: _alg27, mfu: 69.075 Tflops/s, hfu: 69.075 Tflops/s, 2010.360 iter/s, 4.974e-04 s/iter, (13.180, 0.050, 0.099) sec
+suffix: _alg28, mfu: 52.423 Tflops/s, hfu: 52.423 Tflops/s, 1525.709 iter/s, 6.554e-04 s/iter, (13.440, 0.066, 0.131) sec
+suffix: _alg29, mfu: 56.403 Tflops/s, hfu: 56.403 Tflops/s, 1641.532 iter/s, 6.092e-04 s/iter, (13.744, 0.061, 0.122) sec
+suffix: _alg30, mfu: 53.306 Tflops/s, hfu: 53.306 Tflops/s, 1551.412 iter/s, 6.446e-04 s/iter, (14.044, 0.065, 0.129) sec
+suffix: _alg31, mfu: 53.307 Tflops/s, hfu: 53.307 Tflops/s, 1551.443 iter/s, 6.446e-04 s/iter, (14.348, 0.065, 0.129) sec
+suffix: _alg32, mfu: 52.585 Tflops/s, hfu: 52.585 Tflops/s, 1530.430 iter/s, 6.534e-04 s/iter, (14.649, 0.065, 0.131) sec
+suffix: _alg33, mfu: 57.761 Tflops/s, hfu: 57.761 Tflops/s, 1681.053 iter/s, 5.949e-04 s/iter, (14.961, 0.059, 0.119) sec
+suffix: _alg34, mfu: 47.178 Tflops/s, hfu: 47.178 Tflops/s, 1373.064 iter/s, 7.283e-04 s/iter, (15.255, 0.072, 0.146) sec
+suffix: _alg35, mfu: 48.947 Tflops/s, hfu: 48.947 Tflops/s, 1424.531 iter/s, 7.020e-04 s/iter, (15.582, 0.070, 0.140) sec
+suffix: _alg36, mfu: 52.505 Tflops/s, hfu: 52.505 Tflops/s, 1528.088 iter/s, 6.544e-04 s/iter, (15.903, 0.065, 0.131) sec
+suffix: _alg37, mfu: 47.751 Tflops/s, hfu: 47.751 Tflops/s, 1389.751 iter/s, 7.196e-04 s/iter, (16.211, 0.072, 0.144) sec
+suffix: _alg38, mfu: 52.46 Tflops/s, hfu: 52.46 Tflops/s, 1526.800 iter/s, 6.550e-04 s/iter, (16.538, 0.066, 0.131) sec
+suffix: _alg39, mfu: 54.133 Tflops/s, hfu: 54.133 Tflops/s, 1575.476 iter/s, 6.347e-04 s/iter, (16.850, 0.063, 0.127) sec
+suffix: _alg40, mfu: 48.592 Tflops/s, hfu: 48.592 Tflops/s, 1414.221 iter/s, 7.071e-04 s/iter, (17.154, 0.070, 0.141) sec
+suffix: _alg41, mfu: 54.022 Tflops/s, hfu: 54.022 Tflops/s, 1572.243 iter/s, 6.360e-04 s/iter, (17.474, 0.064, 0.127) sec
+suffix: _alg42, mfu: 52.064 Tflops/s, hfu: 52.064 Tflops/s, 1515.261 iter/s, 6.600e-04 s/iter, (17.785, 0.066, 0.132) sec
+suffix: _alg43, mfu: 49.626 Tflops/s, hfu: 49.626 Tflops/s, 1444.315 iter/s, 6.924e-04 s/iter, (18.095, 0.069, 0.138) sec
+suffix: _alg44, mfu: 47.305 Tflops/s, hfu: 47.305 Tflops/s, 1376.752 iter/s, 7.263e-04 s/iter, (18.413, 0.073, 0.145) sec
+suffix: _alg45, mfu: 56.165 Tflops/s, hfu: 56.165 Tflops/s, 1634.629 iter/s, 6.118e-04 s/iter, (18.745, 0.061, 0.122) sec
+suffix: _alg46, mfu: 51.311 Tflops/s, hfu: 51.311 Tflops/s, 1493.347 iter/s, 6.696e-04 s/iter, (19.039, 0.057, 0.134) sec
+suffix: _alg47, mfu: 52.661 Tflops/s, hfu: 52.661 Tflops/s, 1532.628 iter/s, 6.525e-04 s/iter, (19.339, 0.066, 0.130) sec
+suffix: _alg48, mfu: 54.861 Tflops/s, hfu: 54.861 Tflops/s, 1596.677 iter/s, 6.263e-04 s/iter, (19.655, 0.063, 0.125) sec
+suffix: _alg49, mfu: 57.842 Tflops/s, hfu: 57.842 Tflops/s, 1683.412 iter/s, 5.940e-04 s/iter, (19.957, 0.059, 0.119) sec
+suffix: _alg50, mfu: 61.109 Tflops/s, hfu: 61.109 Tflops/s, 1778.502 iter/s, 5.623e-04 s/iter, (20.257, 0.056, 0.112) sec
+suffix: _alg51, mfu: 62.133 Tflops/s, hfu: 62.133 Tflops/s, 1808.303 iter/s, 5.530e-04 s/iter, (20.541, 0.056, 0.111) sec
+suffix: _alg52, mfu: 54.304 Tflops/s, hfu: 54.304 Tflops/s, 1580.460 iter/s, 6.327e-04 s/iter, (20.818, 0.064, 0.127) sec
+suffix: _alg53, mfu: 62.772 Tflops/s, hfu: 62.772 Tflops/s, 1826.915 iter/s, 5.474e-04 s/iter, (21.125, 0.055, 0.109) sec
+suffix: _alg54, mfu: 56.957 Tflops/s, hfu: 56.957 Tflops/s, 1657.661 iter/s, 6.033e-04 s/iter, (21.418, 0.060, 0.121) sec
+suffix: _alg55, mfu: 59.804 Tflops/s, hfu: 59.804 Tflops/s, 1740.538 iter/s, 5.745e-04 s/iter, (21.718, 0.058, 0.115) sec
+suffix: _alg56, mfu: 58.233 Tflops/s, hfu: 58.233 Tflops/s, 1694.812 iter/s, 5.900e-04 s/iter, (22.001, 0.059, 0.118) sec
+suffix: _alg57, mfu: 50.483 Tflops/s, hfu: 50.483 Tflops/s, 1469.239 iter/s, 6.806e-04 s/iter, (22.294, 0.068, 0.136) sec
+suffix: _alg58, mfu: 59.783 Tflops/s, hfu: 59.783 Tflops/s, 1739.902 iter/s, 5.747e-04 s/iter, (22.610, 0.057, 0.115) sec
+suffix: _alg59, mfu: 57.719 Tflops/s, hfu: 57.719 Tflops/s, 1679.848 iter/s, 5.953e-04 s/iter, (22.907, 0.060, 0.119) sec
+suffix: _alg60, mfu: 56.637 Tflops/s, hfu: 56.637 Tflops/s, 1648.342 iter/s, 6.067e-04 s/iter, (23.203, 0.061, 0.121) sec
+suffix: _alg61, mfu: 60.253 Tflops/s, hfu: 60.253 Tflops/s, 1753.589 iter/s, 5.703e-04 s/iter, (23.531, 0.057, 0.114) sec
+suffix: _alg62, mfu: 55.375 Tflops/s, hfu: 55.375 Tflops/s, 1611.629 iter/s, 6.205e-04 s/iter, (23.857, 0.062, 0.124) sec
+suffix: _alg63, mfu: 61.214 Tflops/s, hfu: 61.214 Tflops/s, 1781.562 iter/s, 5.613e-04 s/iter, (24.157, 0.056, 0.112) sec
+suffix: _alg64, mfu: 56.036 Tflops/s, hfu: 56.036 Tflops/s, 1630.854 iter/s, 6.132e-04 s/iter, (24.441, 0.060, 0.123) sec
+suffix: _alg65, mfu: 61.829 Tflops/s, hfu: 61.829 Tflops/s, 1799.455 iter/s, 5.557e-04 s/iter, (24.739, 0.055, 0.111) sec
+suffix: _alg66, mfu: 62.397 Tflops/s, hfu: 62.397 Tflops/s, 1815.995 iter/s, 5.507e-04 s/iter, (25.025, 0.055, 0.110) sec
+suffix: _alg67, mfu: 61.933 Tflops/s, hfu: 61.933 Tflops/s, 1802.474 iter/s, 5.548e-04 s/iter, (25.348, 0.056, 0.111) sec
+suffix: _alg68, mfu: 57.873 Tflops/s, hfu: 57.873 Tflops/s, 1684.338 iter/s, 5.937e-04 s/iter, (25.662, 0.059, 0.119) sec
+suffix: _alg69, mfu: 55.51 Tflops/s, hfu: 55.51 Tflops/s, 1615.558 iter/s, 6.190e-04 s/iter, (25.952, 0.062, 0.124) sec
+suffix: _alg70, mfu: 63.632 Tflops/s, hfu: 63.632 Tflops/s, 1851.945 iter/s, 5.400e-04 s/iter, (26.253, 0.054, 0.108) sec
+suffix: _alg71, mfu: 58.682 Tflops/s, hfu: 58.682 Tflops/s, 1707.862 iter/s, 5.855e-04 s/iter, (26.524, 0.059, 0.117) sec
+suffix: _alg72, mfu: 57.057 Tflops/s, hfu: 57.057 Tflops/s, 1660.565 iter/s, 6.022e-04 s/iter, (26.810, 0.060, 0.120) sec
+suffix: _alg73, mfu: 59.083 Tflops/s, hfu: 59.083 Tflops/s, 1719.544 iter/s, 5.815e-04 s/iter, (27.108, 0.059, 0.116) sec
+suffix: _alg74, mfu: 61.21 Tflops/s, hfu: 61.21 Tflops/s, 1781.452 iter/s, 5.613e-04 s/iter, (27.405, 0.057, 0.112) sec
+suffix: _alg75, mfu: 59.595 Tflops/s, hfu: 59.595 Tflops/s, 1734.431 iter/s, 5.766e-04 s/iter, (27.682, 0.058, 0.115) sec
+suffix: _alg76, mfu: 58.173 Tflops/s, hfu: 58.173 Tflops/s, 1693.057 iter/s, 5.906e-04 s/iter, (27.968, 0.060, 0.118) sec
+suffix: _alg77, mfu: 61.401 Tflops/s, hfu: 61.401 Tflops/s, 1787.008 iter/s, 5.596e-04 s/iter, (28.261, 0.056, 0.112) sec
+suffix: _alg78, mfu: 55.202 Tflops/s, hfu: 55.202 Tflops/s, 1606.598 iter/s, 6.224e-04 s/iter, (28.540, 0.061, 0.124) sec
+suffix: _alg79, mfu: 63.698 Tflops/s, hfu: 63.698 Tflops/s, 1853.869 iter/s, 5.394e-04 s/iter, (28.834, 0.054, 0.108) sec
+suffix: _alg80, mfu: 59.192 Tflops/s, hfu: 59.192 Tflops/s, 1722.712 iter/s, 5.805e-04 s/iter, (29.103, 0.058, 0.116) sec
+suffix: _alg81, mfu: 59.127 Tflops/s, hfu: 59.127 Tflops/s, 1720.818 iter/s, 5.811e-04 s/iter, (29.390, 0.058, 0.116) sec
+suffix: _alg82, mfu: 66.879 Tflops/s, hfu: 66.879 Tflops/s, 1946.421 iter/s, 5.138e-04 s/iter, (29.675, 0.052, 0.103) sec
+suffix: _alg83, mfu: 58.229 Tflops/s, hfu: 58.229 Tflops/s, 1694.685 iter/s, 5.901e-04 s/iter, (29.937, 0.059, 0.118) sec
+suffix: _alg84, mfu: 60.375 Tflops/s, hfu: 60.375 Tflops/s, 1757.141 iter/s, 5.691e-04 s/iter, (30.222, 0.057, 0.114) sec
+suffix: _alg85, mfu: 57.632 Tflops/s, hfu: 57.632 Tflops/s, 1677.312 iter/s, 5.962e-04 s/iter, (30.497, 0.060, 0.119) sec
+suffix: _alg86, mfu: 58.02 Tflops/s, hfu: 58.02 Tflops/s, 1688.596 iter/s, 5.922e-04 s/iter, (30.784, 0.059, 0.118) sec
+suffix: _alg87, mfu: 62.102 Tflops/s, hfu: 62.102 Tflops/s, 1807.418 iter/s, 5.533e-04 s/iter, (31.083, 0.055, 0.111) sec
+suffix: _alg88, mfu: 58.455 Tflops/s, hfu: 58.455 Tflops/s, 1701.253 iter/s, 5.878e-04 s/iter, (31.361, 0.059, 0.118) sec
+suffix: _alg89, mfu: 61.191 Tflops/s, hfu: 61.191 Tflops/s, 1780.892 iter/s, 5.615e-04 s/iter, (31.651, 0.056, 0.112) sec
+suffix: _alg90, mfu: 55.715 Tflops/s, hfu: 55.715 Tflops/s, 1621.517 iter/s, 6.167e-04 s/iter, (31.931, 0.062, 0.123) sec
+suffix: _alg91, mfu: 54.949 Tflops/s, hfu: 54.949 Tflops/s, 1599.216 iter/s, 6.253e-04 s/iter, (32.237, 0.063, 0.125) sec
+suffix: _alg92, mfu: 57.383 Tflops/s, hfu: 57.383 Tflops/s, 1670.066 iter/s, 5.988e-04 s/iter, (32.535, 0.060, 0.120) sec
+suffix: _alg93, mfu: 66.775 Tflops/s, hfu: 66.775 Tflops/s, 1943.422 iter/s, 5.146e-04 s/iter, (32.825, 0.051, 0.103) sec
+suffix: _alg94, mfu: 54.603 Tflops/s, hfu: 54.603 Tflops/s, 1589.164 iter/s, 6.293e-04 s/iter, (33.096, 0.063, 0.126) sec
+suffix: _alg95, mfu: 59.676 Tflops/s, hfu: 59.676 Tflops/s, 1736.790 iter/s, 5.758e-04 s/iter, (33.392, 0.058, 0.115) sec
+suffix: _alg96, mfu: 58.035 Tflops/s, hfu: 58.035 Tflops/s, 1689.048 iter/s, 5.920e-04 s/iter, (33.677, 0.059, 0.118) sec
+suffix: _alg97, mfu: 57.557 Tflops/s, hfu: 57.557 Tflops/s, 1675.125 iter/s, 5.970e-04 s/iter, (33.965, 0.060, 0.119) sec
+suffix: _alg98, mfu: 60.131 Tflops/s, hfu: 60.131 Tflops/s, 1750.040 iter/s, 5.714e-04 s/iter, (34.261, 0.057, 0.114) sec
+suffix: _alg99, mfu: 63.809 Tflops/s, hfu: 63.809 Tflops/s, 1857.074 iter/s, 5.385e-04 s/iter, (34.547, 0.054, 0.108) sec

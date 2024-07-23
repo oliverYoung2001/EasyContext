@@ -215,16 +215,16 @@ class Dist_Attn_Schedule():
         # broadcast or reduce: pouring water model
         # [NOTE]: not a optimal algorithm, just a heuristic algorithm
         tot_comm_units = r_cc_time[:, 1:].sum(axis=-1) # [fwd/bwd][Comm_in/Comm_out]
-        print(f'r_cc_time:\n{r_cc_time[:, 1:, :]}')
+        # print(f'r_cc_time:\n{r_cc_time[:, 1:, :]}')
         for sp_set, comm_units in comm_units_pool.items():
             tot_comm_units += comm_units * (len(sp_set) - 2)
-        print(f'tot_comm_units:\n{tot_comm_units}')
+        # print(f'tot_comm_units:\n{tot_comm_units}')
         # input and output comm units need to be the same
         assert (np.absolute(tot_comm_units[:, 0] - tot_comm_units[:, 1]) / tot_comm_units[:, 0]).sum() < 2e-6
         
         self.ave_comm_units = np.max(tot_comm_units, axis=-1) / self.tot_sp    # [fwd/bwd]
         ub_comm_units = np.maximum(self.ave_comm_units, np.max(r_cc_time[:, 1:, :], axis=(-2,-1)))   # [fwd/bwd]
-        print(f'ub_comm_units (before):\n{ub_comm_units}')
+        # print(f'ub_comm_units (before):\n{ub_comm_units}')
         comm_units_pool = dict(sorted(comm_units_pool.items(), key=lambda x: len(x[0]), reverse=False)) # sort by sp_set size (small -> large)
         balanced_r_comm_time = r_cc_time[:, 1:, :]  # a slice of r_cc_time, [fwd/bwd][Comm_in/Comm_out][SP]
         for sp_set, comm_units in comm_units_pool.items():
@@ -240,12 +240,12 @@ class Dist_Attn_Schedule():
                         comm_units[:, d] -= offset
             if comm_units.sum() <= 0:
                 continue
-            print(f'[OVERFLOW] {sp_set}: {comm_units}')
+            # print(f'[OVERFLOW] {sp_set}: {comm_units}')
             # step2: pouring water left evenly to all glasses
             balanced_r_comm_time[:, :, list(sp_set)] += np.expand_dims(comm_units / len(sp_set), axis=-1)
             # step3: update ub
             ub_comm_units = np.max(balanced_r_comm_time, axis=(-2,-1))
-        print(f'ub_comm_units (after):\n{ub_comm_units}')
+        # print(f'ub_comm_units (after):\n{ub_comm_units}')
         self.ub_comm_units = ub_comm_units
         return r_cc_time    # modified r_cc_time
     
@@ -417,11 +417,12 @@ class Search_Engine():
             np.max(np.array([schedule.ub_comp_units * np.prod(self.split_degrees) / np.prod(schedule.split_degrees)
                              for schedule in self.init_schedule_list]), axis=0)
         )
-        print(f'ub_cc_units: {self.ub_cc_units}')
+        # print(f'ub_cc_units: {self.ub_cc_units}')
         # # extra comm ub (real ub)
         # self.ub[:, 1] = np.max(np.array([schedule.ub_comm_units for schedule in self.init_schedule_list]), axis=0)
         
         self.MAX_QUEUE_SIZE = 100
+        # self.MAX_QUEUE_SIZE = 2000
         self.schedule_queues = [None, None]  # [fwd/bwd]        
     
     def reset_before_search(self):
@@ -431,7 +432,7 @@ class Search_Engine():
             SCHEDULE_UNIQUE_ID += 1
             set_global_var('SCHEDULE_UNIQUE_ID', SCHEDULE_UNIQUE_ID)
             # print(f'SCHEDULE_UNIQUE_ID: {SCHEDULE_UNIQUE_ID}')
-            print(f'schedule:\n{schedule.schedule_table}', flush=True)
+            # print(f'schedule:\n{schedule.schedule_table}', flush=True)
             # print(f'fob: {self.fob}, get_e2e_time(): {schedule.get_e2e_time()}, get_absolute_cc_time:\n{schedule.get_absolute_cc_time()}')
             return (- schedule.get_e2e_time()[self.fob], SCHEDULE_UNIQUE_ID, schedule)
         def unpack_func(q_item):
@@ -507,8 +508,8 @@ class Search_Engine():
         if self.is_end(cur_pos):
             new_schedule = copy.deepcopy(self.cur_schedule)
             self.schedule_queues[self.fob].push(new_schedule)
-            raise Exception()
-            exit(0)
+            # raise Exception()
+            # exit(0)
             return
         assert self.cur_schedule.schedule_table[cur_pos] == TASK_STATUS.UNSETTLED.value
         next_pos = self.get_next_unsettled_pos(cur_pos)
@@ -556,6 +557,7 @@ def get_profile_data():
     PROFILE_FILE_NAME = './prof_data/time_flashattn_ratio.json'
     INTER_COMM_FIlE_NAME = './prof_data/cb_16_g3018-9.log'
     INTRA_COMM_FIlE_NAME = './prof_data/cb_8_g3028.log'
+    INTRA_COMM_FIlE_NAME = './prof_data/cb_8_3017_2_21_5.log'
     with open(PROFILE_FILE_NAME, 'r') as f:
         profile_data = json.load(f)
     assert 'flash_attn' in profile_data.keys(), 'flash_attn not found in profile_data'

@@ -23,7 +23,7 @@ from search_algo.search_engine import Dist_Attn_Config
 from search_algo.dependent_graph import Cuda_Kernel, Comp_Kernel, Comm_Kernel
 from tests.distributed.device_communicators.pynccl import PyNcclCommunicator
 from orchestrated_attn.global_vars import *
-from orchestrated_attn.utils import print_rank_0
+from orchestrated_attn.utils import *
 import inspect
 import warnings
 import time
@@ -122,8 +122,8 @@ def calc_flops(mbs, S, Nh, D, causal=True, forward_only=False):
         h_flops = (1 + 2.5) * flops
     return m_flops, h_flops # model flops & hardware flops
     
-def benchmark(args, f, shapes:dict, qkv_buf, dout_buf, warmup=11, num_iter=20, forward_only=True, log=True):
-    warmup = 0
+def benchmark(args, f, shapes:dict, qkv_buf, dout_buf, warmup=11, num_iter=100, forward_only=True, log=True):
+    # warmup = 0
     # num_iter = 20
     torch.cuda.synchronize()
     torch.distributed.barrier()
@@ -176,79 +176,6 @@ def benchmark(args, f, shapes:dict, qkv_buf, dout_buf, warmup=11, num_iter=20, f
         "PROC_INFO": PROC_INFO,
         "groups": {},
     }
-    if f == orchestrated_attn_func:
-        SP = (1, world_size)
-        Ss = (seqlen * world_size, seqlen * world_size)
-        Nhs = (nheads, nheads)
-        bs = batch_size
-        # [HACK]
-        da_config = Dist_Attn_Config(SP=SP, S=(4 * 1024, 4 * 1024), Nh=Nhs, D=d, bs=batch_size, causal=causal)
-        plan_name = da_config.get_plan_name(fob=0 if forward_only else 1)
-        plan_file = f'{os.path.dirname(__file__)}/search_algo/execution_plans/{plan_name}.pkl'
-        # load plan
-        with open(plan_file, 'rb') as fin:
-            execution_plan = pickle.load(fin)   # [NOTE]: this obj shared by all processors in memory !!!
-        # print(f'rank{rank}, id(execution_plan): {hex(id(execution_plan))}', flush=True)
-        # execution_plan.a = rank
-        # print(f'execution_plan.a: {execution_plan.a}')
-        # if rank == 0:
-        #     execution_plan.print_lp_result()
-        # preprocess
-        for kernel in execution_plan.gpu_kernel_lists[local_rank]:
-            kernel.in_ranks = set([local_rank])
-        # modify da_config
-        if execution_plan.da_config.S != Ss:
-            # print(f'modify {execution_plan.da_config.S} to {Ss}')
-            execution_plan.da_config.S = Ss
-        # create streams
-        if not is_exist_global_var('streams'):
-            streams = []
-            # streams.append(torch.cuda.current_stream())
-            # print(f'rank{rank}, current_device: {torch.cuda.current_device()}')
-            for _ in range(0, execution_plan.stream_num):
-                streams.append(torch.cuda.Stream(torch.cuda.current_device()))
-            set_global_var('streams', streams)
-        streams = get_global_var('streams')
-        # set stream for eash kernel
-        for kernel in execution_plan.gpu_kernel_lists[local_rank]:
-            if isinstance(kernel, Comp_Kernel):
-                kernel.stream = streams[0]
-            else:
-                if kernel.key[3] == local_rank:
-                    kernel.stream = streams[1]    # Send
-                else:
-                    kernel.stream = streams[2]    # Recv
-        # build nccl communicator for each pair of ranks
-        ncclcomm_dict = get_global_var('ncclcomm_dict')
-        # for kernel in execution_plan.gpu_kernel_lists[local_rank]:
-        group_dict = {}
-        for kernel in execution_plan.valid_kernels:
-            if isinstance(kernel, Comm_Kernel):
-                key = tuple(sorted([kernel.key[3], kernel.key[4]]))
-                if key not in group_dict.keys():
-                    group_dict[key] = torch.distributed.new_group(key, backend='gloo')
-        for kernel in execution_plan.valid_kernels:
-            if isinstance(kernel, Comm_Kernel):
-                key = (kernel.key[3], kernel.key[4])    # (send, recv)
-                if key not in ncclcomm_dict.keys():
-                    # print_rank_0(f'key: {key}')
-                    # new_group = torch.distributed.new_group(key, backend='gloo')    # group must be create on every process ???
-                    new_group = group_dict[tuple(sorted(key))]
-                    if rank in key:
-                        # print(f'rank{rank}, key: {key}', flush=True)
-                        ncclcomm_dict[key] = PyNcclCommunicator(new_group, device=rank)
-                if rank in key:
-                    kernel.ncclcomm = ncclcomm_dict[key]
-        set_global_var('ncclcomm_dict', ncclcomm_dict)
-        # print kernel orders
-        # for r in range(local_size):
-        #     print_rank_0(f'rank{r}:')
-        #     for kernel in execution_plan.gpu_kernel_lists[r]:
-        #         # if isinstance(kernel, Comp_Kernel) or kernel.key[- 2] == 'o': # comm + output comm
-        #         if kernel.key[- 2] == 'i':  # only input comm
-        #             print_rank_0(f'{kernel.key}')
-                
-        inputs['execution_plan'] = execution_plan
     inputs = filter_kwargs(f, inputs)
     
     # warmup
@@ -263,38 +190,10 @@ def benchmark(args, f, shapes:dict, qkv_buf, dout_buf, warmup=11, num_iter=20, f
             qkv.grad = None
             out = f(**inputs)
             out.backward(dout)
-    print_rank_0(f'Warmup done !!!')
+    # print_rank_0(f'Warmup done !!!')
     
     use_cudagraph = False
-    if f == orchestrated_attn_func:
-        use_cudagraph = True    # can be annotated
-        pass
-    if use_cudagraph:
-        with torch.profiler.profile():  # workaround of issue 75504 of PyTorch
-                pass
-        # Capture cuda graph
-        g = torch.cuda.CUDAGraph()
-        with torch.cuda.graph(g, stream=streams[0]):
-            pass
-            # preprocess
-            for stream in streams[1:]:
-                stream.wait_stream(torch.cuda.current_stream())
-            
-            if forward_only:
-                with torch.no_grad():
-                    _ = f(**inputs)
-            else:
-                qkv.grad = None
-                out = f(**inputs)
-                out.backward(dout)
-                
-            # postprocess
-            for stream in streams[1:]:
-                torch.cuda.current_stream().wait_stream(stream)
-                
-        # print_rank_0(f'Cuda Graph captured: {g}')
-    # return
-
+    
     is_runned = False
     
     torch.cuda.synchronize()
@@ -307,7 +206,7 @@ def benchmark(args, f, shapes:dict, qkv_buf, dout_buf, warmup=11, num_iter=20, f
             g.replay()
             torch.cuda.synchronize()
             torch.distributed.barrier()
-        print_rank_0(f'Warmup cudagraph done !!!')
+        # print_rank_0(f'Warmup cudagraph done !!!')
 
                 
     torch.cuda.synchronize()
@@ -386,7 +285,283 @@ def benchmark(args, f, shapes:dict, qkv_buf, dout_buf, warmup=11, num_iter=20, f
     if rank == 0 and log:
         m_flops, h_flops = calc_flops(batch_size, seqlen * world_size, nheads, d, causal, forward_only)
         mfu, hfu = (round(flops / pow(1000, 4) / (td / num_iter * world_size), 3) for flops in (m_flops, h_flops))
-        print(f"mfu: {mfu} Tflops/s, hfu: {hfu} Tflops/s, {num_iter / td:.3f} iter/s, ({(t1 - t0):.3f}, {(t2 - t1):.3f}, {td:.3f}) sec", flush=True)
+        print(f"mfu: {mfu} Tflops/s, hfu: {hfu} Tflops/s, {num_iter / td:.3f} iter/s, {td / num_iter:.3e} s/iter, ({(t1 - t0):.3f}, {(t2 - t1):.3f}, {td:.3f}) sec", flush=True)
+
+def benchmark_orchestrate(args, f, shapes:dict, qkv_buf, dout_buf, warmup=11, num_iter=20, forward_only=True, log=True, plan_suffixes: list = [''], global_group=None):
+    warmup = 11
+    warmup_cudagraph = 100
+    num_iter = 200
+    torch.cuda.synchronize()
+    torch.distributed.barrier(group=global_group)
+    global PROC_INFO
+    rank = PROC_INFO['rank']
+    local_rank = PROC_INFO['local_rank']
+    local_size = PROC_INFO['tasks_per_node']
+    if rank == 0:
+        print(f'# {f.__name__}, {"fwd" if forward_only else "fwd + bwd"}', flush=True)
+    world_size = dist.get_world_size()
+    device = torch.device(f"cuda:{PROC_INFO['deviceid']}")
+    torch.cuda.set_device(device)
+
+    batch_size = shapes['bs']
+    seqlen = shapes['S']
+    nheads = shapes['Nh']
+    d = shapes['D']
+    dropout_p = 0
+    causal = True
+    deterministic = False
+
+    # assert seqlen % (2 * world_size) == 0
+    assert d % 8 == 0
+
+    # qkv = torch.empty(
+    #     3 * batch_size, seqlen, nheads, d, device=device, dtype=DTYPE, requires_grad=True
+    # )
+    # dout = torch.empty(batch_size, seqlen, nheads, d, device=device, dtype=DTYPE)
+    qkv = qkv_buf[: 3 * batch_size * seqlen * nheads * d].view(3 * batch_size, seqlen, nheads, d)
+    qkv.requires_grad = True
+    dout = dout_buf[: batch_size * seqlen * nheads * d].view(batch_size, seqlen, nheads, d)
+    q, k, v = qkv.chunk(3, dim=0)
+    
+    inputs = {
+        # "q": q,
+        # "k": k,
+        # "v": v,
+        "inp_row": Input_Row_Fwd(q), 
+        "inp_col": Input_Col_Fwd(k, v),
+        "dropout_p": dropout_p,
+        "causal": causal,
+        "deterministic": deterministic,
+        "sm_scale": q.shape[-1] ** (-0.5),
+        "PROC_INFO": PROC_INFO,
+        "groups": {},
+    }
+
+    for plan_suffix in plan_suffixes:
+        t0 = time.time()
+        SP = (1, world_size)
+        Ss = (seqlen * world_size, seqlen * world_size)
+        Nhs = (nheads, nheads)
+        bs = batch_size
+        # [HACK]
+        da_config = Dist_Attn_Config(SP=SP, S=(4 * 1024, 4 * 1024), Nh=Nhs, D=d, bs=batch_size, causal=causal)
+        plan_name = da_config.get_plan_name(fob=0 if forward_only else 1)
+        plan_file = f'{os.path.dirname(__file__)}/search_algo/execution_plans/{plan_name}{plan_suffix}.pkl'
+        # load plan
+        with open(plan_file, 'rb') as fin:
+            execution_plan = pickle.load(fin)   # [NOTE]: this obj shared by all processors in memory !!!
+        # print(f'rank{rank}, id(execution_plan): {hex(id(execution_plan))}', flush=True)
+        # execution_plan.a = rank
+        # print(f'execution_plan.a: {execution_plan.a}')
+        if rank == 0:
+            execution_plan.print_lp_result()
+        # preprocess
+        for kernel in execution_plan.gpu_kernel_lists[local_rank]:
+            kernel.in_ranks = set([local_rank])
+        # modify da_config
+        if execution_plan.da_config.S != Ss:
+            # print(f'modify {execution_plan.da_config.S} to {Ss}')
+            execution_plan.da_config.S = Ss
+        # create streams
+        if not is_exist_global_var('streams'):
+            streams = []
+            # streams.append(torch.cuda.current_stream())
+            # print(f'rank{rank}, current_device: {torch.cuda.current_device()}')
+            for _ in range(0, execution_plan.stream_num):
+                streams.append(torch.cuda.Stream(torch.cuda.current_device()))
+            set_global_var('streams', streams)
+        streams = get_global_var('streams')
+        # set stream for eash kernel
+        for kernel in execution_plan.gpu_kernel_lists[local_rank]:
+            if isinstance(kernel, Comp_Kernel):
+                kernel.stream = streams[0]
+            else:
+                if kernel.key[3] == local_rank:
+                    kernel.stream = streams[1]    # Send
+                else:
+                    kernel.stream = streams[2]    # Recv
+        # build nccl communicator for each pair of ranks
+        ncclcomm_dict = get_global_var('ncclcomm_dict')
+        # create gloo group for each pair of ranks
+        group_dict = {}
+        for kernel in execution_plan.valid_kernels:
+            if isinstance(kernel, Comm_Kernel):
+                key = tuple(sorted([kernel.key[3], kernel.key[4]]))
+                if key not in group_dict.keys():
+                    group_dict[key] = torch.distributed.new_group(key, backend='gloo')
+        for kernel in execution_plan.valid_kernels:
+            if isinstance(kernel, Comm_Kernel):
+                key = (kernel.key[3], kernel.key[4])    # (send, recv)
+                if key not in ncclcomm_dict.keys():
+                    # print_rank_0(f'key: {key}')
+                    # new_group = torch.distributed.new_group(key, backend='gloo')    # group must be create on every process ???
+                    new_group = group_dict[tuple(sorted(key))]
+                    if rank in key:
+                        # print(f'rank{rank}, key: {key}', flush=True)
+                        ncclcomm_dict[key] = PyNcclCommunicator(new_group, device=rank)
+                if rank in key:
+                    kernel.ncclcomm = ncclcomm_dict[key]
+        set_global_var('ncclcomm_dict', ncclcomm_dict)
+        # print kernel orders
+        # for r in range(local_size):
+        #     print_rank_0(f'rank{r}:')
+        #     for kernel in execution_plan.gpu_kernel_lists[r]:
+        #         # if isinstance(kernel, Comp_Kernel) or kernel.key[- 2] == 'o': # comm + output comm
+        #         if kernel.key[- 2] == 'i':  # only input comm
+        #             print_rank_0(f'{kernel.key}')
+                
+        inputs['execution_plan'] = execution_plan
+        inputs = filter_kwargs(f, inputs)
+    
+        torch.cuda.synchronize()
+        torch.distributed.barrier(group=global_group)
+        
+        use_cudagraph = False
+        use_cudagraph = True    # can be annotated
+        
+        # warmup
+        if forward_only:
+            with torch.no_grad():
+                for _ in range(warmup):
+                    _ = f(**inputs)
+                    
+        else:
+            for _ in range(warmup):
+                qkv.grad = None
+                out = f(**inputs)
+                out.backward(dout)
+        torch.cuda.synchronize()
+        torch.distributed.barrier(group=global_group)   
+        # # [NOTE]: we don't barrier here to prevent WARN of 
+        # # "[W CUDAGraph.cpp:145] Warning: Waiting for pending NCCL work to finish before starting graph capture. (function operator())"
+        # print_rank_0(f'Warmup done !!!')
+    
+        
+        if use_cudagraph:
+            if args.profiler_with_tensorboard:
+                with torch.profiler.profile():  # workaround of issue 75504 of PyTorch
+                    pass
+            # Capture cuda graph
+            # torch.cuda.synchronize(device=device)
+            g = torch.cuda.CUDAGraph()
+            # return
+            torch.cuda.synchronize()
+            with torch.cuda.graph(g, stream=streams[0]):
+                pass
+                # preprocess
+                for stream in streams[1:]:
+                    stream.wait_stream(torch.cuda.current_stream())
+                
+                if forward_only:
+                    with torch.no_grad():
+                        _ = f(**inputs)
+                else:
+                    qkv.grad = None
+                    out = f(**inputs)
+                    out.backward(dout)
+                    
+                # postprocess
+                for stream in streams[1:]:
+                    torch.cuda.current_stream().wait_stream(stream)
+            
+        is_runned = False
+        
+        torch.cuda.synchronize()
+        torch.distributed.barrier(group=global_group)
+        t1 = time.time()
+        
+        # warmup cudagraph
+        if use_cudagraph:
+            for _ in range(warmup_cudagraph):
+                g.replay()
+                # torch.cuda.synchronize()
+                # torch.distributed.barrier(group=global_group)
+            # print_rank_0(f'Warmup cudagraph done !!!')
+
+                    
+        torch.cuda.synchronize()
+        torch.distributed.barrier(group=global_group)
+        # SYNC_SIZE = 64 * 1024 * 1024 # 64MB
+        # sync_tensor = torch.empty((SYNC_SIZE), dtype=torch.int8, device=device)
+        
+        t2 = time.time()
+        # if args.profiler_with_tensorboard and not hasattr(args, "tb_profiled"):
+        if args.profiler_with_tensorboard:
+            args.tb_profiled = True
+            is_runned = True
+            BARRIER_FREQ = 4
+            WAIT, WARMUP, ACTIVE, REPEAT = BARRIER_FREQ * 1, BARRIER_FREQ * 1, BARRIER_FREQ * 3, 1
+            # WAIT, WARMUP, ACTIVE, REPEAT = BARRIER_FREQ * 0, BARRIER_FREQ * 0, BARRIER_FREQ * 1, 1
+            TOTAL_TURNS = (WAIT + WARMUP + ACTIVE) * (REPEAT)
+            TRACE_NAME = f'{os.environ["TRACE_NAME"]}_w{world_size}_r{rank}_S{seqlen}_bs{batch_size}_Nh{nheads}_D{nheads}_{f.__name__}_{"f" if forward_only else "f+b"}'
+            with torch.profiler.profile(
+                activities=[torch.profiler.ProfilerActivity.CPU, torch.profiler.ProfilerActivity.CUDA],
+                schedule=torch.profiler.schedule(wait=WAIT, warmup=WARMUP, active=ACTIVE, repeat=REPEAT),
+                on_trace_ready=torch.profiler.tensorboard_trace_handler(
+                    dir_name=f'{args.tb_dir}', 
+                    worker_name=TRACE_NAME,
+                ),
+                record_shapes=True,
+                profile_memory=True,
+                with_stack=True,
+            ) as prof:
+                for iter in range(TOTAL_TURNS):
+                    # torch.distributed.all_reduce(sync_tensor, async_op=False)    # for sync and alignment
+                    if use_cudagraph:
+                        g.replay()
+                    else:
+                        if forward_only:
+                            with torch.no_grad():
+                                _ = f(**inputs)
+                        else:
+                            qkv.grad = None
+                            out = f(**inputs)
+                            out.backward(dout)
+                    if (iter + 1) % BARRIER_FREQ == 0:
+                        torch.cuda.synchronize()
+                        torch.distributed.barrier()
+                    prof.step()
+            
+            num_iter = TOTAL_TURNS
+            
+        if not is_runned: 
+            # run
+            if use_cudagraph:
+                for _ in range(num_iter):
+                    # torch.distributed.all_reduce(sync_tensor, async_op=False)    # for sync and alignment
+                    g.replay()
+                    # torch.cuda.synchronize()    # almost no effect on performance
+                    # torch.distributed.barrier(group=global_group)   # 64TFlops -> 43TFlops
+            else:
+                if forward_only:
+                    with torch.no_grad():
+                        for _ in range(num_iter):
+                            _ = f(**inputs)
+                            # print(f'rank{rank}, cpu out !!!', flush=True)
+                            # torch.cuda.synchronize()
+                            # print(f'rank{rank}, sync out !!!', flush=True)
+                            # torch.distributed.barrier()
+                            # print(f'rank{rank}, real out !!!', flush=True)
+                            # for kernel in execution_plan.gpu_kernel_lists[rank]:
+                            #     print(f'rank{rank}, {kernel.key}, {kernel.in_ranks} !!!', flush=True)
+                else:
+                    for _ in range(num_iter):
+                        qkv.grad = None
+                        out = f(**inputs)
+                        out.backward(dout)
+        
+    
+        torch.cuda.synchronize()
+        torch.distributed.barrier(group=global_group)
+        t3 = time.time()
+        td = t3 - t2
+
+        if rank == 0 and log:
+        # if True:
+            m_flops, h_flops = calc_flops(batch_size, seqlen * world_size, nheads, d, causal, forward_only)
+            mfu, hfu = (round(flops / pow(1000, 4) / (td / num_iter * world_size), 3) for flops in (m_flops, h_flops))
+            print(f"suffix: {plan_suffix}, mfu: {mfu} Tflops/s, hfu: {hfu} Tflops/s, {num_iter / td:.3f} iter/s, {td / num_iter:.3e} s/iter, ({(t1 - t0):.3f}, {(t2 - t1):.3f}, {td:.3f}) sec", flush=True)
+
 
 def main(args):
     global PROC_INFO
@@ -397,7 +572,9 @@ def main(args):
     MASTER_PORT = os.getenv('MASTER_PORT', None)
     init_method = f'tcp://[{MASTER_ADDR}]:{MASTER_PORT}'
     # print(f'init_method: {init_method}')
-    dist.init_process_group(backend="gloo", init_method=init_method, rank=PROC_INFO['rank'], world_size=PROC_INFO['world_size'])
+    dist.init_process_group(backend="nccl", init_method=init_method, rank=PROC_INFO['rank'], world_size=PROC_INFO['world_size'])
+    gloo_global_group = dist.new_group(ranks=list(range(PROC_INFO['world_size'])), backend='gloo')  
+    # [NOTE]: we create a gloo global group because we use it to barrier in benchmark_orchestrate to prevent cudagraph overlapped with nccl ops !!!
     rank = dist.get_rank()
     world_size = dist.get_world_size()
     # print(f'rank{rank}, world_size{world_size}, hostname: {socket.gethostname()}')
@@ -463,7 +640,23 @@ def main(args):
 
             for f in funcs:
                 torch.cuda.empty_cache()
-                benchmark(args, f, shapes, qkv_buf, dout_buf, forward_only=True, log=True)
+                if f == orchestrated_attn_func:
+                # if False:
+                    plan_suffixes = ['_example', '_qo', '_kv', '_kv', '_qo', '_example']
+                    plan_suffixes = ['_example_old', '_qo_old', '_kv_old', '_example', '_qo', '_kv']
+                    plan_suffixes = ['_example', '_qo', '_kv', '_example_old', '_qo_old', '_kv_old', '_example', '_qo', '_kv']
+                    plan_suffixes = ['_example', '_example', '_qo', '_qo', '_kv', '_kv', '_example', '_example', '_qo', '_qo', '_kv', '_kv']
+                    
+                    plan_suffixes = ['_example', '_qo', '_kv']
+                    NUM_ALG = 100
+                    # for _ in range(NUM_ALG):
+                    for _ in range(NUM_ALG - 1, - 1, - 1):
+                        plan_suffixes.append(f'_alg{_}')
+                    plan_suffixes = ['_example_old', '_alg12']
+                    plan_suffixes = ['_alg12']
+                    benchmark_orchestrate(args, f, shapes, qkv_buf, dout_buf, forward_only=True, log=True, plan_suffixes=plan_suffixes, global_group=gloo_global_group)
+                else:
+                    benchmark(args, f, shapes, qkv_buf, dout_buf, forward_only=True, log=True)
                 # benchmark(args, f, shapes, forward_only=False, log=True)
     
 

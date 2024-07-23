@@ -55,17 +55,17 @@ def convert_profile_data_to_map(profile_list):
 def convert_throughput_to_B(size: float, unit: str):
     size_name = ["B", "KB", "MB", "GB", "TB", "PB", "EB", "ZB", "YB"]
     assert unit in size_name, f'Invalid unit: {unit}'
-    return size * pow(BYTE_MULTPLE_DOWN, size_name.index(unit))
+    return size * pow(BYTE_MULTPLE_DOWN, size_name.index(unit)) # ?B -> B
     
 def convert_profile_data_to_comm_map(file_name: str, GPU_NUM: int):
     profile_map = {}    # Bytes -> GB/s
     # SIZE 8192, REAL_BD 671.646 MB/s, time 0.0098 s, comm_vol 6.554 MB
-    pat = re.compile(r'^SIZE (\d+), REAL_BD (\d*(\.\d*)?) ([A-Z]*)/s.*$')
+    pat = re.compile(r'^SIZE (\d+),.*?BD/PAIR (\d*(\.\d*)?) ([A-Z]*)/s.*$')
     with open(file_name, 'r') as f:
         for line in f.readlines():
             res = pat.match(line)
             if res:
                 # print(f'res: {res.group(1), res.group(2), res.group(4)}')
-                profile_map[(int(res.group(1)),)] = convert_throughput_to_B(float(res.group(2)), res.group(4))  / pow(BYTE_MULTPLE_DOWN, 3) / GPU_NUM
+                profile_map[(int(res.group(1)),)] = convert_throughput_to_B(float(res.group(2)), res.group(4))  / pow(BYTE_MULTPLE_DOWN, 3)
     # print(f'profile_map: {profile_map}')
     return profile_map

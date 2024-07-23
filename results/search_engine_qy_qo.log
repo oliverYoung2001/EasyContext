@@ -1,0 +1,217 @@
++ srun -p rag -N 1 --ntasks-per-node=1 --mem 256G -K -w g3017 python search_algo/main.py
+srun: job 12466 queued and waiting for resources
+srun: job 12466 has been allocated resources
+[INFO]: fwd schedules
+schedule_squeue_num[fwd]: 4
+schedule:
+[[[[ 0 -1 -1 -1 -1 -1 -1 -1]
+   [ 1  1 -1 -1 -1 -1 -1 -1]
+   [ 2  2  2 -1 -1 -1 -1 -1]
+   [ 3  3  3  3 -1 -1 -1 -1]
+   [ 3  3  3  3  3 -1 -1 -1]
+   [ 2  2  2  2  2  2 -1 -1]
+   [ 1  1  1  1  1  1  1 -1]
+   [ 0  0  0  0  0  0  0  0]]]]
+fob: 0, get_e2e_time(): [0.0004682 0.001161 ], get_absolute_cc_time:
+[[0.000387  0.0004682]
+ [0.001161  0.0007023]]
+schedule:
+[[[[ 0 -1 -1 -1]
+   [ 0  1 -1 -1]
+   [ 0  1  2 -1]
+   [ 0  1  2  3]]]]
+fob: 0, get_e2e_time(): [0.00046  0.001348], get_absolute_cc_time:
+[[0.00046    0.00011705]
+ [0.001348   0.00035115]]
+schedule:
+[[[[ 0 -1 -1 -1]
+   [ 1  1 -1 -1]
+   [ 2  2  2 -1]
+   [ 3  3  3  3]]]]
+fob: 0, get_e2e_time(): [0.00046  0.001348], get_absolute_cc_time:
+[[0.00046   0.0002341]
+ [0.001348  0.0002341]]
+schedule:
+[[[[ 0 -1 -1 -1]
+   [ 0  1 -1 -1]
+   [ 0  1  2 -1]
+   [ 1  2  2  3]]]]
+fob: 0, get_e2e_time(): [0.000345 0.001011], get_absolute_cc_time:
+[[0.000345   0.00019508]
+ [0.001011   0.00042918]]
+schedule:
+[[[[ 0 -1 -1 -1]
+   [ 0  1 -1 -1]
+   [ 0  1  2 -1]
+   [ 0  1  2  3]]]]
+fob: 0, get_e2e_time(): [0.00046  0.001348], get_absolute_cc_time:
+[[0.00046    0.00011705]
+ [0.001348   0.00035115]]
+Welcome to the CBC MILP Solver 
+Version: 2.10.3 
+Build Date: Dec 15 2019 
+
+command line - /home/zhaijidong/miniconda3/envs/yhy_easycontext/lib/python3.10/site-packages/pulp/solverdir/cbc/linux/64/cbc ./search_algo/tmp/382ae46b3dbe43f28dbcb2c1ab4fc306-pulp.mps -timeMode elapsed -branch -printingOptions all -solution ./search_algo/tmp/382ae46b3dbe43f28dbcb2c1ab4fc306-pulp.sol (default strategy 1)
+At line 2 NAME          MODEL
+At line 3 ROWS
+At line 107 COLUMNS
+At line 449 RHS
+At line 552 BOUNDS
+At line 587 ENDATA
+Problem MODEL has 102 rows, 57 columns and 272 elements
+Coin0008I MODEL read with 0 errors
+Option for timeMode changed from cpu to elapsed
+Continuous objective value is 0.000229112 - 0.00 seconds
+Cgl0004I processed model has 101 rows, 56 columns (34 integer (34 of which binary)) and 270 elements
+Cbc0038I Initial state - 30 integers unsatisfied sum - 0.00573263
+Cbc0038I Pass   1: suminf.    0.00000 (0) obj. 0.00074528 iterations 35
+Cbc0038I Solution found of 0.00074528
+Cbc0038I Relaxing continuous gives 0.00074528
+Cbc0038I Before mini branch and bound, 4 integers at bound fixed and 2 continuous
+Cbc0038I Full problem 101 rows 56 columns, reduced to 91 rows 46 columns
+Cbc0038I Mini branch and bound improved solution from 0.00074528 to 0.000517056 (0.02 seconds)
+Cbc0038I Round again with cutoff of 0.000479262
+Cbc0038I Pass   2: suminf.    0.00094 (8) obj. 0.000479262 iterations 11
+Cbc0038I Pass   3: suminf.    0.00094 (8) obj. 0.000479262 iterations 0
+Cbc0038I Pass   4: suminf.    0.00327 (13) obj. 0.000479262 iterations 13
+Cbc0038I Pass   5: suminf.    0.00327 (13) obj. 0.000479262 iterations 0
+Cbc0038I Pass   6: suminf.    0.00327 (13) obj. 0.000479262 iterations 0
+Cbc0038I Pass   7: suminf.    0.00269 (13) obj. 0.000479262 iterations 23
+Cbc0038I Pass   8: suminf.    0.00269 (13) obj. 0.000479262 iterations 0
+Cbc0038I Pass   9: suminf.    0.00269 (13) obj. 0.000479262 iterations 0
+Cbc0038I Pass  10: suminf.    0.00269 (11) obj. 0.000479262 iterations 22
+Cbc0038I Pass  11: suminf.    0.00269 (11) obj. 0.000479262 iterations 0
+Cbc0038I Pass  12: suminf.    0.00269 (11) obj. 0.000479262 iterations 0
+Cbc0038I Pass  13: suminf.    0.00274 (11) obj. 0.000479262 iterations 11
+Cbc0038I Pass  14: suminf.    0.00274 (11) obj. 0.000479262 iterations 0
+Cbc0038I Pass  15: suminf.    0.00274 (11) obj. 0.000479262 iterations 0
+Cbc0038I Pass  16: suminf.    0.00469 (17) obj. 0.000479262 iterations 22
+Cbc0038I Pass  17: suminf.    0.00469 (17) obj. 0.000479262 iterations 0
+Cbc0038I Pass  18: suminf.    0.00469 (17) obj. 0.000479262 iterations 0
+Cbc0038I Pass  19: suminf.    0.00294 (10) obj. 0.000479262 iterations 19
+Cbc0038I Pass  20: suminf.    0.00294 (10) obj. 0.000479262 iterations 0
+Cbc0038I Pass  21: suminf.    0.00294 (10) obj. 0.000479262 iterations 0
+Cbc0038I Pass  22: suminf.    0.00345 (9) obj. 0.000479262 iterations 34
+Cbc0038I Pass  23: suminf.    0.00345 (9) obj. 0.000479262 iterations 0
+Cbc0038I Pass  24: suminf.    0.00345 (9) obj. 0.000479262 iterations 0
+Cbc0038I Pass  25: suminf.    0.00398 (12) obj. 0.000479262 iterations 25
+Cbc0038I Pass  26: suminf.    0.00398 (12) obj. 0.000479262 iterations 0
+Cbc0038I Pass  27: suminf.    0.00398 (12) obj. 0.000479262 iterations 0
+Cbc0038I Pass  28: suminf.    0.00411 (11) obj. 0.000479262 iterations 17
+Cbc0038I Pass  29: suminf.    0.00411 (11) obj. 0.000479262 iterations 0
+Cbc0038I Pass  30: suminf.    0.00411 (11) obj. 0.000479262 iterations 0
+Cbc0038I Pass  31: suminf.    0.00382 (12) obj. 0.000479262 iterations 18
+Cbc0038I No solution found this major pass
+Cbc0038I Before mini branch and bound, 0 integers at bound fixed and 0 continuous
+Cbc0038I Full problem 101 rows 56 columns, reduced to 101 rows 56 columns
+Cbc0038I Mini branch and bound did not improve solution (0.06 seconds)
+Cbc0038I After 0.06 seconds - Feasibility pump exiting with objective of 0.000517056 - took 0.06 seconds
+Cbc0012I Integer solution of 0.00051705605 found by feasibility pump after 0 iterations and 0 nodes (0.06 seconds)
+Cbc0031I 13 added rows had average density of 3.0769231
+Cbc0013I At root node, 13 cuts changed objective from 0.00022911209 to 0.00033401216 in 100 passes
+Cbc0014I Cut generator 0 (Probing) - 204 row cuts average 3.7 elements, 0 column cuts (0 active)  in 0.010 seconds - new frequency is 1
+Cbc0014I Cut generator 1 (Gomory) - 23 row cuts average 3.9 elements, 0 column cuts (0 active)  in 0.003 seconds - new frequency is 1
+Cbc0014I Cut generator 2 (Knapsack) - 0 row cuts average 0.0 elements, 0 column cuts (0 active)  in 0.002 seconds - new frequency is -100
+Cbc0014I Cut generator 3 (Clique) - 0 row cuts average 0.0 elements, 0 column cuts (0 active)  in 0.001 seconds - new frequency is -100
+Cbc0014I Cut generator 4 (MixedIntegerRounding2) - 10 row cuts average 2.0 elements, 0 column cuts (0 active)  in 0.004 seconds - new frequency is 1
+Cbc0014I Cut generator 5 (FlowCover) - 0 row cuts average 0.0 elements, 0 column cuts (0 active)  in 0.005 seconds - new frequency is -100
+Cbc0010I After 0 nodes, 1 on tree, 0.00051705605 best solution, best possible 0.00033401216 (0.10 seconds)
+Cbc0038I Full problem 101 rows 56 columns, reduced to 101 rows 39 columns
+Cbc0038I Full problem 101 rows 56 columns, reduced to 101 rows 46 columns
+Cbc0038I Full problem 101 rows 56 columns, reduced to 101 rows 37 columns
+Cbc0001I Search completed - best objective 0.0005170560452716072, took 4893 iterations and 268 nodes (0.49 seconds)
+Cbc0032I Strong branching done 2588 times (14129 iterations), fathomed 39 nodes and fixed 82 variables
+Cbc0035I Maximum depth 13, 2 variables fixed on reduced cost
+Cuts at root node changed objective from 0.000229112 to 0.000334012
+Probing was tried 637 times and created 1889 cuts of which 0 were active after adding rounds of cuts (0.045 seconds)
+Gomory was tried 576 times and created 249 cuts of which 0 were active after adding rounds of cuts (0.017 seconds)
+Knapsack was tried 100 times and created 0 cuts of which 0 were active after adding rounds of cuts (0.002 seconds)
+Clique was tried 100 times and created 0 cuts of which 0 were active after adding rounds of cuts (0.001 seconds)
+MixedIntegerRounding2 was tried 576 times and created 80 cuts of which 0 were active after adding rounds of cuts (0.019 seconds)
+FlowCover was tried 100 times and created 0 cuts of which 0 were active after adding rounds of cuts (0.005 seconds)
+TwoMirCuts was tried 1 times and created 0 cuts of which 0 were active after adding rounds of cuts (0.000 seconds)
+ZeroHalf was tried 1 times and created 0 cuts of which 0 were active after adding rounds of cuts (0.000 seconds)
+
+Result - Optimal solution found
+
+Objective value:                0.00051706
+Enumerated nodes:               268
+Total iterations:               4893
+Time (CPU seconds):             0.48
+Time (Wallclock seconds):       0.49
+
+Option for printingOptions changed from normal to all
+Total time (CPU seconds):       0.48   (Wallclock seconds):       0.49
+
+TOT_TIME_UP: 0.4600000102072954
+(0, 0, 0, 0, 0): 0.000e+00, 1.150e-04, 1.150e-04
+(0, 0, 1, 0, 0): 2.300e-04, 1.150e-04, 3.450e-04
+(0, 0, 1, 1, 1): 0.000e+00, 1.150e-04, 1.150e-04
+(0, 0, 2, 0, 0): 1.150e-04, 1.150e-04, 2.300e-04
+(0, 0, 2, 1, 1): 1.150e-04, 1.150e-04, 2.300e-04
+(0, 0, 2, 2, 2): 0.000e+00, 1.150e-04, 1.150e-04
+(0, 0, 3, 0, 0): 3.450e-04, 1.150e-04, 4.600e-04
+(0, 0, 3, 1, 1): 2.300e-04, 1.150e-04, 3.450e-04
+(0, 0, 3, 2, 2): 2.853e-04, 1.150e-04, 4.003e-04
+(0, 0, 3, 3, 3): 0.000e+00, 1.150e-04, 1.150e-04
+(0, 0, 1, 1, 0, 'i', 'r'): 5.706e-05, 5.706e-05, 1.141e-04
+(0, 0, 1, 0, 1, 'o', 'r'): 3.450e-04, 5.706e-05, 4.021e-04
+(0, 0, 2, 2, 0, 'i', 'r'): 0.000e+00, 5.706e-05, 5.706e-05
+(0, 0, 2, 0, 2, 'o', 'r'): 4.021e-04, 5.706e-05, 4.591e-04
+(0, 0, 2, 2, 1, 'i', 'r'): 5.706e-05, 5.706e-05, 1.141e-04
+(0, 0, 2, 1, 2, 'o', 'r'): 2.888e-04, 5.706e-05, 3.459e-04
+(0, 0, 3, 3, 0, 'i', 'r'): 1.141e-04, 5.706e-05, 1.712e-04
+(0, 0, 3, 0, 3, 'o', 'r'): 4.600e-04, 5.706e-05, 5.171e-04
+(0, 0, 3, 3, 1, 'i', 'r'): 1.712e-04, 5.706e-05, 2.282e-04
+(0, 0, 3, 1, 3, 'o', 'r'): 3.459e-04, 5.706e-05, 4.029e-04
+(0, 0, 3, 3, 2, 'i', 'r'): 2.282e-04, 5.706e-05, 2.853e-04
+(0, 0, 3, 2, 3, 'o', 'r'): 4.029e-04, 5.706e-05, 4.600e-04
+Streams:
+gpu0, comp: 4
+(0, 0, 0, 0, 0): 0.000e+00, 1.150e-04, 1.150e-04
+(0, 0, 2, 0, 0): 1.150e-04, 1.150e-04, 2.300e-04
+(0, 0, 1, 0, 0): 2.300e-04, 1.150e-04, 3.450e-04
+(0, 0, 3, 0, 0): 3.450e-04, 1.150e-04, 4.600e-04
+gpu0, send: 3
+(0, 0, 1, 0, 1, 'o', 'r'): 3.450e-04, 5.706e-05, 4.021e-04
+(0, 0, 2, 0, 2, 'o', 'r'): 4.021e-04, 5.706e-05, 4.591e-04
+(0, 0, 3, 0, 3, 'o', 'r'): 4.600e-04, 5.706e-05, 5.171e-04
+gpu0, recv: 3
+(0, 0, 2, 2, 0, 'i', 'r'): 0.000e+00, 5.706e-05, 5.706e-05
+(0, 0, 1, 1, 0, 'i', 'r'): 5.706e-05, 5.706e-05, 1.141e-04
+(0, 0, 3, 3, 0, 'i', 'r'): 1.141e-04, 5.706e-05, 1.712e-04
+gpu1, comp: 3
+(0, 0, 1, 1, 1): 0.000e+00, 1.150e-04, 1.150e-04
+(0, 0, 2, 1, 1): 1.150e-04, 1.150e-04, 2.300e-04
+(0, 0, 3, 1, 1): 2.300e-04, 1.150e-04, 3.450e-04
+gpu1, send: 3
+(0, 0, 1, 1, 0, 'i', 'r'): 5.706e-05, 5.706e-05, 1.141e-04
+(0, 0, 2, 1, 2, 'o', 'r'): 2.888e-04, 5.706e-05, 3.459e-04
+(0, 0, 3, 1, 3, 'o', 'r'): 3.459e-04, 5.706e-05, 4.029e-04
+gpu1, recv: 3
+(0, 0, 2, 2, 1, 'i', 'r'): 5.706e-05, 5.706e-05, 1.141e-04
+(0, 0, 3, 3, 1, 'i', 'r'): 1.712e-04, 5.706e-05, 2.282e-04
+(0, 0, 1, 0, 1, 'o', 'r'): 3.450e-04, 5.706e-05, 4.021e-04
+gpu2, comp: 2
+(0, 0, 2, 2, 2): 0.000e+00, 1.150e-04, 1.150e-04
+(0, 0, 3, 2, 2): 2.853e-04, 1.150e-04, 4.003e-04
+gpu2, send: 3
+(0, 0, 2, 2, 0, 'i', 'r'): 0.000e+00, 5.706e-05, 5.706e-05
+(0, 0, 2, 2, 1, 'i', 'r'): 5.706e-05, 5.706e-05, 1.141e-04
+(0, 0, 3, 2, 3, 'o', 'r'): 4.029e-04, 5.706e-05, 4.600e-04
+gpu2, recv: 3
+(0, 0, 3, 3, 2, 'i', 'r'): 2.282e-04, 5.706e-05, 2.853e-04
+(0, 0, 2, 1, 2, 'o', 'r'): 2.888e-04, 5.706e-05, 3.459e-04
+(0, 0, 2, 0, 2, 'o', 'r'): 4.021e-04, 5.706e-05, 4.591e-04
+gpu3, comp: 1
+(0, 0, 3, 3, 3): 0.000e+00, 1.150e-04, 1.150e-04
+gpu3, send: 3
+(0, 0, 3, 3, 0, 'i', 'r'): 1.141e-04, 5.706e-05, 1.712e-04
+(0, 0, 3, 3, 1, 'i', 'r'): 1.712e-04, 5.706e-05, 2.282e-04
+(0, 0, 3, 3, 2, 'i', 'r'): 2.282e-04, 5.706e-05, 2.853e-04
+gpu3, recv: 3
+(0, 0, 3, 1, 3, 'o', 'r'): 3.459e-04, 5.706e-05, 4.029e-04
+(0, 0, 3, 2, 3, 'o', 'r'): 4.029e-04, 5.706e-05, 4.600e-04
+(0, 0, 3, 0, 3, 'o', 'r'): 4.600e-04, 5.706e-05, 5.171e-04
+objective=5.171e-04
++ set +x
