@@ -9,6 +9,7 @@ from ring_flash_attn import (
     zigzag_ring_flash_attn_func,
     stripe_flash_attn_func,
 )
+import torch.distributed
 from hierarchy_attn.hierarchy_attn_impl import hierarchy_attn_func
 from orchestrated_attn.orchestrated_attn_impl import orchestrated_attn_func
 import torch.cuda
@@ -287,10 +288,13 @@ def benchmark(args, f, shapes:dict, qkv_buf, dout_buf, warmup=11, num_iter=100, 
         mfu, hfu = (round(flops / pow(1000, 4) / (td / num_iter * world_size), 3) for flops in (m_flops, h_flops))
         print(f"mfu: {mfu} Tflops/s, hfu: {hfu} Tflops/s, {num_iter / td:.3f} iter/s, {td / num_iter:.3e} s/iter, ({(t1 - t0):.3f}, {(t2 - t1):.3f}, {td:.3f}) sec", flush=True)
 
-def benchmark_orchestrate(args, f, shapes:dict, qkv_buf, dout_buf, warmup=11, num_iter=20, forward_only=True, log=True, plan_suffixes: list = [''], global_group=None):
+def benchmark_orchestrate(args, f, shapes:dict, qkv_buf, dout_buf, warmup=11, num_iter=20, forward_only=True, log=True, 
+                          plan_suffixes: list = [''], global_group=None, ncclcomm_global: PyNcclCommunicator = None, 
+                          use_cudagraph=False):
+    print_rank_0(f'[INFO]: use_cudagraph: {use_cudagraph}')
     warmup = 11
     warmup_cudagraph = 100
-    num_iter = 200
+    num_iter = 20
     torch.cuda.synchronize()
     torch.distributed.barrier(group=global_group)
     global PROC_INFO
@@ -337,6 +341,9 @@ def benchmark_orchestrate(args, f, shapes:dict, qkv_buf, dout_buf, warmup=11, nu
         "groups": {},
     }
 
+    SYNC_SIZE = 8 * pow(1024, 3) # 8GB
+    sync_tensor = torch.empty((SYNC_SIZE), dtype=torch.int8, device=device)
+    placeholder_op = partial(ncclcomm_global.all_reduce, sync_tensor)
     for plan_suffix in plan_suffixes:
         t0 = time.time()
         SP = (1, world_size)
@@ -344,17 +351,19 @@ def benchmark_orchestrate(args, f, shapes:dict, qkv_buf, dout_buf, warmup=11, nu
         Nhs = (nheads, nheads)
         bs = batch_size
         # [HACK]
-        da_config = Dist_Attn_Config(SP=SP, S=(4 * 1024, 4 * 1024), Nh=Nhs, D=d, bs=batch_size, causal=causal)
+        da_config = Dist_Attn_Config(SP=SP, S=Ss, Nh=Nhs, D=d, bs=batch_size, causal=causal)
+        par_dir = f'{os.path.dirname(__file__)}/search_algo/execution_plans/SP{da_config.SP}_S{da_config.S}'
+        # print(f'{os.path.exists(par_dir)}')
         plan_name = da_config.get_plan_name(fob=0 if forward_only else 1)
-        plan_file = f'{os.path.dirname(__file__)}/search_algo/execution_plans/{plan_name}{plan_suffix}.pkl'
+        plan_file = f'{par_dir}/{plan_name}{plan_suffix}.pkl'
         # load plan
         with open(plan_file, 'rb') as fin:
             execution_plan = pickle.load(fin)   # [NOTE]: this obj shared by all processors in memory !!!
         # print(f'rank{rank}, id(execution_plan): {hex(id(execution_plan))}', flush=True)
         # execution_plan.a = rank
         # print(f'execution_plan.a: {execution_plan.a}')
-        if rank == 0:
-            execution_plan.print_lp_result()
+        # if rank == 0:
+        #     execution_plan.print_lp_result()
         # preprocess
         for kernel in execution_plan.gpu_kernel_lists[local_rank]:
             kernel.in_ranks = set([local_rank])
@@ -398,7 +407,7 @@ def benchmark_orchestrate(args, f, shapes:dict, qkv_buf, dout_buf, warmup=11, nu
                     new_group = group_dict[tuple(sorted(key))]
                     if rank in key:
                         # print(f'rank{rank}, key: {key}', flush=True)
-                        ncclcomm_dict[key] = PyNcclCommunicator(new_group, device=rank)
+                        ncclcomm_dict[key] = PyNcclCommunicator(new_group, device=local_rank)
                 if rank in key:
                     kernel.ncclcomm = ncclcomm_dict[key]
         set_global_var('ncclcomm_dict', ncclcomm_dict)
@@ -415,9 +424,6 @@ def benchmark_orchestrate(args, f, shapes:dict, qkv_buf, dout_buf, warmup=11, nu
     
         torch.cuda.synchronize()
         torch.distributed.barrier(group=global_group)
-        
-        use_cudagraph = False
-        use_cudagraph = True    # can be annotated
         
         # warmup
         if forward_only:
@@ -485,6 +491,7 @@ def benchmark_orchestrate(args, f, shapes:dict, qkv_buf, dout_buf, warmup=11, nu
         # sync_tensor = torch.empty((SYNC_SIZE), dtype=torch.int8, device=device)
         
         t2 = time.time()
+        td = - 1
         # if args.profiler_with_tensorboard and not hasattr(args, "tb_profiled"):
         if args.profiler_with_tensorboard:
             args.tb_profiled = True
@@ -510,6 +517,11 @@ def benchmark_orchestrate(args, f, shapes:dict, qkv_buf, dout_buf, warmup=11, nu
                     if use_cudagraph:
                         g.replay()
                     else:
+                        if iter % BARRIER_FREQ == 0:
+                            placeholder_op(stream=streams[0]) # [NOTE]: aim to eliminate cpu overhead
+                        # preprocess
+                        for stream in streams[1:]:
+                            stream.wait_stream(streams[0])
                         if forward_only:
                             with torch.no_grad():
                                 _ = f(**inputs)
@@ -517,6 +529,9 @@ def benchmark_orchestrate(args, f, shapes:dict, qkv_buf, dout_buf, warmup=11, nu
                             qkv.grad = None
                             out = f(**inputs)
                             out.backward(dout)
+                        # postprocess
+                        for stream in streams[1:]:
+                            streams[0].wait_stream(stream)
                     if (iter + 1) % BARRIER_FREQ == 0:
                         torch.cuda.synchronize()
                         torch.distributed.barrier()
@@ -533,28 +548,39 @@ def benchmark_orchestrate(args, f, shapes:dict, qkv_buf, dout_buf, warmup=11, nu
                     # torch.cuda.synchronize()    # almost no effect on performance
                     # torch.distributed.barrier(group=global_group)   # 64TFlops -> 43TFlops
             else:
+                event_start = torch.cuda.Event(enable_timing=True)
+                event_end = torch.cuda.Event(enable_timing=True)
+                placeholder_op(stream=streams[0]) # [NOTE]: aim to eliminate cpu overhead
+                event_start.record(stream=streams[0])
+                # preprocess
+                for stream in streams[1:]:
+                    stream.wait_stream(streams[0])
                 if forward_only:
                     with torch.no_grad():
                         for _ in range(num_iter):
                             _ = f(**inputs)
-                            # print(f'rank{rank}, cpu out !!!', flush=True)
-                            # torch.cuda.synchronize()
-                            # print(f'rank{rank}, sync out !!!', flush=True)
-                            # torch.distributed.barrier()
-                            # print(f'rank{rank}, real out !!!', flush=True)
-                            # for kernel in execution_plan.gpu_kernel_lists[rank]:
-                            #     print(f'rank{rank}, {kernel.key}, {kernel.in_ranks} !!!', flush=True)
                 else:
                     for _ in range(num_iter):
                         qkv.grad = None
                         out = f(**inputs)
                         out.backward(dout)
-        
-    
+                # postprocess
+                for stream in streams[1:]:
+                    streams[0].wait_stream(stream)
+                event_end.record(stream=streams[0])
+                torch.cuda.synchronize()
+                td = event_start.elapsed_time(event_end) / 1000 # s
+
         torch.cuda.synchronize()
         torch.distributed.barrier(group=global_group)
         t3 = time.time()
-        td = t3 - t2
+        if td < 0:
+            td = t3 - t2
+        else:
+            td = torch.tensor(td, device=device)
+            torch.distributed.all_reduce(td, op=torch.distributed.ReduceOp.MAX, async_op=False)
+            td = td.cpu().item()
+            
 
         if rank == 0 and log:
         # if True:
@@ -573,7 +599,8 @@ def main(args):
     init_method = f'tcp://[{MASTER_ADDR}]:{MASTER_PORT}'
     # print(f'init_method: {init_method}')
     dist.init_process_group(backend="nccl", init_method=init_method, rank=PROC_INFO['rank'], world_size=PROC_INFO['world_size'])
-    gloo_global_group = dist.new_group(ranks=list(range(PROC_INFO['world_size'])), backend='gloo')  
+    gloo_global_group = dist.new_group(ranks=list(range(PROC_INFO['world_size'])), backend='gloo')
+    ncclcomm_global = PyNcclCommunicator(gloo_global_group, device=PROC_INFO['local_rank'])
     # [NOTE]: we create a gloo global group because we use it to barrier in benchmark_orchestrate to prevent cudagraph overlapped with nccl ops !!!
     rank = dist.get_rank()
     world_size = dist.get_world_size()
@@ -594,13 +621,13 @@ def main(args):
     
     funcs = [
         # ring_flash_attn_func,
-        # zigzag_ring_flash_attn_func,      # baseline
+        zigzag_ring_flash_attn_func,      # baseline
         # zigzag_ring_flash_attn_func_opt,  # sol1
         # stripe_flash_attn_func,
         # lightseq_attn_func,
         # flash_attn_func,
-        # hierarchy_attn_func,
-        # overlapped_hierarchy_attn_func,
+        hierarchy_attn_func,                # one case
+        overlapped_hierarchy_attn_func,     # another case
         orchestrated_attn_func,
     ]
     bs = 1
@@ -648,13 +675,25 @@ def main(args):
                     plan_suffixes = ['_example', '_example', '_qo', '_qo', '_kv', '_kv', '_example', '_example', '_qo', '_qo', '_kv', '_kv']
                     
                     plan_suffixes = ['_example', '_qo', '_kv']
+                    # plan_suffixes = ['_kv']
+                    # plan_suffixes = ['_example']
                     NUM_ALG = 100
-                    # for _ in range(NUM_ALG):
-                    for _ in range(NUM_ALG - 1, - 1, - 1):
+                    for _ in range(NUM_ALG):
+                    # for _ in range(NUM_ALG - 1, - 1, - 1):
                         plan_suffixes.append(f'_alg{_}')
-                    plan_suffixes = ['_example_old', '_alg12']
-                    plan_suffixes = ['_alg12']
-                    benchmark_orchestrate(args, f, shapes, qkv_buf, dout_buf, forward_only=True, log=True, plan_suffixes=plan_suffixes, global_group=gloo_global_group)
+                    # plan_suffixes = ['_example_old', '_alg12']
+                    # plan_suffixes = ['_alg12']
+                    
+                    # NUM_ALG = 4
+                    # plan_suffixes = []
+                    # for _ in range(1, NUM_ALG):
+                    #     plan_suffixes.append(f'_alg{_}')
+                    benchmark_op = partial(benchmark_orchestrate,
+                        args, f, shapes, qkv_buf, dout_buf, forward_only=True, log=True, plan_suffixes=plan_suffixes, 
+                        global_group=gloo_global_group, ncclcomm_global=ncclcomm_global
+                    )
+                    benchmark_op(use_cudagraph=False)
+                    benchmark_op(use_cudagraph=True)
                 else:
                     benchmark(args, f, shapes, qkv_buf, dout_buf, forward_only=True, log=True)
                 # benchmark(args, f, shapes, forward_only=False, log=True)

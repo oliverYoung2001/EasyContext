@@ -7,6 +7,7 @@ import pulp
 import regex as re
 import random
 import json
+import time
 
 class Execution_Plan(): # input: kernel streams of gpus
     def __init__(self, d_graph: Dependent_Graph, fob: bool):
@@ -16,8 +17,8 @@ class Execution_Plan(): # input: kernel streams of gpus
         self.split_degrees = d_graph.split_degrees
         self.fob = fob  # fwd or bwd
         self.tot_sp = d_graph.tot_sp
-        # print(f'schedule:\n{d_graph.schedule.schedule_table}', flush=True)
-        # print(f'fob: {fob}, get_e2e_time(): {d_graph.schedule.get_e2e_time()}, get_absolute_cc_time:\n{d_graph.schedule.get_absolute_cc_time()}', flush=True)
+        self.TIME_BUDGET = 5 * 60   # 5mins
+        self.threshold = 1.3
         self.generate_execution_plan()
     
     def get_plan_name(self):
@@ -92,7 +93,12 @@ class Execution_Plan(): # input: kernel streams of gpus
         
         # Solve
         # solver = pulp.getSolver('GUROBI')
-        mylp.solve(pulp.PULP_CBC_CMD(msg=0))
+        print(f'before solve !!!', flush=True)
+        t0 = time.time()
+        mylp.solve(pulp.PULP_CBC_CMD(msg=1, timeLimit=self.TIME_BUDGET))
+        print(f'after solve !!!', flush=True)
+        t1 = time.time()
+        print(f'LP solve time: {t1 - t0} s', flush=True)
         # pulp.GUROBI(mgs=0).solve(mylp)
         self.mylp = mylp
         self.stream_kernel_lists = stream_kernel_lists
@@ -116,6 +122,8 @@ class Execution_Plan(): # input: kernel streams of gpus
         fob = self.fob
         d_graph = self.d_graph
         mylp = self.mylp
+        print(f'schedule:\n{d_graph.schedule.schedule_table}', flush=True)
+        print(f'fob: {fob}, get_e2e_time(): {d_graph.schedule.get_e2e_time()[fob]}, get_absolute_cc_time:{d_graph.schedule.get_absolute_cc_time()[fob]}', flush=True)
         for v in d_graph.kernel_dict.values():
             if not v.is_empty(fob):
                 print(f'{v.key}: {v.start_time.value():.3e}, {v.time[fob]:.3e}, {(v.start_time.value() + v.time[fob]):.3e}')

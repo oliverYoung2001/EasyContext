@@ -9,22 +9,25 @@ GPUS_PER_NODE=3
 GPUS_PER_NODE=4
 # GPUS_PER_NODE=8
 PARTITION=arch
-# HOST="g3025"
+HOST="g3025"
+HOST="g3010"
+HOST="g3029"
 PARTITION=rag
-# HOST="g3017,g3018"
-# HOST="g3017,g3022"
-HOST="g3015,g3017"
-HOST="g3015,g3018"
-# GPU_NUMs="24"
-HOST="g3015,g3018,g3021"
-HOST="g3017"
+# # HOST="g3017,g3018"
+# # HOST="g3017,g3022"
+# HOST="g3015,g3017"
+# HOST="g3015,g3018"
+# # GPU_NUMs="24"
+# HOST="g3015,g3018,g3021"
+# HOST="g3017"
 # HOST="g3010"
 # HOST="g3021"
 # PARTITION=hit
 # HOST="g4008"
+# HOST="g4006"
 
 
-# HOST=None
+HOST=None
 
 export MASTER_PORT=$((RANDOM % 12000 + 10000))
 
@@ -95,6 +98,7 @@ exit 0
 # Run with MPI
 # salloc -p rag -w g3017 -N 1 -n 128 -t 3600
 # salloc -p arch -w g3029 -N 1 -n 128 -t 3600
+# salloc -p rag -w g3013 -N 1 -n 128 -t 3600
 
 GPU_NUM=16
 HOST_CONFIG="g3021:8,g3022:8"
