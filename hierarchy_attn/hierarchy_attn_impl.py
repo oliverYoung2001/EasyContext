@@ -61,24 +61,24 @@ def intra_attn_forward(
                 comm.send_recv(kv, next_kv)
                 comm.commit()
 
-            # # Comp
-            # if step == 0:
-            #     block_out, block_lse = forward(q, k, v, causal=True)
-            #     out, lse = update_out_and_lse(out, lse, block_out, block_lse)
-            # elif step <= comm.rank:
-            #     k0 = k[:, :block_seq_len]
-            #     v0 = v[:, :block_seq_len]
-            #     block_out, block_lse = forward(q, k0, v0, causal=False)
-            #     out, lse = update_out_and_lse(out, lse, block_out, block_lse)
-            # else:
-            #     block_out, block_lse = forward(q1, k, v, causal=False)
-            #     out, lse = update_out_and_lse(
-            #         out,
-            #         lse,
-            #         block_out,
-            #         block_lse,
-            #         slice_=(slice(None), slice(block_seq_len, None)),
-            #     )
+            # Comp
+            if step == 0:
+                block_out, block_lse = forward(q, k, v, causal=True)
+                out, lse = update_out_and_lse(out, lse, block_out, block_lse)
+            elif step <= comm.rank:
+                k0 = k[:, :block_seq_len]
+                v0 = v[:, :block_seq_len]
+                block_out, block_lse = forward(q, k0, v0, causal=False)
+                out, lse = update_out_and_lse(out, lse, block_out, block_lse)
+            else:
+                block_out, block_lse = forward(q1, k, v, causal=False)
+                out, lse = update_out_and_lse(
+                    out,
+                    lse,
+                    block_out,
+                    block_lse,
+                    slice_=(slice(None), slice(block_seq_len, None)),
+                )
 
             if step + 1 != comm.local_size:
                 comm.wait()
@@ -199,6 +199,7 @@ def overlapped_hierarchy_attn_forward(
     local_rank = PROC_INFO['local_rank']
     local_size = PROC_INFO['tasks_per_node']
     node_id = PROC_INFO['nodeid']
+    # print(f'rank: {rank}, world_size: {world_size}, local_rank: {local_rank}, local_size: {local_size}, node_id: {node_id}')
     assert world_size % local_size == 0
     node_num = world_size // local_size
     comm = OverlappedInterComm(process_groups, PROC_INFO)

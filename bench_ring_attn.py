@@ -450,7 +450,7 @@ def benchmark_orchestrate(args, f, shapes:dict, qkv_buf, dout_buf, warmup=11, nu
                 with torch.profiler.profile():  # workaround of issue 75504 of PyTorch
                     pass
             # Capture cuda graph
-            # torch.cuda.synchronize(device=device)
+            # torch.cuda.synchronize()
             g = torch.cuda.CUDAGraph()
             # return
             torch.cuda.synchronize()
@@ -624,14 +624,14 @@ def main(args):
     
     funcs = [
         # ring_flash_attn_func,
-        # zigzag_ring_flash_attn_func,      # baseline
+        zigzag_ring_flash_attn_func,      # baseline
         # zigzag_ring_flash_attn_func_opt,  # sol1
         # stripe_flash_attn_func,
         # lightseq_attn_func,
         # flash_attn_func,
         # hierarchy_attn_func,                # one case
-        # overlapped_hierarchy_attn_func,     # another case
-        orchestrated_attn_func,
+        overlapped_hierarchy_attn_func,     # another case
+        # orchestrated_attn_func,
     ]
     bs = 1
     D = 128
