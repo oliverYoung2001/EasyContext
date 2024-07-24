@@ -123,7 +123,7 @@ def calc_flops(mbs, S, Nh, D, causal=True, forward_only=False):
         h_flops = (1 + 2.5) * flops
     return m_flops, h_flops # model flops & hardware flops
     
-def benchmark(args, f, shapes:dict, qkv_buf, dout_buf, warmup=11, num_iter=100, forward_only=True, log=True):
+def benchmark(args, f, shapes:dict, qkv_buf, dout_buf, warmup=11, num_iter=20, forward_only=True, log=True):
     # warmup = 0
     # num_iter = 20
     torch.cuda.synchronize()
