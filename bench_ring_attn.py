@@ -376,8 +376,10 @@ def benchmark_orchestrate(args, f, shapes:dict, qkv_buf, dout_buf, warmup=11, nu
             streams = []
             # streams.append(torch.cuda.current_stream())
             # print(f'rank{rank}, current_device: {torch.cuda.current_device()}')
+            priorities = [0, - 1, - 2]
+            priorities = [0, 0, 0]
             for _ in range(0, execution_plan.stream_num):
-                streams.append(torch.cuda.Stream(torch.cuda.current_device()))
+                streams.append(torch.cuda.Stream(torch.cuda.current_device(), priority=priorities[_]))
             set_global_var('streams', streams)
         streams = get_global_var('streams')
         # set stream for eash kernel
@@ -534,7 +536,7 @@ def benchmark_orchestrate(args, f, shapes:dict, qkv_buf, dout_buf, warmup=11, nu
                             streams[0].wait_stream(stream)
                     if (iter + 1) % BARRIER_FREQ == 0:
                         torch.cuda.synchronize()
-                        torch.distributed.barrier()
+                        torch.distributed.barrier(group=global_group)
                     prof.step()
             
             num_iter = TOTAL_TURNS
@@ -579,6 +581,7 @@ def benchmark_orchestrate(args, f, shapes:dict, qkv_buf, dout_buf, warmup=11, nu
         else:
             td = torch.tensor(td, device=device)
             torch.distributed.all_reduce(td, op=torch.distributed.ReduceOp.MAX, async_op=False)
+            torch.cuda.synchronize()
             td = td.cpu().item()
             
 
@@ -621,13 +624,13 @@ def main(args):
     
     funcs = [
         # ring_flash_attn_func,
-        zigzag_ring_flash_attn_func,      # baseline
+        # zigzag_ring_flash_attn_func,      # baseline
         # zigzag_ring_flash_attn_func_opt,  # sol1
         # stripe_flash_attn_func,
         # lightseq_attn_func,
         # flash_attn_func,
-        hierarchy_attn_func,                # one case
-        overlapped_hierarchy_attn_func,     # another case
+        # hierarchy_attn_func,                # one case
+        # overlapped_hierarchy_attn_func,     # another case
         orchestrated_attn_func,
     ]
     bs = 1
@@ -677,10 +680,10 @@ def main(args):
                     plan_suffixes = ['_example', '_qo', '_kv']
                     # plan_suffixes = ['_kv']
                     # plan_suffixes = ['_example']
-                    NUM_ALG = 100
-                    for _ in range(NUM_ALG):
-                    # for _ in range(NUM_ALG - 1, - 1, - 1):
-                        plan_suffixes.append(f'_alg{_}')
+                    # NUM_ALG = 100
+                    # for _ in range(NUM_ALG):
+                    # # for _ in range(NUM_ALG - 1, - 1, - 1):
+                    #     plan_suffixes.append(f'_alg{_}')
                     # plan_suffixes = ['_example_old', '_alg12']
                     # plan_suffixes = ['_alg12']
                     
