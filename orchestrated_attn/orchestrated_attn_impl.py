@@ -121,6 +121,8 @@ def intra_attn_forward(
         # if False:
         if True:
             # torch.profiler.itt.range_push(f'{kernel.key}')
+            # print_rank_0(f'kernel.key: {kernel.key}')
+            # print(f'rank{rank}, kernel.key: {kernel.key}', flush=True)
             execute_kernel(kernel, data_dict, PROC_INFO, fwd_comp_func, comm, idata_buf)
             # torch.profiler.itt.range_pop()
     # print(f'rank{rank}, Out !!!', flush=True)

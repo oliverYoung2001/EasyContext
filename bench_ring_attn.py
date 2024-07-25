@@ -96,6 +96,7 @@ def get_proc_info():
         'ip': ip,
         'deviceid': local_rank,
     }
+    proc_info['node_num'] = world_size // tasks_per_node
     # print(f'proc_info: {proc_info}')
     return proc_info
 
@@ -289,7 +290,7 @@ def benchmark(args, f, shapes:dict, qkv_buf, dout_buf, warmup=11, num_iter=20, f
         print(f"mfu: {mfu} Tflops/s, hfu: {hfu} Tflops/s, {num_iter / td:.3f} iter/s, {td / num_iter:.3e} s/iter, ({(t1 - t0):.3f}, {(t2 - t1):.3f}, {td:.3f}) sec", flush=True)
 
 def benchmark_orchestrate(args, f, shapes:dict, qkv_buf, dout_buf, warmup=11, num_iter=20, forward_only=True, log=True, 
-                          plan_suffixes: list = [''], global_group=None, ncclcomm_global: PyNcclCommunicator = None, 
+                          plan_paths: list = [''], global_group=None, ncclcomm_global: PyNcclCommunicator = None, 
                           use_cudagraph=False):
     print_rank_0(f'[INFO]: use_cudagraph: {use_cudagraph}')
     warmup = 11
@@ -312,7 +313,6 @@ def benchmark_orchestrate(args, f, shapes:dict, qkv_buf, dout_buf, warmup=11, nu
     nheads = shapes['Nh']
     d = shapes['D']
     dropout_p = 0
-    causal = True
     deterministic = False
 
     # assert seqlen % (2 * world_size) == 0
@@ -334,7 +334,7 @@ def benchmark_orchestrate(args, f, shapes:dict, qkv_buf, dout_buf, warmup=11, nu
         "inp_row": Input_Row_Fwd(q), 
         "inp_col": Input_Col_Fwd(k, v),
         "dropout_p": dropout_p,
-        "causal": causal,
+        "causal": None,
         "deterministic": deterministic,
         "sm_scale": q.shape[-1] ** (-0.5),
         "PROC_INFO": PROC_INFO,
@@ -344,24 +344,17 @@ def benchmark_orchestrate(args, f, shapes:dict, qkv_buf, dout_buf, warmup=11, nu
     SYNC_SIZE = 8 * pow(1024, 3) # 8GB
     sync_tensor = torch.empty((SYNC_SIZE), dtype=torch.int8, device=device)
     placeholder_op = partial(ncclcomm_global.all_reduce, sync_tensor)
-    for plan_suffix in plan_suffixes:
+    for plan_path in plan_paths:
         t0 = time.time()
         SP = (1, world_size)
         Ss = (seqlen * world_size, seqlen * world_size)
         Nhs = (nheads, nheads)
         bs = batch_size
-        # [HACK]
-        da_config = Dist_Attn_Config(SP=SP, S=Ss, Nh=Nhs, D=d, bs=batch_size, causal=causal)
-        par_dir = f'{os.path.dirname(__file__)}/search_algo/execution_plans/SP{da_config.SP}_S{da_config.S}'
-        # print(f'{os.path.exists(par_dir)}')
-        plan_name = da_config.get_plan_name(fob=0 if forward_only else 1)
-        plan_file = f'{par_dir}/{plan_name}{plan_suffix}.pkl'
         # load plan
-        with open(plan_file, 'rb') as fin:
+        with open(plan_path, 'rb') as fin:
             execution_plan = pickle.load(fin)   # [NOTE]: this obj shared by all processors in memory !!!
-        # print(f'rank{rank}, id(execution_plan): {hex(id(execution_plan))}', flush=True)
-        # execution_plan.a = rank
-        # print(f'execution_plan.a: {execution_plan.a}')
+        causal = execution_plan.da_config.causal
+        inputs['causal'] = causal
         # if rank == 0:
         #     execution_plan.print_lp_result()
         # preprocess
@@ -589,7 +582,7 @@ def benchmark_orchestrate(args, f, shapes:dict, qkv_buf, dout_buf, warmup=11, nu
         # if True:
             m_flops, h_flops = calc_flops(batch_size, seqlen * world_size, nheads, d, causal, forward_only)
             mfu, hfu = (round(flops / pow(1000, 4) / (td / num_iter * world_size), 3) for flops in (m_flops, h_flops))
-            print(f"suffix: {plan_suffix}, mfu: {mfu} Tflops/s, hfu: {hfu} Tflops/s, {num_iter / td:.3f} iter/s, {td / num_iter:.3e} s/iter, ({(t1 - t0):.3f}, {(t2 - t1):.3f}, {td:.3f}) sec", flush=True)
+            print(f"suffix: {plan_path.split('/')[-1]}, mfu: {mfu} Tflops/s, hfu: {hfu} Tflops/s, {num_iter / td:.3f} iter/s, {td / num_iter:.3e} s/iter, ({(t1 - t0):.3f}, {(t2 - t1):.3f}, {td:.3f}) sec", flush=True)
 
 
 def main(args):
@@ -636,8 +629,8 @@ def main(args):
     bs = 1
     D = 128
     Ss = [
-        4 * 1024,   # 4K
-        # 8 * 1024,   # 8K
+        # 4 * 1024,   # 4K
+        8 * 1024,   # 8K
         # 16 * 1024,  # 16K
         # 32 * 1024,   # 32K
         # 64 * 1024,   # 64K
@@ -672,6 +665,13 @@ def main(args):
                 torch.cuda.empty_cache()
                 if f == orchestrated_attn_func:
                 # if False:
+                    SPs = (PROC_INFO['node_num'], PROC_INFO['tasks_per_node'])
+                    # da_config = Dist_Attn_Config(SP=SPs, S=(S, S), Nh=(Nh, Nh), D=D, bs=bs, causal=False)
+                    # par_dir = f'{os.path.dirname(__file__)}/search_algo/execution_plans/SP{da_config.SP}_S{da_config.S}'
+                    # # print(f'{os.path.exists(par_dir)}')
+                    # # plan_name = da_config.get_plan_name(fob=0 if forward_only else 1)
+                    # plan_file = f'{par_dir}/{plan_name}{plan_suffix}.pkl'
+                    
                     plan_suffixes = ['_example', '_qo', '_kv', '_kv', '_qo', '_example']
                     plan_suffixes = ['_example_old', '_qo_old', '_kv_old', '_example', '_qo', '_kv']
                     plan_suffixes = ['_example', '_qo', '_kv', '_example_old', '_qo_old', '_kv_old', '_example', '_qo', '_kv']
@@ -691,8 +691,14 @@ def main(args):
                     # plan_suffixes = []
                     # for _ in range(1, NUM_ALG):
                     #     plan_suffixes.append(f'_alg{_}')
+                    
+                    par_dir = f'{os.path.dirname(__file__)}/search_algo/execution_plans/intra_SP{SPs[1]}'
+                    plan_paths = []
+                    for plan_name in os.listdir(par_dir):
+                        plan_paths.append(f'{par_dir}/{plan_name}')
+                    # print(f'plan_paths: {plan_paths}')
                     benchmark_op = partial(benchmark_orchestrate,
-                        args, f, shapes, qkv_buf, dout_buf, forward_only=True, log=True, plan_suffixes=plan_suffixes, 
+                        args, f, shapes, qkv_buf, dout_buf, forward_only=True, log=True, plan_paths=plan_paths, 
                         global_group=gloo_global_group, ncclcomm_global=ncclcomm_global
                     )
                     benchmark_op(use_cudagraph=False)

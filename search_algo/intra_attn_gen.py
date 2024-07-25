@@ -13,6 +13,8 @@ from functools import partial
 
 
 def get_configs():
+    SP0, SP1 = 1, 2
+    Sq = Skv = 2 * 1024   # 2k
     SP0, SP1 = 1, 4
     Sq = Skv = 4 * 1024   # 4k
     SP0, SP1 = 1, 8

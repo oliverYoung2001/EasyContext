@@ -5,9 +5,9 @@ CLUSTER_NAME=qy
 NNODES=1
 # NNODES=3
 GPUS_PER_NODE=2
-GPUS_PER_NODE=3
+# GPUS_PER_NODE=3
 GPUS_PER_NODE=4
-# GPUS_PER_NODE=8
+GPUS_PER_NODE=8
 PARTITION=arch
 HOST="g3025"
 HOST="g3010"
@@ -20,10 +20,11 @@ PARTITION=rag
 # # GPU_NUMs="24"
 # HOST="g3015,g3018,g3021"
 # HOST="g3017"
+HOST="g3018"
 # HOST="g3010"
 # HOST="g3021"
-PARTITION=hit
-HOST="g4008"
+# PARTITION=hit
+# HOST="g4008"
 # HOST="g4006"
 
 
@@ -81,19 +82,19 @@ export NCCL_DEBUG_SUBSYS=NET
 RUNNER_CMD="srun $SLURM_ARGS"
 
 
-# set -x
-# # export TORCH_USE_CUDA_DSA=1 # use it in **compile-time** of pytorch for debugging
-# # export TORCH_SHOW_CPP_STACKTRACES=1 # for debugging
-# # export CUDA_LAUNCH_BLOCKING=1 # for debugging
-# export CUDA_DEVICE_MAX_CONNECTIONS=32    # [NOTE]: important for cc overlap !!!
-# $RUNNER_CMD \
-# -c 16 \
-# ./scripts/bench_ring_attn.sh \
-# python bench_ring_attn.py \
-#     $LOGGING_ARGS \
+set -x
+# export TORCH_USE_CUDA_DSA=1 # use it in **compile-time** of pytorch for debugging
+# export TORCH_SHOW_CPP_STACKTRACES=1 # for debugging
+# export CUDA_LAUNCH_BLOCKING=1 # for debugging
+export CUDA_DEVICE_MAX_CONNECTIONS=32    # [NOTE]: important for cc overlap !!!
+$RUNNER_CMD \
+-c 16 \
+./scripts/bench_ring_attn.sh \
+python bench_ring_attn.py \
+    $LOGGING_ARGS \
 
-# set +x
-# exit 0
+set +x
+exit 0
 
 # Run with MPI
 # salloc -p rag -w g3017 -N 1 -n 128 -t 3600

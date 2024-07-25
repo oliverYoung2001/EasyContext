@@ -151,9 +151,9 @@ class Execution_Plan(): # input: kernel streams of gpus
                 for v in self.stream_kernel_lists[(g, s)]:
                     print(f'{v.key}: {v._start_time:.3e}, {v.time[fob]:.3e}, {(v._start_time + v.time[fob]):.3e}')
         if self.plan_type == 'automatic':
-            print(f'objective={pulp.value(self.mylp.objective):.3e}')
+            print(f'objective={pulp.value(self.mylp.objective):.3e}', flush=True)
         elif self.plan_type == 'manual':
-            print(f'end_time={self.end_time:.3e}')
+            print(f'end_time={self.end_time:.3e}', flush=True)
     
     def determine_kernel_order(self):
         tot_sp = self.tot_sp
@@ -335,7 +335,7 @@ class Execution_Plan(): # input: kernel streams of gpus
             kernel_list = []
             for s in range(self.stream_num):
                 kernel_list += self.stream_kernel_lists[(g, s)]
-            kernel_list.sort(key=lambda x: x._start_time)
+            kernel_list.sort(key=lambda x: (x._start_time, x.id))
             self.gpu_kernel_lists.append(kernel_list)
                 
     def generate_manual_plan(self, tot_sp: int, X: int, first_dim: int = 0):
