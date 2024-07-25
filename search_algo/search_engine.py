@@ -9,6 +9,7 @@ import numpy as np
 from enum import Enum
 import copy
 import json
+import math
 
 class TASK_STATUS(Enum):
     EMPTY = - 1
@@ -22,6 +23,7 @@ class Dist_Attn_Config():
         self.bs = bs
         self.D = D
         self.causal = causal
+        self.tot_sp = reduce(lambda x,y:x*y, SP)
     
     def get_plan_name(self, fob=1):
         return f'S={self.S}_SP={self.SP}_causal={self.causal}_fob={fob}_b={self.bs}_Nh={self.Nh}_D={self.D}'
@@ -419,9 +421,13 @@ class Search_Engine():
         # # extra comm ub (real ub)
         # self.ub[:, 1] = np.max(np.array([schedule.ub_comm_units for schedule in self.init_schedule_list]), axis=0)
         
-        self.MAX_QUEUE_SIZE = 100
-        # self.MAX_QUEUE_SIZE = 100000000
-        self.schedule_queues = [None, None]  # [fwd/bwd]        
+        # self.MAX_QUEUE_SIZE = 100
+        self.MAX_QUEUE_SIZE = 100000000
+        self.schedule_queues = [None, None]  # [fwd/bwd]  
+        
+        # extra comp ub (not a real ub in some case !!!)
+        self.ub_comp = int(math.ceil((self.tot_sp - 1) / 2))
+        print(f'ub_comp: {self.ub_comp}')
     
     def reset_before_search(self):
         # Constrain: x = unpack_func(pack_func(x))
@@ -430,9 +436,9 @@ class Search_Engine():
             SCHEDULE_UNIQUE_ID += 1
             set_global_var('SCHEDULE_UNIQUE_ID', SCHEDULE_UNIQUE_ID)
             fob = self.fob
-            # print(f'SCHEDULE_UNIQUE_ID: {SCHEDULE_UNIQUE_ID}')
-            # print(f'schedule:\n{schedule.schedule_table}', flush=True)
-            # print(f'fob: {fob}, get_e2e_time(): {schedule.get_e2e_time()[fob]:.3e}, get_absolute_cc_time:{schedule.get_absolute_cc_time()[fob]}')
+            print(f'SCHEDULE_UNIQUE_ID: {SCHEDULE_UNIQUE_ID}')
+            print(f'schedule:\n{schedule.schedule_table}', flush=True)
+            print(f'fob: {fob}, get_e2e_time(): {schedule.get_e2e_time()[fob]:.3e}, get_absolute_cc_time:{schedule.get_absolute_cc_time()[fob]}')
             return (- schedule.get_e2e_time()[self.fob], SCHEDULE_UNIQUE_ID, schedule)
         def unpack_func(q_item):
             return q_item[2]
@@ -483,8 +489,11 @@ class Search_Engine():
         return next_pos
     
     def apply_pruning_passed(self, cur_pos: tuple, g: int):
-        # pruning strategy 1:
+        # pruning strategy 1: comp
         if self.cur_cc_units[self.fob, 0, g] + 1 >= self.ub_cc_units[self.fob, 0]:
+            return False
+        # pruning strategy 2: comp
+        if self.cur_cc_units[self.fob, 0, g] > self.ub_comp:
             return False
         return True
           
@@ -507,7 +516,7 @@ class Search_Engine():
         if self.is_end(cur_pos):
             new_schedule = copy.deepcopy(self.cur_schedule)
             self.schedule_queues[self.fob].push(new_schedule)
-            raise Exception()
+            # raise Exception()
             # exit(0)
             return
         # if cur_pos == (0, 0, 7, 0):

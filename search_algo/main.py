@@ -44,7 +44,7 @@ def main():
     print(f'schedule_squeue_num[fwd]: {len(search_engine.schedule_queues[fob])}')
     par_dir = f'{os.path.dirname(__file__)}/execution_plans/SP{da_config.SP}_S{da_config.S}'
     os.makedirs(par_dir, exist_ok=True)
-    # return
+    return
     # for schedule in init_schedule_list:
     #     show_schedule(schedule, fob, 'init')
 

@@ -22,12 +22,12 @@ PARTITION=rag
 # HOST="g3017"
 # HOST="g3010"
 # HOST="g3021"
-# PARTITION=hit
-# HOST="g4008"
+PARTITION=hit
+HOST="g4008"
 # HOST="g4006"
 
 
-HOST=None
+# HOST=None
 
 export MASTER_PORT=$((RANDOM % 12000 + 10000))
 
@@ -81,24 +81,25 @@ export NCCL_DEBUG_SUBSYS=NET
 RUNNER_CMD="srun $SLURM_ARGS"
 
 
-set -x
-# export TORCH_USE_CUDA_DSA=1 # use it in **compile-time** of pytorch for debugging
-# export TORCH_SHOW_CPP_STACKTRACES=1 # for debugging
-# export CUDA_LAUNCH_BLOCKING=1 # for debugging
-export CUDA_DEVICE_MAX_CONNECTIONS=32    # [NOTE]: important for cc overlap !!!
-$RUNNER_CMD \
--c 16 \
-./scripts/bench_ring_attn.sh \
-python bench_ring_attn.py \
-    $LOGGING_ARGS \
+# set -x
+# # export TORCH_USE_CUDA_DSA=1 # use it in **compile-time** of pytorch for debugging
+# # export TORCH_SHOW_CPP_STACKTRACES=1 # for debugging
+# # export CUDA_LAUNCH_BLOCKING=1 # for debugging
+# export CUDA_DEVICE_MAX_CONNECTIONS=32    # [NOTE]: important for cc overlap !!!
+# $RUNNER_CMD \
+# -c 16 \
+# ./scripts/bench_ring_attn.sh \
+# python bench_ring_attn.py \
+#     $LOGGING_ARGS \
 
-set +x
-exit 0
+# set +x
+# exit 0
 
 # Run with MPI
 # salloc -p rag -w g3017 -N 1 -n 128 -t 3600
 # salloc -p arch -w g3029 -N 1 -n 128 -t 3600
 # salloc -p rag -w g3013 -N 1 -n 128 -t 3600
+# salloc -p hit -w g4008 -N 1 -n 128 -t 3600
 
 GPU_NUM=16
 HOST_CONFIG="g3021:8,g3022:8"
@@ -106,6 +107,7 @@ GPU_NUM=8
 HOST_CONFIG="g3017:8"
 GPU_NUM=4
 HOST_CONFIG="g3017:4"
+HOST_CONFIG="g4008:4"
 # HOST_CONFIG="g3029:4"
 # HOST_CONFIG="g3027:2,g4003:2"
 # HOST_CONFIG="g3021:2,g3022:2"
@@ -121,7 +123,7 @@ RUNNER_CMD="mpirun --prefix $(dirname `which mpirun`)/../ \
     --map-by ppr:4:numa --bind-to core --report-bindings \
     -np $GPU_NUM --host $HOST_CONFIG"
 NSIGHT_CMD="nsys profile --mpi-impl=openmpi -o ${NSYS_DIR}/${TRACE_NAME}_w${GPU_NUM}_$(date "+%Y%m%d-%H%M%S")"
-# NSIGHT_CMD=""
+NSIGHT_CMD=""
 set -x
 # export CUDA_LAUNCH_BLOCKING=1 # for debugging
 # export CUDA_DEVICE_MAX_CONNECTIONS=1    # [NOTE]: important for cc overlap !!!

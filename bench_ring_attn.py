@@ -624,14 +624,14 @@ def main(args):
     
     funcs = [
         # ring_flash_attn_func,
-        zigzag_ring_flash_attn_func,      # baseline
+        # zigzag_ring_flash_attn_func,      # baseline
         # zigzag_ring_flash_attn_func_opt,  # sol1
         # stripe_flash_attn_func,
         # lightseq_attn_func,
         # flash_attn_func,
         # hierarchy_attn_func,                # one case
-        overlapped_hierarchy_attn_func,     # another case
-        # orchestrated_attn_func,
+        # overlapped_hierarchy_attn_func,     # another case
+        orchestrated_attn_func,
     ]
     bs = 1
     D = 128
@@ -696,7 +696,7 @@ def main(args):
                         global_group=gloo_global_group, ncclcomm_global=ncclcomm_global
                     )
                     benchmark_op(use_cudagraph=False)
-                    benchmark_op(use_cudagraph=True)
+                    # benchmark_op(use_cudagraph=True)
                 else:
                     benchmark(args, f, shapes, qkv_buf, dout_buf, forward_only=True, log=True)
                 # benchmark(args, f, shapes, forward_only=False, log=True)

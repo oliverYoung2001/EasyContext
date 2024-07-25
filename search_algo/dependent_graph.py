@@ -41,7 +41,7 @@ class Comp_Kernel(Cuda_Kernel):
     
 class Comm_Kernel(Cuda_Kernel):
     def __init__(self, key: tuple, m_config: Machine_Config, comm_raw_map_key: tuple, units: np.ndarray, hierarchy: int):
-        # dict keys: (b_id, h_id, send, recv, i/o, r/c)
+        # dict keys: (b_id, h_id, r/c_id, send, recv, i/o, r/c)
         super().__init__(key, m_config, 'comm')
         # Bytes of data to send/recv
         self.comp_raw_map_key = comm_raw_map_key

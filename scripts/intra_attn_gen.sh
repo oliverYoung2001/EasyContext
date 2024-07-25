@@ -4,5 +4,4 @@
 export TMPDIR=./search_algo/tmp
 
 ./scripts/cpu_task_qy.sh \
-python search_algo/main.py \
-
+python search_algo/intra_attn_gen.py \
