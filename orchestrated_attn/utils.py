@@ -11,6 +11,7 @@ from search_algo.execute_plan import Execution_Plan
 import math
 from tests.distributed.device_communicators.pynccl import PyNcclCommunicator
 from .global_vars import *
+from typing import overload, List, Union
 
 def print_rank_0(message):
     """If distributed is initialized, print only on rank 0."""
@@ -104,51 +105,115 @@ class Output_Col_Fwd(Integrated_Data):
         pass
 
 class Input_Row_Bwd(Integrated_Data):
-    def __init__(self, Q, dO, D, lse):
-        self.data = torch.cat([Q.flatten(), dO.flatten(), D.flatten(), lse.flatten()], dim=0)
+    def __init__(self, Q, dO, D, lse, data: Optional[torch.Tensor] = None):    # [NOTE]: optimized version of Backward for distributed senario
+        '''
+        D: torch.float32, [mbs, Nh, Sq]
+        '''
+        if data is not None:
+            self.data = data
+        else:
+            self.data = torch.cat([Q.flatten(), dO.flatten(), D.flatten().view(Q.dtype), lse.flatten()], dim=0)
         self.Q = self.data[: Q.numel()].view_as(Q)
         self.dO = self.data[Q.numel(): Q.numel() + dO.numel()].view_as(dO)
-        self.D = self.data[Q.numel() + dO.numel(), - lse.numel()].view_as(D)
+        self.D = self.data[Q.numel() + dO.numel(): - lse.numel()].view(D.dtype).view_as(D)
         self.lse = self.data[- lse.numel():].view_as(lse)
+    
+    @classmethod
+    def from_idata(cls, other):
+        data = torch.empty_like(other.data)
+        Q = data[: other.Q.numel()].view_as(other.Q)
+        dO = data[other.Q.numel(): other.Q.numel() + other.dO.numel()].view_as(other.dO)
+        D = data[other.Q.numel() + other.dO.numel(): - other.lse.numel()].view(other.D.dtype).view_as(other.D)
+        lse = data[- other.lse.numel():].view_as(other.lse)
+        return cls(Q, dO, D, lse, data)
+    
+    # def __init__(self, Q, dO, O, lse, data: Optional[torch.Tensor] = None):      # normal version
+    #     if data is not None:
+    #         self.data = data
+    #     else:
+    #         self.data = torch.cat([Q.flatten(), dO.flatten(), O.flatten(), lse.flatten()], dim=0)
+    #     self.Q = self.data[: Q.numel()].view_as(Q)
+    #     self.dO = self.data[Q.numel(): Q.numel() + dO.numel()].view_as(dO)
+    #     self.O = self.data[Q.numel() + dO.numel(): - lse.numel()].view_as(O)
+    #     self.lse = self.data[- lse.numel():].view_as(lse)
 
+    # @classmethod
+    # def from_idata(cls, other):
+    #     data = torch.empty_like(other.data)
+    #     Q = data[: other.Q.numel()].view_as(other.Q)
+    #     dO = data[other.Q.numel(): other.Q.numel() + other.dO.numel()].view_as(other.dO)
+    #     O = data[other.Q.numel() + other.dO.numel(): - other.lse.numel()].view_as(other.O)
+    #     lse = data[- other.lse.numel():].view_as(other.lse)
+    #     return cls(Q, dO, O, lse, data)
+    
 class Input_Col_Bwd(Integrated_Data):
-    def __init__(self, K, V):
-        self.data = torch.cat([K.flatten(), K.flatten()], dim=0)
+    def __init__(self, K, V, data: Optional[torch.Tensor] = None):
+        if data is not None:
+            self.data = data
+        else:
+            self.data = torch.cat([K.flatten(), K.flatten()], dim=0)
         self.K = self.data[: K.numel()].view_as(K)
         self.V = self.data[K.numel() :].view_as(V)
+    
+    @classmethod
+    def from_idata(cls, other):
+        data = torch.empty_like(other.data)
+        K = data[: other.K.numel()].view_as(other.K)
+        V = data[other.K.numel():].view_as(other.V)
+        return cls(K, V, data)
 
 class Output_Row_Bwd(Integrated_Data):
     def __init__(self, dQ):
         self.data = dQ
         self.dQ = self.data
     
+    @classmethod
+    def from_execution_plan(cls, execution_plan: Execution_Plan, x: torch.Tensor):
+        da_config = execution_plan.da_config
+        split_degrees = execution_plan.split_degrees    # (Sq, Skv, bs, Nh)
+        dQ_shape = (da_config.bs // split_degrees[2], da_config.S[0] // split_degrees[0], da_config.Nh[0] // split_degrees[3], da_config.D)  # b, Sq, Nhq, D
+        dQ_numel = math.prod(dQ_shape)
+        data = torch.empty(dQ_numel, dtype=x.dtype, device=x.device)
+        dQ = data.view(dQ_shape)
+        return cls(dQ)
+    
     def reduce(self, other):
-        self.data.add_(other.data)  # inplace operation
+        pass
+        # self.data.add_(other.data)  # inplace operation
 
 class Output_Col_Bwd(Integrated_Data):
-    def __init__(self, dK, dV):
-        self.data = torch.cat([dK.flatten(), dV.flatten()], dim=0)
+    def __init__(self, dK, dV, data: Optional[torch.Tensor] = None):
+        if data is not None:
+            self.data = data
+        else:
+            self.data = torch.cat([dK.flatten(), dV.flatten()], dim=0)
         self.dK = self.data[: dK.numel()].view_as(dK)
         self.dV = self.data[dK.numel() :].view_as(dV)
     
+    @classmethod
+    def from_execution_plan(cls, execution_plan: Execution_Plan, x: torch.Tensor):
+        da_config = execution_plan.da_config
+        split_degrees = execution_plan.split_degrees    # (Sq, Skv, bs, Nh)
+        dK_shape = dV_shape = (da_config.bs // split_degrees[2], da_config.S[0] // split_degrees[0], da_config.Nh[0] // split_degrees[3], da_config.D)  # b, Sq, Nhq, D
+        dK_numel = math.prod(dK_shape)
+        dV_numel = math.prod(dV_shape)
+        data = torch.empty(dK_numel + dV_numel, dtype=x.dtype, device=x.device)
+        dK = data[: dK_numel].view(dK_shape)
+        dV = data[dK_numel: ].view(dV_shape)
+        return cls(dK, dV, data)
+    
     def reduce(self, other):
-        self.data.add_(other.data)
+        pass
+        # self.data.add_(other.data)
 
 
 class IntraComm:
-    def __init__(self, process_groups: dict, PROC_INFO: dict = None):
+    def __init__(self, PROC_INFO: dict = None):
         self.rank = PROC_INFO['rank']
         self.world_size = PROC_INFO['world_size']
         self.local_rank = PROC_INFO['local_rank']
         self.local_size = PROC_INFO['tasks_per_node']
         self.node_id = PROC_INFO['nodeid']
-        # if 'intra' not in process_groups.keys():
-        #     for i in range(self.world_size // self.local_size):
-        #         ranks = range(i * self.local_size, (i + 1) * self.local_size)
-        #         group = dist.new_group(ranks)
-        #         if self.rank in ranks:
-        #             process_groups['intra'] = group
-        # self.process_groups = process_groups
         
     def send(self, dst: int, idata: Integrated_Data, stream: torch.cuda.Stream, ncclcomm: PyNcclCommunicator) -> None:
         # cur_stream = torch.cuda.current_stream()

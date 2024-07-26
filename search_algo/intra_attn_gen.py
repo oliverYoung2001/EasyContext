@@ -55,7 +55,7 @@ def create_plan(da_config: Dist_Attn_Config, m_config: Machine_Config, X, fob, f
     # Create Dependent Graph:
     d_graph = Dependent_Graph(schedule, fob, 1) # Intra-machine
     # Create Execution Plan:
-    plan = Execution_Plan(d_graph, 0, False)
+    plan = Execution_Plan(d_graph, fob, False)
     # Generate Manual Plan:
     plan.generate_manual_plan(tot_sp, X, first_dim=first_dim)
     return plan
@@ -72,20 +72,22 @@ def write_plan(execute_plan: Execution_Plan, prefix: str):
     execute_plan_loaded.print_lp_result()
 
 def main():
+    fob = 0 # forward
+    fob = 1 # backward
     da_config = get_configs()
     m_config = get_profile_data()
     tot_sp = da_config.SP[0] * da_config.SP[1]
-    par_dir = f'{os.path.dirname(__file__)}/execution_plans/intra_SP{da_config.SP[1]}'
+    par_dir = f'{os.path.dirname(__file__)}/execution_plans/intra_SP{da_config.SP[1]}_fob={fob}'
     os.makedirs(par_dir, exist_ok=True)
     for X in range(1, tot_sp + 1):
         if tot_sp % X != 0:
             continue
         if X == 1 or X == tot_sp:
-            plan = create_plan(da_config, m_config, X, fob=0, first_dim=0)
+            plan = create_plan(da_config, m_config, X, fob=fob, first_dim=0)
             write_plan(plan, prefix=par_dir)
         else:
             for first_dim in range(1):  # [TODO]: Support first_dim == 1
-                plan = create_plan(da_config, m_config, X, fob=0, first_dim=first_dim)
+                plan = create_plan(da_config, m_config, X, fob=fob, first_dim=first_dim)
                 write_plan(plan, prefix=par_dir)
     
 if __name__ == '__main__':

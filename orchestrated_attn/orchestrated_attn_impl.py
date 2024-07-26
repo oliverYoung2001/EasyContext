@@ -5,12 +5,13 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__),
 import torch
 import torch.distributed as dist
 from flash_attn.flash_attn_interface import _flash_attn_forward, _flash_attn_backward
+# from flash_attn_burst.flash_attn_burst_interface import _flash_attn_burst_forward, _flash_attn_burst_backward
 from search_algo.execute_plan import Execution_Plan
 from .utils import *
 from .global_vars import *
 from search_algo.dependent_graph import Cuda_Kernel, Comp_Kernel, Comm_Kernel
 
-def execute_kernel(kernel: Cuda_Kernel, data_dict: dict, PROC_INFO, comp_func, comm: IntraComm, idata_buf: dict):
+def execute_kernel(kernel: Cuda_Kernel, data_dict: dict, PROC_INFO, comp_func, comm: IntraComm, idata_buf: dict, causal):
     rank = PROC_INFO['rank']
     local_rank = PROC_INFO['local_rank']
     # print(f'rank{local_rank}, execute_kernel: {kernel.key}', flush=True)
@@ -30,9 +31,9 @@ def execute_kernel(kernel: Cuda_Kernel, data_dict: dict, PROC_INFO, comp_func, c
             if isinstance(kernel, Comp_Kernel):
                 # bid, hid, rid, cid = 0, 0, local_rank, local_rank
                 bid, hid, rid, cid = kernel.key[0: 4]
-                causal = rid == cid
-                # print(f'rank{local_rank}, causal: {causal}, rid: {rid}, cid: {cid}', flush=True)
-                out = comp_func(data_dict[(bid, hid, rid, 'i', 'r')], data_dict[(bid, hid, cid, 'i', 'c')], causal=causal)
+                kernel_causal = causal and rid == cid
+                # print(f'rank{local_rank}, causal: {kernel_causal}, rid: {rid}, cid: {cid}', flush=True)
+                out = comp_func(data_dict[(bid, hid, rid, 'i', 'r')], data_dict[(bid, hid, cid, 'i', 'c')], causal=kernel_causal)
                 o_keys = (bid, hid, rid, 'o', 'r'), (bid, hid, cid, 'o', 'c')   # (or, oc)
                 for t in range(2):  # 0 -> r, 1 -> c
                     if o_keys[t] in data_dict.keys():
@@ -57,7 +58,6 @@ def execute_kernel(kernel: Cuda_Kernel, data_dict: dict, PROC_INFO, comp_func, c
             kernel.event.record(kernel.stream)
 
 def intra_attn_forward(
-    process_groups,
     inp_row: Input_Row_Fwd,
     inp_col: Input_Col_Fwd,
     softmax_scale,
@@ -83,12 +83,12 @@ def intra_attn_forward(
     data_dict = {}  # (b_id, h_id, r/c_id, i/o, r/c) -> Integrated_Data
     
     # initialize Comm
-    comm = IntraComm(process_groups, PROC_INFO)
+    comm = IntraComm(PROC_INFO)
     
     # Comp Func
     def fwd_comp_func(inp_row: Input_Row_Fwd, inp_col: Input_Col_Fwd, causal) -> tuple:
         # print(f'rank{local_rank}, dropout_p: {dropout_p}, softmax_scale: {softmax_scale}, , causal: {causal}, window_size: {window_size}, alibi_slopes: {alibi_slopes}, return_softmax: {True and dropout_p > 0}', flush=True)
-        O, _, _, _, _, lse, _, _ = _flash_attn_forward(
+        O, _, _, _, _, lse, _, _ = _flash_attn_forward(     # O: [mbs, S, Nh, D], lse: [mbs, Nh, S]
             inp_row.Q,
             inp_col.K,
             inp_col.V,
@@ -123,7 +123,7 @@ def intra_attn_forward(
             # torch.profiler.itt.range_push(f'{kernel.key}')
             # print_rank_0(f'kernel.key: {kernel.key}')
             # print(f'rank{rank}, kernel.key: {kernel.key}', flush=True)
-            execute_kernel(kernel, data_dict, PROC_INFO, fwd_comp_func, comm, idata_buf)
+            execute_kernel(kernel, data_dict, PROC_INFO, fwd_comp_func, comm, idata_buf, causal)
             # torch.profiler.itt.range_pop()
     # print(f'rank{rank}, Out !!!', flush=True)
     # return None
@@ -131,7 +131,6 @@ def intra_attn_forward(
     
     
 def orchestrated_attn_forward(
-    process_groups,
     inp_row: Input_Row_Fwd,
     inp_col: Input_Col_Fwd,
     softmax_scale,
@@ -150,7 +149,6 @@ def orchestrated_attn_forward(
     assert execution_plan.split_degrees[2] == 1 and execution_plan.split_degrees[3] == 1
     if execution_plan.da_config.SP[0] == 1:
         return intra_attn_forward(
-            process_groups,
             inp_row, 
             inp_col,
             softmax_scale,
@@ -165,14 +163,9 @@ def orchestrated_attn_forward(
         )
     raise NotImplementedError
 
-def orchestrated_attn_backward(
-    process_group,
-    dout,
-    q,
-    k,
-    v,
-    out,
-    softmax_lse,
+def intra_attn_backward(
+    inp_row: Input_Row_Bwd,
+    inp_col: Input_Col_Bwd,
     softmax_scale,
     dropout_p=0,
     causal=True,
@@ -181,8 +174,101 @@ def orchestrated_attn_backward(
     deterministic=False,
     PROC_INFO=None,
     execution_plan: Execution_Plan = None,
-):
-    pass
+) -> Integrated_Data:
+    rank = PROC_INFO['rank']
+    world_size = PROC_INFO['world_size']
+    local_rank = PROC_INFO['local_rank']
+    local_size = PROC_INFO['tasks_per_node']
+    node_id = PROC_INFO['nodeid']
+    assert world_size % local_size == 0
+    node_num = world_size // local_size
+    assert local_size == execution_plan.tot_sp
+    streams = get_global_var('streams')
+    data_dict = {}  # (b_id, h_id, r/c_id, i/o, r/c) -> Integrated_Data
+    
+    # initialize Comm
+    comm = IntraComm(PROC_INFO)
+        
+    # Comp Func
+    def bwd_comp_func(inp_row: Input_Row_Bwd, inp_col: Input_Col_Bwd, 
+                      out_row: Output_Row_Bwd, out_col: Output_Col_Bwd, causal) -> tuple:
+        # print(f'rank{local_rank}, dropout_p: {dropout_p}, softmax_scale: {softmax_scale}, , causal: {causal}, window_size: {window_size}, alibi_slopes: {alibi_slopes}, return_softmax: {True and dropout_p > 0}', flush=True)
+        _flash_attn_backward(
+            inp_row.dO,
+            inp_row.Q,
+            inp_col.K,
+            inp_col.V,
+            inp_row.Q, # dummy O # inp_row.O,
+            inp_row.lse,
+            out_row.dQ,
+            out_col.dK,
+            out_col.dV,
+            dropout_p,
+            softmax_scale,
+            causal,
+            window_size,
+            alibi_slopes,
+            deterministic,
+            rng_state=None,
+            softmax_d=inp_row.D,
+        )
+        return (out_row, out_col)
+    
+    # initial data:
+    # ir_idata, ic_idata = Input_Row_Fwd(q), Input_Col_Fwd(k, v)
+    data_dict[(0, 0, local_rank, 'i', 'r')] = inp_row
+    data_dict[(0, 0, local_rank, 'i', 'c')] = inp_col
+    idata_buf = {
+        ('i', 'r'): Input_Row_Bwd.from_idata(inp_row),
+        ('i', 'c'): Input_Col_Bwd.from_idata(inp_col),
+        ('o', 'r'): Output_Row_Bwd.from_execution_plan(execution_plan, inp_row.Q),
+        ('o', 'c'): Output_Col_Bwd.from_execution_plan(execution_plan, inp_row.Q),
+    }
+    p_bwd_comp_func = partial(bwd_comp_func, out_row=idata_buf[('o', 'r')], out_col=idata_buf[('o', 'c')])
+    for kernel in execution_plan.gpu_kernel_lists[local_rank]:
+        # if kernel.key[- 2] == 'i':  # only input comm, cudagraph OK !!!
+        # if isinstance(kernel, Comp_Kernel) or kernel.key[- 2] == 'i':   # input comm + comp
+        # if isinstance(kernel, Comp_Kernel):   # only comp
+        # if isinstance(kernel, Comp_Kernel) and kernel.key[2: 4] == (local_rank, local_rank):   # only comp on diagnal, cudagraph failed
+        # if False:
+        if True:
+            # print(f'rank{rank}: {kernel.key}', flush=True)
+            execute_kernel(kernel, data_dict, PROC_INFO, p_bwd_comp_func, comm, idata_buf, causal)
+    # return None
+    return (data_dict[(0, 0, local_rank, 'o', 'r')], data_dict[(0, 0, local_rank, 'o', 'c')])
+    
+    
+def orchestrated_attn_backward(
+    inp_row: Input_Row_Bwd,
+    inp_col: Input_Col_Bwd,
+    softmax_scale,
+    dropout_p=0,
+    causal=True,
+    window_size=(-1, -1),
+    alibi_slopes=None,
+    deterministic=False,
+    PROC_INFO=None,
+    execution_plan: Execution_Plan = None,
+) -> tuple: # (Output_Row_Bwd, Output_Col_Bwd)
+    # [NOTE]: Now not support batch mechanism and only support tot_sp = world_size
+    # [NOTE]: Now only support bs_split == 1, Nh_split == 1
+    da_config = execution_plan.da_config
+    assert execution_plan.tot_sp == PROC_INFO['world_size']
+    assert execution_plan.split_degrees[2] == 1 and execution_plan.split_degrees[3] == 1
+    if execution_plan.da_config.SP[0] == 1:
+        return intra_attn_backward(
+            inp_row, 
+            inp_col,
+            softmax_scale,
+            dropout_p,
+            execution_plan.da_config.causal,
+            window_size,
+            alibi_slopes,
+            deterministic,
+            PROC_INFO,
+            execution_plan,
+        )
+    raise NotImplementedError
 
 class OrchestratedAttnFunc(torch.autograd.Function):
     @staticmethod
@@ -197,7 +283,6 @@ class OrchestratedAttnFunc(torch.autograd.Function):
         alibi_slopes,
         deterministic,
         return_softmax,
-        groups,
         PROC_INFO,
         execution_plan: Execution_Plan,
     ):
@@ -209,7 +294,6 @@ class OrchestratedAttnFunc(torch.autograd.Function):
         # v = v.contiguous()
         # return
         out_row = orchestrated_attn_forward(
-            groups,
             inp_row,
             inp_col,
             softmax_scale=softmax_scale,
@@ -231,7 +315,6 @@ class OrchestratedAttnFunc(torch.autograd.Function):
         ctx.window_size = window_size
         ctx.alibi_slopes = alibi_slopes
         ctx.deterministic = deterministic
-        ctx.groups = groups
         ctx.PROC_INFO = PROC_INFO
         ctx.execution_plan = execution_plan
         return out if not return_softmax else (out, softmax_lse, None)
@@ -240,7 +323,6 @@ class OrchestratedAttnFunc(torch.autograd.Function):
     def backward(ctx, dout, *args):
         q, k, v, out, softmax_lse = ctx.saved_tensors
         dq, dk, dv = orchestrated_attn_backward(
-            ctx.group,
             dout,
             q,
             k,
@@ -268,7 +350,6 @@ def orchestrated_attn_func(
     alibi_slopes=None,
     deterministic=False,
     return_attn_probs=False,
-    groups=None,
     PROC_INFO=None,
     execution_plan: Execution_Plan = None,
 ):
@@ -282,7 +363,6 @@ def orchestrated_attn_func(
         alibi_slopes,
         deterministic,
         return_attn_probs,
-        groups,
         PROC_INFO,
         execution_plan,
     )

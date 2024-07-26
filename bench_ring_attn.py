@@ -11,7 +11,7 @@ from ring_flash_attn import (
 )
 import torch.distributed
 from hierarchy_attn.hierarchy_attn_impl import hierarchy_attn_func
-from orchestrated_attn.orchestrated_attn_impl import orchestrated_attn_func
+from orchestrated_attn.orchestrated_attn_impl import orchestrated_attn_func, orchestrated_attn_backward
 import torch.cuda
 import argparse
 import os
@@ -35,6 +35,7 @@ warnings.filterwarnings("ignore")   # disable warning caused by lightseq
 
 PROC_INFO: dict
 DTYPE = torch.bfloat16
+FULL_DTYPE = torch.float32
 
 
 # def zigzag_ring_flash_attn_func_opt(*args, **kwargs):
@@ -113,13 +114,16 @@ def filter_kwargs(func, kwargs):
     sig = inspect.signature(func)
     return {k: v for k, v in kwargs.items() if k in sig.parameters}
 
-def calc_flops(mbs, S, Nh, D, causal=True, forward_only=False):
+def calc_flops(mbs, S, Nh, D, causal=True, fob=0):
     flops = 2 * 2 * mbs * S * S * Nh * D
     if causal:
         flops = flops // 2
-    if forward_only:
+    if fob == 0:
         m_flops = h_flops = flops
-    else:
+    elif fob == 1:
+        m_flops = 2 * flops
+        h_flops = 2.5 * flops
+    elif fob == 2:
         m_flops = (1 + 2) * flops
         h_flops = (1 + 2.5) * flops
     return m_flops, h_flops # model flops & hardware flops
@@ -285,17 +289,17 @@ def benchmark(args, f, shapes:dict, qkv_buf, dout_buf, warmup=11, num_iter=20, f
     td = t3 - t2
 
     if rank == 0 and log:
-        m_flops, h_flops = calc_flops(batch_size, seqlen * world_size, nheads, d, causal, forward_only)
+        m_flops, h_flops = calc_flops(batch_size, seqlen * world_size, nheads, d, causal, fob = 0 if forward_only else 2)
         mfu, hfu = (round(flops / pow(1000, 4) / (td / num_iter * world_size), 3) for flops in (m_flops, h_flops))
         print(f"mfu: {mfu} Tflops/s, hfu: {hfu} Tflops/s, {num_iter / td:.3f} iter/s, {td / num_iter:.3e} s/iter, ({(t1 - t0):.3f}, {(t2 - t1):.3f}, {td:.3f}) sec", flush=True)
 
-def benchmark_orchestrate(args, f, shapes:dict, qkv_buf, dout_buf, warmup=11, num_iter=20, forward_only=True, log=True, 
+def benchmark_orchestrate(args, raw_f, shapes:dict, tensor_buf, warmup=11, num_iter=20, log=True, 
                           plan_paths: list = [''], global_group=None, ncclcomm_global: PyNcclCommunicator = None, 
                           use_cudagraph=False):
     print_rank_0(f'[INFO]: use_cudagraph: {use_cudagraph}')
-    warmup = 11
+    warmup = 4
     warmup_cudagraph = 100
-    num_iter = 20
+    num_iter = 4
     torch.cuda.synchronize()
     torch.distributed.barrier(group=global_group)
     global PROC_INFO
@@ -303,7 +307,7 @@ def benchmark_orchestrate(args, f, shapes:dict, qkv_buf, dout_buf, warmup=11, nu
     local_rank = PROC_INFO['local_rank']
     local_size = PROC_INFO['tasks_per_node']
     if rank == 0:
-        print(f'# {f.__name__}, {"fwd" if forward_only else "fwd + bwd"}', flush=True)
+        print(f'# {raw_f.__name__}', flush=True)
     world_size = dist.get_world_size()
     device = torch.device(f"cuda:{PROC_INFO['deviceid']}")
     torch.cuda.set_device(device)
@@ -315,36 +319,46 @@ def benchmark_orchestrate(args, f, shapes:dict, qkv_buf, dout_buf, warmup=11, nu
     dropout_p = 0
     deterministic = False
 
-    # assert seqlen % (2 * world_size) == 0
     assert d % 8 == 0
-
-    # qkv = torch.empty(
-    #     3 * batch_size, seqlen, nheads, d, device=device, dtype=DTYPE, requires_grad=True
-    # )
-    # dout = torch.empty(batch_size, seqlen, nheads, d, device=device, dtype=DTYPE)
-    qkv = qkv_buf[: 3 * batch_size * seqlen * nheads * d].view(3 * batch_size, seqlen, nheads, d)
-    qkv.requires_grad = True
-    dout = dout_buf[: batch_size * seqlen * nheads * d].view(batch_size, seqlen, nheads, d)
-    q, k, v = qkv.chunk(3, dim=0)
     
-    inputs = {
-        # "q": q,
-        # "k": k,
-        # "v": v,
-        "inp_row": Input_Row_Fwd(q), 
-        "inp_col": Input_Col_Fwd(k, v),
-        "dropout_p": dropout_p,
-        "causal": None,
-        "deterministic": deterministic,
-        "sm_scale": q.shape[-1] ** (-0.5),
-        "PROC_INFO": PROC_INFO,
-        "groups": {},
-    }
+    def create_inputs(fob: int):
+        qkvdo = tensor_buf[: 4 * batch_size * seqlen * nheads * d].view(4 * batch_size, seqlen, nheads, d)
+        # qkv.requires_grad = True
+        q, k, v, do = qkvdo.chunk(4, dim=0)
+        D_buf = tensor_buf[4 * batch_size * seqlen * nheads * d: ]
+        D = D_buf[: 2 * batch_size * seqlen * nheads * 1].view(FULL_DTYPE).view(batch_size, nheads, seqlen)   # [mbs, Nh, S], torch.float32, 2 stands for 2 torch.bfloat16
+        lse_buf = D_buf[2 * batch_size * seqlen * nheads * 1: ]
+        # q, k, v, do, o = qkvdoo.chunk(5, dim=0)
+        # lse_buf = tensor_buf[5 * batch_size * seqlen * nheads * d: ]
+        lse = lse_buf[: batch_size * seqlen * nheads * 1].view(batch_size, nheads, seqlen)   # [mbs, Nh, S]
+        if fob == 0:    # forward
+            inputs = {
+                "inp_row": Input_Row_Fwd(q), 
+                "inp_col": Input_Col_Fwd(k, v),
+                "dropout_p": dropout_p,
+                "causal": None,
+                "deterministic": deterministic,
+                "sm_scale": q.shape[-1] ** (-0.5),
+                "PROC_INFO": PROC_INFO,
+            }
+        else:   # backward
+            
+            inputs = {
+                "inp_row": Input_Row_Bwd(q, do, D, lse), 
+                "inp_col": Input_Col_Bwd(k, v),
+                "dropout_p": dropout_p,
+                "causal": None,
+                "deterministic": deterministic,
+                "softmax_scale": q.shape[-1] ** (-0.5),
+                "PROC_INFO": PROC_INFO,
+            }
+        return inputs
 
     SYNC_SIZE = 8 * pow(1024, 3) # 8GB
     sync_tensor = torch.empty((SYNC_SIZE), dtype=torch.int8, device=device)
     placeholder_op = partial(ncclcomm_global.all_reduce, sync_tensor)
     for plan_path in plan_paths:
+        torch.cuda.empty_cache()
         t0 = time.time()
         SP = (1, world_size)
         Ss = (seqlen * world_size, seqlen * world_size)
@@ -354,6 +368,12 @@ def benchmark_orchestrate(args, f, shapes:dict, qkv_buf, dout_buf, warmup=11, nu
         with open(plan_path, 'rb') as fin:
             execution_plan = pickle.load(fin)   # [NOTE]: this obj shared by all processors in memory !!!
         causal = execution_plan.da_config.causal
+        fob = execution_plan.fob
+        if fob == 0:
+            f = raw_f
+        else:
+            f = orchestrated_attn_backward
+        inputs = create_inputs(fob) 
         inputs['causal'] = causal
         # if rank == 0:
         #     execution_plan.print_lp_result()
@@ -364,6 +384,8 @@ def benchmark_orchestrate(args, f, shapes:dict, qkv_buf, dout_buf, warmup=11, nu
         if execution_plan.da_config.S != Ss:
             # print(f'modify {execution_plan.da_config.S} to {Ss}')
             execution_plan.da_config.S = Ss
+        if execution_plan.da_config.Nh != Nhs:
+            execution_plan.da_config.Nh = Nhs
         # create streams
         if not is_exist_global_var('streams'):
             streams = []
@@ -421,16 +443,16 @@ def benchmark_orchestrate(args, f, shapes:dict, qkv_buf, dout_buf, warmup=11, nu
         torch.distributed.barrier(group=global_group)
         
         # warmup
-        if forward_only:
-            with torch.no_grad():
-                for _ in range(warmup):
-                    _ = f(**inputs)
-                    
-        else:
+        placeholder_op(stream=streams[0]) # [NOTE]: aim to eliminate cpu overhead
+        # preprocess
+        for stream in streams[1:]:
+            stream.wait_stream(streams[0])
+        with torch.no_grad():
             for _ in range(warmup):
-                qkv.grad = None
-                out = f(**inputs)
-                out.backward(dout)
+                _ = f(**inputs)
+        # postprocess
+        for stream in streams[1:]:
+            streams[0].wait_stream(stream)
         torch.cuda.synchronize()
         torch.distributed.barrier(group=global_group)   
         # # [NOTE]: we don't barrier here to prevent WARN of 
@@ -452,15 +474,8 @@ def benchmark_orchestrate(args, f, shapes:dict, qkv_buf, dout_buf, warmup=11, nu
                 # preprocess
                 for stream in streams[1:]:
                     stream.wait_stream(torch.cuda.current_stream())
-                
-                if forward_only:
-                    with torch.no_grad():
-                        _ = f(**inputs)
-                else:
-                    qkv.grad = None
-                    out = f(**inputs)
-                    out.backward(dout)
-                    
+                with torch.no_grad():
+                    _ = f(**inputs)
                 # postprocess
                 for stream in streams[1:]:
                     torch.cuda.current_stream().wait_stream(stream)
@@ -495,7 +510,7 @@ def benchmark_orchestrate(args, f, shapes:dict, qkv_buf, dout_buf, warmup=11, nu
             WAIT, WARMUP, ACTIVE, REPEAT = BARRIER_FREQ * 1, BARRIER_FREQ * 1, BARRIER_FREQ * 3, 1
             # WAIT, WARMUP, ACTIVE, REPEAT = BARRIER_FREQ * 0, BARRIER_FREQ * 0, BARRIER_FREQ * 1, 1
             TOTAL_TURNS = (WAIT + WARMUP + ACTIVE) * (REPEAT)
-            TRACE_NAME = f'{os.environ["TRACE_NAME"]}_w{world_size}_r{rank}_S{seqlen}_bs{batch_size}_Nh{nheads}_D{nheads}_{f.__name__}_{"f" if forward_only else "f+b"}'
+            TRACE_NAME = f'{os.environ["TRACE_NAME"]}_w{world_size}_r{rank}_S{seqlen}_bs{batch_size}_Nh{nheads}_D{nheads}_{f.__name__}'
             with torch.profiler.profile(
                 activities=[torch.profiler.ProfilerActivity.CPU, torch.profiler.ProfilerActivity.CUDA],
                 schedule=torch.profiler.schedule(wait=WAIT, warmup=WARMUP, active=ACTIVE, repeat=REPEAT),
@@ -517,13 +532,8 @@ def benchmark_orchestrate(args, f, shapes:dict, qkv_buf, dout_buf, warmup=11, nu
                         # preprocess
                         for stream in streams[1:]:
                             stream.wait_stream(streams[0])
-                        if forward_only:
-                            with torch.no_grad():
-                                _ = f(**inputs)
-                        else:
-                            qkv.grad = None
-                            out = f(**inputs)
-                            out.backward(dout)
+                        with torch.no_grad():
+                            _ = f(**inputs)
                         # postprocess
                         for stream in streams[1:]:
                             streams[0].wait_stream(stream)
@@ -543,28 +553,23 @@ def benchmark_orchestrate(args, f, shapes:dict, qkv_buf, dout_buf, warmup=11, nu
                     # torch.cuda.synchronize()    # almost no effect on performance
                     # torch.distributed.barrier(group=global_group)   # 64TFlops -> 43TFlops
             else:
-                event_start = torch.cuda.Event(enable_timing=True)
-                event_end = torch.cuda.Event(enable_timing=True)
-                placeholder_op(stream=streams[0]) # [NOTE]: aim to eliminate cpu overhead
-                event_start.record(stream=streams[0])
-                # preprocess
-                for stream in streams[1:]:
-                    stream.wait_stream(streams[0])
-                if forward_only:
+                for i in range(3):
+                    event_start = torch.cuda.Event(enable_timing=True)
+                    event_end = torch.cuda.Event(enable_timing=True)
+                    placeholder_op(stream=streams[0]) # [NOTE]: aim to eliminate cpu overhead
+                    event_start.record(stream=streams[0])
+                    # preprocess
+                    for stream in streams[1:]:
+                        stream.wait_stream(streams[0])
                     with torch.no_grad():
                         for _ in range(num_iter):
                             _ = f(**inputs)
-                else:
-                    for _ in range(num_iter):
-                        qkv.grad = None
-                        out = f(**inputs)
-                        out.backward(dout)
-                # postprocess
-                for stream in streams[1:]:
-                    streams[0].wait_stream(stream)
-                event_end.record(stream=streams[0])
-                torch.cuda.synchronize()
-                td = event_start.elapsed_time(event_end) / 1000 # s
+                    # postprocess
+                    for stream in streams[1:]:
+                        streams[0].wait_stream(stream)
+                    event_end.record(stream=streams[0])
+                    torch.cuda.synchronize()
+                    td = event_start.elapsed_time(event_end) / 1000 # s
 
         torch.cuda.synchronize()
         torch.distributed.barrier(group=global_group)
@@ -580,7 +585,7 @@ def benchmark_orchestrate(args, f, shapes:dict, qkv_buf, dout_buf, warmup=11, nu
 
         if rank == 0 and log:
         # if True:
-            m_flops, h_flops = calc_flops(batch_size, seqlen * world_size, nheads, d, causal, forward_only)
+            m_flops, h_flops = calc_flops(batch_size, seqlen * world_size, nheads, d, causal, fob=fob)
             mfu, hfu = (round(flops / pow(1000, 4) / (td / num_iter * world_size), 3) for flops in (m_flops, h_flops))
             print(f"suffix: {plan_path.split('/')[-1]}, mfu: {mfu} Tflops/s, hfu: {hfu} Tflops/s, {num_iter / td:.3f} iter/s, {td / num_iter:.3e} s/iter, ({(t1 - t0):.3f}, {(t2 - t1):.3f}, {td:.3f}) sec", flush=True)
 
@@ -628,26 +633,44 @@ def main(args):
     ]
     bs = 1
     D = 128
-    Ss = [
-        # 4 * 1024,   # 4K
-        8 * 1024,   # 8K
-        # 16 * 1024,  # 16K
-        # 32 * 1024,   # 32K
-        # 64 * 1024,   # 64K
-        # 128 * 1024,   # 128K
-        # 256 * 1024,   # 256K
-        # 512 * 1024,   # 512K
-        # 1024 * 1024,   # 1M
+    # Ss = [
+    #     # 2 * 1024,  # 2K
+    #     4 * 1024,   # 4K
+    #     # 8 * 1024,   # 8K
+    #     # 16 * 1024,  # 16K
+    #     # 32 * 1024,   # 32K
+    #     # 64 * 1024,   # 64K
+    #     # 128 * 1024,   # 128K
+    #     # 256 * 1024,   # 256K
+    #     # 512 * 1024,   # 512K
+    #     # 1024 * 1024,   # 1M
+    # ]
+    Ss_per_gpu = [
+        256,
+        512,
+        1 * 1024,   # 1K
+        2 * 1024,
+        4 * 1024,
+        8 * 1024,
+        16 * 1024,
+        32 * 1024,
+        64 * 1024,
+        128 * 1024, # 128K, # [NOTE]: ERROR in backward
     ]
+    Ss = [S * world_size for S in Ss_per_gpu]
     Nhs = [ # configs of llama2
-       32,  # 7b
+        1,  # for test
+    #    32,  # 7b
     #    40,  # 13b
     #    80,  # 70b 
     ]
-    qkv_buf = torch.randn(
-        (3 * bs * max(Ss) * max(Nhs) * D), device=device, dtype=DTYPE, requires_grad=False
+    fob = 0
+    # fob = 1
+    tensor_buf = torch.randn(
+        (6 * bs * max(Ss) * max(Nhs) * D), device=device, dtype=DTYPE, requires_grad=False
     )
-    dout_buf = torch.randn((bs * max(Ss) * max(Nhs) * D), device=device, dtype=DTYPE)
+    qkv_buf = tensor_buf[: (3 * bs * max(Ss) * max(Nhs) * D)]
+    dout_buf = tensor_buf[(3 * bs * max(Ss) * max(Nhs) * D): ]
 
     for Nh in Nhs:
         for S in Ss:
@@ -692,13 +715,18 @@ def main(args):
                     # for _ in range(1, NUM_ALG):
                     #     plan_suffixes.append(f'_alg{_}')
                     
-                    par_dir = f'{os.path.dirname(__file__)}/search_algo/execution_plans/intra_SP{SPs[1]}'
+                    par_dir = f'{os.path.dirname(__file__)}/search_algo/execution_plans/intra_SP{SPs[1]}_fob={fob}'
                     plan_paths = []
                     for plan_name in os.listdir(par_dir):
                         plan_paths.append(f'{par_dir}/{plan_name}')
-                    # print(f'plan_paths: {plan_paths}')
+                    # # kv filter
+                    # kv_filter = lambda x: 'X=1' in x
+                    # for i in range(len(plan_paths) - 1, - 1, - 1):
+                    #     if not kv_filter(plan_paths[i]):
+                    #         plan_paths.pop(i)
+                    # print_rank_0(f'plan_paths: {plan_paths}')
                     benchmark_op = partial(benchmark_orchestrate,
-                        args, f, shapes, qkv_buf, dout_buf, forward_only=True, log=True, plan_paths=plan_paths, 
+                        args, f, shapes, tensor_buf, log=True, plan_paths=plan_paths, 
                         global_group=gloo_global_group, ncclcomm_global=ncclcomm_global
                     )
                     benchmark_op(use_cudagraph=False)
