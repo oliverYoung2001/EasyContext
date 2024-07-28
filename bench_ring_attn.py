@@ -621,15 +621,15 @@ def main(args):
     forward_only = False
     
     funcs = [
-        # ring_flash_attn_func,
-        # zigzag_ring_flash_attn_func,      # baseline
+        ring_flash_attn_func,
+        zigzag_ring_flash_attn_func,      # baseline
         # zigzag_ring_flash_attn_func_opt,  # sol1
-        # stripe_flash_attn_func,
+        stripe_flash_attn_func,
         # lightseq_attn_func,
         # flash_attn_func,
         # hierarchy_attn_func,                # one case
         # overlapped_hierarchy_attn_func,     # another case
-        orchestrated_attn_func,
+        # orchestrated_attn_func,
     ]
     bs = 1
     D = 128
@@ -646,16 +646,16 @@ def main(args):
     #     # 1024 * 1024,   # 1M
     # ]
     Ss_per_gpu = [
-        256,
-        512,
+        # 256,
+        # 512,
         1 * 1024,   # 1K
-        2 * 1024,
-        4 * 1024,
-        8 * 1024,
-        16 * 1024,
-        32 * 1024,
-        64 * 1024,
-        128 * 1024, # 128K, # [NOTE]: ERROR in backward
+        # 2 * 1024,
+        # 4 * 1024,
+        # 8 * 1024,
+        # 16 * 1024,
+        # 32 * 1024,
+        # 64 * 1024,
+        # 128 * 1024, # 128K, # [NOTE]: ERROR in backward
     ]
     Ss = [S * world_size for S in Ss_per_gpu]
     Nhs = [ # configs of llama2
