@@ -7,6 +7,7 @@ import torch.distributed as dist
 from typing import Optional, Tuple
 from collections.abc import Iterable
 from functools import partial
+from search_algo.search_engine import Dist_Attn_Config
 from search_algo.execute_plan import Execution_Plan
 import math
 from tests.distributed.device_communicators.pynccl import PyNcclCommunicator
@@ -20,6 +21,12 @@ def print_rank_0(message):
             print(message, flush=True)
     else:
         print(message, flush=True)
+
+def get_Q_shape_from_da_config(da_config: Dist_Attn_Config) -> Tuple:
+    return (da_config.bs, da_config.S_per_gpu[0], da_config.Nh[0], da_config.D)
+
+def get_lse_shape_from_da_config(da_config: Dist_Attn_Config) -> Tuple:
+    return (da_config.bs, da_config.S_per_gpu[0], da_config.Nh[0], 1)
 
 class Integrated_Data():
     def __init__(self):
@@ -36,6 +43,14 @@ class Input_Row_Fwd(Integrated_Data):
         Q = data.view_as(other.Q)
         return cls(Q)
 
+    @classmethod
+    def from_da_config_with_buf(cls, da_config: Dist_Attn_Config, buf: torch.Tensor):
+        Q_shape = get_Q_shape_from_da_config(da_config)
+        Q_numel = math.prod(Q_shape)
+        Q = buf[: Q_numel].view(Q_shape)
+        return cls(Q)
+        
+
 class Input_Col_Fwd(Integrated_Data):
     def __init__(self, K, V, data: Optional[torch.Tensor] = None):
         if data is not None:
@@ -51,6 +66,14 @@ class Input_Col_Fwd(Integrated_Data):
         K = data[: other.K.numel()].view_as(other.K)
         V = data[other.K.numel():].view_as(other.V)
         return cls(K, V, data)
+    
+    @classmethod
+    def from_da_config_with_buf(cls, da_config: Dist_Attn_Config, buf: torch.Tensor):
+        Q_shape = get_Q_shape_from_da_config(da_config)
+        Q_numel = math.prod(Q_shape)
+        K = buf[: Q_numel].view(Q_shape)
+        V = buf[Q_numel: ].view(Q_shape)
+        return cls(K, V, buf)
 
 class Output_Row_Fwd(Integrated_Data):
     def __init__(self, O, lse: Optional[torch.Tensor] = None): # [mbs, Sq, Nh, D], [mbs, Sq, Nh, 1]
@@ -66,7 +89,8 @@ class Output_Row_Fwd(Integrated_Data):
     def from_execution_plan(cls, execution_plan: Execution_Plan, x: torch.Tensor):
         da_config = execution_plan.da_config
         split_degrees = execution_plan.split_degrees    # (Sq, Skv, bs, Nh)
-        O_shape = (da_config.bs // split_degrees[2], da_config.S[0] // split_degrees[0], da_config.Nh[0] // split_degrees[3], da_config.D)  # b, Sq, Nhq, D
+        O_shape = get_Q_shape_from_da_config(da_config)
+        # O_shape = (da_config.bs // split_degrees[2], da_config.S[0] // split_degrees[0], da_config.Nh[0] // split_degrees[3], da_config.D)  # b, Sq, Nhq, D
         # lse_shape = (da_config.bs // split_degrees[2], da_config.S[0] // split_degrees[0], da_config.Nh[0] // split_degrees[3], 1)
         # O_numel, lse_numel = math.prod(O_shape), math.prod(lse_shape)
         # data = torch.empty(O_numel + lse_numel, dtype=x.dtype, device=x.device)
@@ -127,6 +151,19 @@ class Input_Row_Bwd(Integrated_Data):
         lse = data[- other.lse.numel():].view_as(other.lse)
         return cls(Q, dO, D, lse, data)
     
+    @classmethod
+    def from_da_config_with_buf(cls, da_config: Dist_Attn_Config, buf: torch.Tensor):
+        Q_shape = get_Q_shape_from_da_config(da_config)
+        lse_shape = get_lse_shape_from_da_config(da_config)
+        Q_numel = math.prod(Q_shape)
+        lse_numel = math.prod(lse_shape)
+        Q = buf[: Q_numel].view(Q_shape)
+        dO = buf[Q_numel: Q_numel * 2].view(Q_shape)
+        D = buf[Q_numel * 2: - lse_shape].view(FULL_DTYPE).view(lse_numel)
+        lse = buf[- lse_numel:].view(lse_numel)
+        return cls(Q, dO, D, lse, buf)
+
+    
     # def __init__(self, Q, dO, O, lse, data: Optional[torch.Tensor] = None):      # normal version
     #     if data is not None:
     #         self.data = data
@@ -161,6 +198,14 @@ class Input_Col_Bwd(Integrated_Data):
         K = data[: other.K.numel()].view_as(other.K)
         V = data[other.K.numel():].view_as(other.V)
         return cls(K, V, data)
+    
+    @classmethod
+    def from_da_config_with_buf(cls, da_config: Dist_Attn_Config, buf: torch.Tensor):
+        Q_shape = get_Q_shape_from_da_config(da_config)
+        Q_numel = math.prod(Q_shape)
+        K = buf[: Q_numel].view(Q_shape)
+        V = buf[Q_numel: ].view(Q_shape)
+        return cls(K, V, buf)
 
 class Output_Row_Bwd(Integrated_Data):
     def __init__(self, dQ):
@@ -171,7 +216,8 @@ class Output_Row_Bwd(Integrated_Data):
     def from_execution_plan(cls, execution_plan: Execution_Plan, x: torch.Tensor):
         da_config = execution_plan.da_config
         split_degrees = execution_plan.split_degrees    # (Sq, Skv, bs, Nh)
-        dQ_shape = (da_config.bs // split_degrees[2], da_config.S[0] // split_degrees[0], da_config.Nh[0] // split_degrees[3], da_config.D)  # b, Sq, Nhq, D
+        dQ_shape = get_Q_shape_from_da_config(da_config)
+        # dQ_shape = (da_config.bs // split_degrees[2], da_config.S[0] // split_degrees[0], da_config.Nh[0] // split_degrees[3], da_config.D)  # b, Sq, Nhq, D
         dQ_numel = math.prod(dQ_shape)
         data = torch.empty(dQ_numel, dtype=x.dtype, device=x.device)
         dQ = data.view(dQ_shape)
@@ -240,4 +286,29 @@ class IntraComm:
         # print(f'rank{self.rank}, recv Out !!!', flush=True)
         return idata
 
-
+class IntraComm_fused:
+    def __init__(self, PROC_INFO: dict, X: int, Y: int):
+        self.rank = PROC_INFO['rank']
+        self.world_size = PROC_INFO['world_size']
+        self.local_rank = PROC_INFO['local_rank']
+        self.local_size = PROC_INFO['tasks_per_node']
+        self.node_id = PROC_INFO['nodeid']
+        
+        self.cur_x_id = self.local_rank % X
+        self.cur_y_id = self.local_rank // X
+        r_key = tuple(range(self.node_id * self.local_size + self.cur_y_id * X, self.node_id * self.local_size + (self.cur_y_id + 1) * X))
+        c_key = tuple(range(self.node_id * self.local_size + self.cur_x_id, (self.node_id + 1) * self.local_size, X))
+        ncclcomm_dict = get_global_var('ncclcomm_dict')
+        self.r_ncclcomm: PyNcclCommunicator = ncclcomm_dict[r_key]
+        self.c_ncclcomm: PyNcclCommunicator = ncclcomm_dict[c_key]
+    
+    def all_gather(self, type: str, send_idata: Integrated_Data, recv_tensor: torch.Tensor, stream: torch.cuda.Stream) -> None:
+        assert type in ['r', 'c']
+        ncclcomm: PyNcclCommunicator = self.r_ncclcomm if type == 'r' else self.c_ncclcomm
+        ncclcomm.all_gather(send_idata.data, recv_tensor, stream)
+    
+    def reduce_scatter(self, type: str, send_tensor: torch.Tensor, recv_idata: Integrated_Data, stream: torch.cuda.Stream) -> None:
+        assert type in ['r', 'c']
+        ncclcomm: PyNcclCommunicator = self.r_ncclcomm if type == 'r' else self.c_ncclcomm
+        ncclcomm.reduce_scatter(send_tensor, recv_idata.data, stream=stream)
+    

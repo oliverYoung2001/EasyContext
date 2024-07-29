@@ -17,13 +17,18 @@ class TASK_STATUS(Enum):
 
 class Dist_Attn_Config():
     def __init__(self, SP, S, Nh, bs, D, causal):
-        self.SP = SP
-        self.S = S
-        self.Nh = Nh
+        self.SP = SP    # (inter, intra)
+        self.S = S  # (Sq, Skv)
+        self.Nh = Nh    # (Nh, Ng)
         self.bs = bs
         self.D = D
         self.causal = causal
         self.tot_sp = reduce(lambda x,y:x*y, SP)
+        # self.S_per_gpu = (S[0] // self.tot_sp, S[1] // self.tot_sp)
+    
+    @property
+    def S_per_gpu(self):
+        return (self.S[0] // self.tot_sp, self.S[1] // self.tot_sp)
     
     def get_plan_name(self, fob=1):
         return f'S={self.S}_SP={self.SP}_causal={self.causal}_fob={fob}_b={self.bs}_Nh={self.Nh}_D={self.D}'

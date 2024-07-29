@@ -140,6 +140,22 @@ class NCCLLibrary:
             ctypes.POINTER(ncclComm_t), ctypes.c_int, ncclUniqueId,
             ctypes.c_int
         ]),
+        # ncclResult_t ncclAllGather(
+            # const void* sendbuff, void* recvbuff, size_t sendcount, 
+            # ncclDataType_t datatype, ncclComm_t comm, 
+            # cudaStream_t stream)
+        Function("ncclAllGather", ncclResult_t, [
+            buffer_type, buffer_type, ctypes.c_size_t, ncclDataType_t,
+            ncclComm_t, cudaStream_t
+        ]),
+        # ncclResult_t ncclReduceScatter(
+            # const void* sendbuff, void* recvbuff, size_t recvcount, 
+            # ncclDataType_t datatype, ncclRedOp_t op, ncclComm_t comm, 
+            # cudaStream_t stream)
+        Function("ncclReduceScatter", ncclResult_t, [
+            buffer_type, buffer_type, ctypes.c_size_t, ncclDataType_t,
+            ncclRedOp_t, ncclComm_t, cudaStream_t
+        ]),
         # ncclResult_t  ncclAllReduce(
         #   const void* sendbuff, void* recvbuff, size_t count,
         #   ncclDataType_t datatype, ncclRedOp_t op, ncclComm_t comm,
@@ -255,7 +271,21 @@ class NCCLLibrary:
                                                         world_size, unique_id,
                                                         rank))
         return comm
-
+    
+    def ncclAllGather(self, sendbuff: buffer_type, recvbuff: buffer_type,
+                      sendcount: int, datatype: int, comm: ncclComm_t,
+                      stream: cudaStream_t) -> None:
+        self.NCCL_CHECK(self._funcs["ncclAllGather"](sendbuff, recvbuff, sendcount,
+                                                     datatype, comm,
+                                                     stream))
+    
+    def ncclReduceScatter(self, sendbuff: buffer_type, recvbuff: buffer_type,
+                      recvcount: int, datatype: int, op: int, comm: ncclComm_t,
+                      stream: cudaStream_t) -> None:
+        self.NCCL_CHECK(self._funcs["ncclReduceScatter"](sendbuff, recvbuff, recvcount,
+                                                     datatype, op, comm,
+                                                     stream))
+        
     def ncclAllReduce(self, sendbuff: buffer_type, recvbuff: buffer_type,
                       count: int, datatype: int, op: int, comm: ncclComm_t,
                       stream: cudaStream_t) -> None:

@@ -104,6 +104,46 @@ class PyNcclCommunicator:
         # when we are using CUDA graph.
         # self.disabled = True
 
+    def all_gather(self,
+                   send_tensor: torch.Tensor,
+                   recv_tensor: torch.Tensor,
+                   stream=None):
+        if self.disabled:
+            return
+        assert send_tensor.device == self.device and recv_tensor.device == self.device, (
+            f"this nccl communicator is created to work on {self.device}, "
+            f"but the input tensor is on {send_tensor.device} or {recv_tensor.device}")
+        assert send_tensor.dtype == recv_tensor.dtype, (
+            f"send tensor and recv tensor should have the same dtype, "
+            f"but got {send_tensor.dtype} and {recv_tensor.dtype}")
+        if stream is None:
+            stream = self.stream
+        self.nccl.ncclAllGather(buffer_type(send_tensor.data_ptr()),
+                                buffer_type(recv_tensor.data_ptr()), send_tensor.numel(),
+                                ncclDataTypeEnum.from_torch(send_tensor.dtype), self.comm,
+                                cudaStream_t(stream.cuda_stream))
+            
+    def reduce_scatter(self,
+                   send_tensor: torch.Tensor,
+                   recv_tensor: torch.Tensor,
+                   op: ReduceOp = ReduceOp.SUM,
+                   stream=None):
+        if self.disabled:
+            return
+        assert send_tensor.device == self.device and recv_tensor.device == self.device, (
+            f"this nccl communicator is created to work on {self.device}, "
+            f"but the input tensor is on {send_tensor.device} or {recv_tensor.device}")
+        assert send_tensor.dtype == recv_tensor.dtype, (
+            f"send tensor and recv tensor should have the same dtype, "
+            f"but got {send_tensor.dtype} and {recv_tensor.dtype}")
+        if stream is None:
+            stream = self.stream
+        self.nccl.ncclReduceScatter(buffer_type(send_tensor.data_ptr()),
+                                    buffer_type(recv_tensor.data_ptr()), recv_tensor.numel(),
+                                    ncclDataTypeEnum.from_torch(send_tensor.dtype), 
+                                    ncclRedOpTypeEnum.from_torch(op), self.comm,
+                                    cudaStream_t(stream.cuda_stream))
+        
     def all_reduce(self,
                    tensor: torch.Tensor,
                    op: ReduceOp = ReduceOp.SUM,
