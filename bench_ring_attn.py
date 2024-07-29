@@ -643,7 +643,7 @@ def benchmark_fused(args, raw_f, shapes:dict, tensor_buf, warmup=11, num_iter=20
             oc_nelems = 0
         else:   # backward
             ir_nelems = batch_size * seqlen * nheads * (d * 2 + 1 * (2 + 1))   # q, do, D, lse
-            ic_nelems = 2 * (batch_size * seqlen * nheads * d) * 2   # k, v
+            ic_nelems = 2 * (batch_size * seqlen * nheads * d)   # k, v
             or_nelems = batch_size * seqlen * nheads * d        # dq
             oc_nelems = (batch_size * seqlen * nheads * d) * 2  # dk, dv
 
@@ -676,7 +676,7 @@ def benchmark_fused(args, raw_f, shapes:dict, tensor_buf, warmup=11, num_iter=20
             "dropout_p": dropout_p,
             "causal": None,
             "deterministic": deterministic,
-            "sm_scale": d ** (-0.5),
+            "softmax_scale": d ** (-0.5),
             "PROC_INFO": PROC_INFO,
             'buf_dict': buf_dict,
         }
@@ -967,24 +967,24 @@ def main(args):
     Ss_per_gpu = [
         # 256,
         # 512,
-        1 * 1024,   # 1K
+        # 1 * 1024,   # 1K
         # 2 * 1024,
         # 4 * 1024,
         # 8 * 1024,
         # 16 * 1024,
         # 32 * 1024,
         # 64 * 1024,
-        # 128 * 1024, # 128K, # [NOTE]: ERROR in backward
+        128 * 1024, # 128K, # [NOTE]: ERROR in backward
     ]
     Ss = [S * world_size for S in Ss_per_gpu]
     Nhs = [ # configs of llama2
-        1,  # for test
-    #    32,  # 7b
+        # 1,  # for test
+       32,  # 7b
     #    40,  # 13b
     #    80,  # 70b 
     ]
     fob = 0
-    # fob = 1
+    fob = 1
     tensor_buf = torch.randn(
         (6 * bs * max(Ss) * max(Nhs) * D), device=device, dtype=DTYPE, requires_grad=False
     )
@@ -1038,10 +1038,15 @@ def main(args):
                     plan_paths = []
                     for plan_name in os.listdir(par_dir):
                         plan_paths.append(f'{par_dir}/{plan_name}')
-                    # kv filter
-                    kv_filter = lambda x: 'X=1' in x
+                    # # kv filter
+                    # kv_filter = lambda x: 'X=1' in x
+                    # for i in range(len(plan_paths) - 1, - 1, - 1):
+                    #     if not kv_filter(plan_paths[i]):
+                    #         plan_paths.pop(i)
+                    # X=2 filter
+                    x_filter = lambda x: 'X=2' in x
                     for i in range(len(plan_paths) - 1, - 1, - 1):
-                        if not kv_filter(plan_paths[i]):
+                        if not x_filter(plan_paths[i]):
                             plan_paths.pop(i)
                     # print_rank_0(f'plan_paths: {plan_paths}')
                     # benchmark_op = partial(benchmark_orchestrate,

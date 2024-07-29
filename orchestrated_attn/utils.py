@@ -26,7 +26,7 @@ def get_Q_shape_from_da_config(da_config: Dist_Attn_Config) -> Tuple:
     return (da_config.bs, da_config.S_per_gpu[0], da_config.Nh[0], da_config.D)
 
 def get_lse_shape_from_da_config(da_config: Dist_Attn_Config) -> Tuple:
-    return (da_config.bs, da_config.S_per_gpu[0], da_config.Nh[0], 1)
+    return (da_config.bs, da_config.Nh[0], da_config.S_per_gpu[0])
 
 class Integrated_Data():
     def __init__(self):
@@ -159,8 +159,8 @@ class Input_Row_Bwd(Integrated_Data):
         lse_numel = math.prod(lse_shape)
         Q = buf[: Q_numel].view(Q_shape)
         dO = buf[Q_numel: Q_numel * 2].view(Q_shape)
-        D = buf[Q_numel * 2: - lse_shape].view(FULL_DTYPE).view(lse_numel)
-        lse = buf[- lse_numel:].view(lse_numel)
+        D = buf[Q_numel * 2: - lse_numel].view(FULL_DTYPE).view(lse_shape)
+        lse = buf[- lse_numel:].view(lse_shape)
         return cls(Q, dO, D, lse, buf)
 
     

@@ -145,11 +145,13 @@ def intra_attn_forward(
         out_row = buf_dict['or'][or_nelems * cur_x_id: or_nelems * (cur_x_id + 1)]
 
         event_ir = torch.cuda.Event()
+        event_ic = torch.cuda.Event()
+        event_comp = torch.cuda.Event()
         # Allgather rc
-        with torch.cuda.stream(streams[1]):
-            comm.all_gather('c', inp_col, buf_dict['ic'], streams[1])
-            event_ir.record(streams[1])
-            comm.all_gather('r', inp_row, buf_dict['ir'], streams[1])
+        comm.all_gather('c', inp_col, buf_dict['ic'], streams[1])
+        event_ic.record(streams[1])
+        comm.all_gather('r', inp_row, buf_dict['ir'], streams[1])
+        event_ir.record(streams[1])
         
         # Comp
         with torch.cuda.stream(streams[0]):
@@ -165,7 +167,7 @@ def intra_attn_forward(
                 Q_shape_col[1] *= Y
                 Q_shape_col_tot = copy.deepcopy(Q_shape)
                 Q_shape_col_tot = [Y, 2] + Q_shape_col_tot
-                streams[0].wait_event(event_ir)
+                streams[0].wait_event(event_ic)
                 inp_col_tot_data = buf_dict['ic'].view(Q_shape_col_tot).transpose(0, 1).transpose(1, 2).flatten(2, 3).contiguous()    # [2, bs, Y * S, Nh, D]
                 K_tot = inp_col_tot_data[0]  # [bs, Y * S, Nh, D]
                 V_tot = inp_col_tot_data[1]  # [bs, Y * S, Nh, D]
@@ -176,12 +178,16 @@ def intra_attn_forward(
             else:
                 raise NotImplementedError()
             # step2: execute flashattn kernel
+            streams[0].wait_event(event_ir)
             fwd_comp_func(inp_row_tot, inp_col_tot, out_row_tot, out_col_tot, causal)
             
             # step3: output data layout transform
             pass
         
+            event_comp.record(streams[0])
+        
         # ReduceScatter rc
+        streams[1].wait_event(event_comp)
         comm.reduce_scatter('r', buf_dict['or'], out_row, streams[1])
         # comm.all_gather('c', buf_dict['oc'], out_col, streams[1])
         return out_row
@@ -225,13 +231,14 @@ def intra_attn_backward(
     inp_row: Input_Row_Bwd,
     inp_col: Input_Col_Bwd,
     softmax_scale,
-    dropout_p=0,
-    causal=True,
-    window_size=(-1, -1),
-    alibi_slopes=None,
-    deterministic=False,
-    PROC_INFO=None,
-    execution_plan: Execution_Plan = None,
+    dropout_p,
+    causal,
+    window_size,
+    alibi_slopes,
+    deterministic,
+    PROC_INFO,
+    execution_plan: Execution_Plan,
+    buf_dict: Union[dict, None],
 ) -> Integrated_Data:
     rank = PROC_INFO['rank']
     world_size = PROC_INFO['world_size']
@@ -242,11 +249,7 @@ def intra_attn_backward(
     node_num = world_size // local_size
     assert local_size == execution_plan.tot_sp
     streams = get_global_var('streams')
-    data_dict = {}  # (b_id, h_id, r/c_id, i/o, r/c) -> Integrated_Data
     
-    # initialize Comm
-    comm = IntraComm(PROC_INFO)
-        
     # Comp Func
     def bwd_comp_func(inp_row: Input_Row_Bwd, inp_col: Input_Col_Bwd, 
                       out_row: Output_Row_Bwd, out_col: Output_Col_Bwd, causal) -> tuple:
@@ -272,28 +275,127 @@ def intra_attn_backward(
         )
         return (out_row, out_col)
     
-    # initial data:
-    # ir_idata, ic_idata = Input_Row_Fwd(q), Input_Col_Fwd(k, v)
-    data_dict[(0, 0, local_rank, 'i', 'r')] = inp_row
-    data_dict[(0, 0, local_rank, 'i', 'c')] = inp_col
-    idata_buf = {
-        ('i', 'r'): Input_Row_Bwd.from_idata(inp_row),
-        ('i', 'c'): Input_Col_Bwd.from_idata(inp_col),
-        ('o', 'r'): Output_Row_Bwd.from_execution_plan(execution_plan, inp_row.Q),
-        ('o', 'c'): Output_Col_Bwd.from_execution_plan(execution_plan, inp_row.Q),
-    }
-    p_bwd_comp_func = partial(bwd_comp_func, out_row=idata_buf[('o', 'r')], out_col=idata_buf[('o', 'c')])
-    for kernel in execution_plan.gpu_kernel_lists[local_rank]:
-        # if kernel.key[- 2] == 'i':  # only input comm, cudagraph OK !!!
-        # if isinstance(kernel, Comp_Kernel) or kernel.key[- 2] == 'i':   # input comm + comp
-        # if isinstance(kernel, Comp_Kernel):   # only comp
-        # if isinstance(kernel, Comp_Kernel) and kernel.key[2: 4] == (local_rank, local_rank):   # only comp on diagnal, cudagraph failed
-        # if False:
-        if True:
-            # print(f'rank{rank}: {kernel.key}', flush=True)
-            execute_kernel(kernel, data_dict, PROC_INFO, p_bwd_comp_func, comm, idata_buf, causal)
-    # return None
-    return (data_dict[(0, 0, local_rank, 'o', 'r')], data_dict[(0, 0, local_rank, 'o', 'c')])
+    if buf_dict is None:    # general cases
+        data_dict = {}  # (b_id, h_id, r/c_id, i/o, r/c) -> Integrated_Data
+        
+        # initialize Comm
+        comm = IntraComm(PROC_INFO)
+            
+        
+        # initial data:
+        # ir_idata, ic_idata = Input_Row_Fwd(q), Input_Col_Fwd(k, v)
+        data_dict[(0, 0, local_rank, 'i', 'r')] = inp_row
+        data_dict[(0, 0, local_rank, 'i', 'c')] = inp_col
+        idata_buf = {
+            ('i', 'r'): Input_Row_Bwd.from_idata(inp_row),
+            ('i', 'c'): Input_Col_Bwd.from_idata(inp_col),
+            ('o', 'r'): Output_Row_Bwd.from_execution_plan(execution_plan, inp_row.Q),
+            ('o', 'c'): Output_Col_Bwd.from_execution_plan(execution_plan, inp_row.Q),
+        }
+        p_bwd_comp_func = partial(bwd_comp_func, out_row=idata_buf[('o', 'r')], out_col=idata_buf[('o', 'c')])
+        for kernel in execution_plan.gpu_kernel_lists[local_rank]:
+            # if kernel.key[- 2] == 'i':  # only input comm, cudagraph OK !!!
+            # if isinstance(kernel, Comp_Kernel) or kernel.key[- 2] == 'i':   # input comm + comp
+            # if isinstance(kernel, Comp_Kernel):   # only comp
+            # if isinstance(kernel, Comp_Kernel) and kernel.key[2: 4] == (local_rank, local_rank):   # only comp on diagnal, cudagraph failed
+            # if False:
+            if True:
+                # print(f'rank{rank}: {kernel.key}', flush=True)
+                execute_kernel(kernel, data_dict, PROC_INFO, p_bwd_comp_func, comm, idata_buf, causal)
+        # return None
+        return (data_dict[(0, 0, local_rank, 'o', 'r')], data_dict[(0, 0, local_rank, 'o', 'c')])
+    else:   # (X, Y) cases
+        assert causal == False, 'Intra attn XY not support causal == True'
+        X, Y = execution_plan.X, execution_plan.Y
+        cur_x_id = local_rank % X
+        cur_y_id = local_rank // X
+        comm = IntraComm_fused(PROC_INFO, X, Y)
+        ir_nelems= buf_dict['ir_nelems']
+        or_nelems = buf_dict['or_nelems']
+        oc_nelems = buf_dict['oc_nelems']
+        out_row = buf_dict['or'][or_nelems * cur_x_id: or_nelems * (cur_x_id + 1)]
+        out_col = buf_dict['oc'][oc_nelems * cur_y_id: oc_nelems * (cur_y_id + 1)]
+
+        event_ir = torch.cuda.Event()
+        event_ic = torch.cuda.Event()
+        event_oc = torch.cuda.Event()
+        event_comp = torch.cuda.Event()
+        # Allgather rc
+        comm.all_gather('r', inp_row, buf_dict['ir'], streams[1])
+        event_ir.record(streams[1])
+        comm.all_gather('c', inp_col, buf_dict['ic'], streams[1])
+        event_ic.record(streams[1])
+        
+        # Comp
+        with torch.cuda.stream(streams[0]):
+            # step1: input data layout transform
+            if execution_plan.da_config.bs == 1:    # always true !!!
+                Q_shape = list(inp_row.Q.shape)     # (bs, S, Nh, D)
+                Q_nelem = math.prod(Q_shape)
+                lse_shape = list(inp_row.lse.shape) # (bs, Nh, S)
+                lse_nelem = math.prod(lse_shape)
+                assert len(Q_shape) == 4        # (bs, S, Nh, D)
+                assert len(lse_shape) == 3      # (bs, Nh, S)
+
+                # ir_tot
+                streams[0].wait_event(event_ir)
+                Q_shape_row = copy.deepcopy(Q_shape)
+                Q_shape_row[1] *= X         # (bs, X * S, Nh, D)
+                Q_nelem_row = math.prod(Q_shape_row)
+                lse_shape_row = copy.deepcopy(lse_shape)
+                assert lse_shape_row[1] == 1, 'Now Nh > 1 not supported in fused backward !!!'    # Nh == 1
+                lse_shape_row[2] *= X       # (bs, Nh, X * S)
+                lse_nelem_row = math.prod(lse_shape_row)
+                t_list = []
+                offsets = [0, Q_nelem, 2 * Q_nelem, 2 * Q_nelem + 2 * lse_nelem, 2 * Q_nelem + 3 * lse_nelem]   # Q, dO, D, lse
+                assert ir_nelems == offsets[-1]
+                for idx in range(len(offsets) - 1):
+                    for x in range(X):
+                        t_list.append(buf_dict['ir'][ir_nelems * x + offsets[idx]: ir_nelems * x + offsets[idx + 1]].flatten())
+                inp_row_tot_data = torch.cat(t_list)
+                assert inp_row_tot_data.numel() == 2 * Q_nelem_row + 3 * lse_nelem_row
+                
+                Q_tot = inp_row_tot_data[: Q_nelem_row].view(Q_shape_row)
+                dO_tot = inp_row_tot_data[Q_nelem_row: 2 * Q_nelem_row].view(Q_shape_row)
+                D_tot = inp_row_tot_data[2 * Q_nelem_row: - lse_nelem_row].view(FULL_DTYPE).view(lse_shape_row)
+                lse_tot = inp_row_tot_data[- lse_nelem_row: ].view(lse_shape_row)
+                inp_row_tot = Input_Row_Bwd(Q_tot, dO_tot, D_tot, lse_tot, inp_row_tot_data)
+                
+                # ic_tot
+                Q_shape_col = copy.deepcopy(Q_shape)
+                Q_shape_col[1] *= Y
+                Q_nelem_col = math.prod(Q_shape_col)
+                Q_shape_col_tot = copy.deepcopy(Q_shape)
+                Q_shape_col_tot = [Y, 2] + Q_shape_col_tot
+                streams[0].wait_event(event_ic)
+                inp_col_tot_data = buf_dict['ic'].view(Q_shape_col_tot).transpose(0, 1).transpose(1, 2).flatten(2, 3).contiguous()    # [2, bs, Y * S, Nh, D]
+                K_tot = inp_col_tot_data[0]  # [bs, Y * S, Nh, D]
+                V_tot = inp_col_tot_data[1]  # [bs, Y * S, Nh, D]
+                inp_col_tot = Input_Col_Bwd(K_tot, V_tot, inp_col_tot_data.flatten())
+                
+                # or_tot
+                out_row_tot = Output_Row_Bwd(buf_dict['or'].view(Q_shape_row))
+                
+                # oc_tot
+                dK_tot = buf_dict['oc'][: Q_nelem_col].view(Q_shape_col)
+                dV_tot = buf_dict['oc'][Q_nelem_col: ].view(Q_shape_col)
+                out_col_tot = Output_Col_Bwd(dK_tot, dV_tot, buf_dict['oc'].flatten())
+            else:
+                raise NotImplementedError()
+            # step2: execute flashattn kernel
+            bwd_comp_func(inp_row_tot, inp_col_tot, out_row_tot, out_col_tot, causal)        
+            event_comp.record(streams[0])
+        
+        # ReduceScatter rc
+        streams[1].wait_event(event_comp)
+        comm.reduce_scatter('r', buf_dict['or'], out_row, streams[1])
+        with torch.cuda.stream(streams[0]):
+            # step3: output  layout transform
+            out_col_tot_data = buf_dict['oc'].view((2, Y, Q_nelem)).transpose(0, 1).contiguous()    # [Y, 2, bs, S, Nh, D]
+            event_oc.record(streams[0])
+        streams[1].wait_event(event_oc)
+        comm.reduce_scatter('c', out_col_tot_data, out_col, streams[1])
+        return (out_row, out_col)
     
     
 def orchestrated_attn_backward(
@@ -307,6 +409,7 @@ def orchestrated_attn_backward(
     deterministic=False,
     PROC_INFO=None,
     execution_plan: Execution_Plan = None,
+    buf_dict: Union[dict, None] = None,
 ) -> tuple: # (Output_Row_Bwd, Output_Col_Bwd)
     # [NOTE]: Now not support batch mechanism and only support tot_sp = world_size
     # [NOTE]: Now only support bs_split == 1, Nh_split == 1
@@ -325,6 +428,7 @@ def orchestrated_attn_backward(
             deterministic,
             PROC_INFO,
             execution_plan,
+            buf_dict,
         )
     raise NotImplementedError
 
