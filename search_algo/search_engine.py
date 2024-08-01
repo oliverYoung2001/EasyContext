@@ -222,10 +222,12 @@ class Dist_Attn_Schedule():
         tot_comm_units = r_cc_time[:, 1:].sum(axis=-1) # [fwd/bwd][Comm_in/Comm_out]
         # print(f'r_cc_time:\n{r_cc_time[:, 1:, :]}')
         for sp_set, comm_units in comm_units_pool.items():
-            tot_comm_units += comm_units * (len(sp_set) - 2)
+            comm_units *= (len(sp_set) - 2)
+            tot_comm_units += comm_units
         # print(f'tot_comm_units:\n{tot_comm_units}')
         # input and output comm units need to be the same
         assert (np.absolute(tot_comm_units[:, 0] - tot_comm_units[:, 1]) / tot_comm_units[:, 0]).sum() < 2e-6
+        self.tot_comm_units = tot_comm_units
         
         self.ave_comm_units = np.max(tot_comm_units, axis=-1) / self.tot_sp    # [fwd/bwd]
         ub_comm_units = np.maximum(self.ave_comm_units, np.max(r_cc_time[:, 1:, :], axis=(-2,-1)))   # [fwd/bwd]
@@ -235,6 +237,7 @@ class Dist_Attn_Schedule():
         for sp_set, comm_units in comm_units_pool.items():
             # sp_set: tuple
             # comm_units: [fwd/bwd][Comm_in/Comm_out]
+            # print(f'{sp_set}: {comm_units}')
             assert len(sp_set) > 2
             # step1: pouring water to glass up to ub
             for g in sp_set:
@@ -352,11 +355,16 @@ class Dist_Attn_Schedule():
             r_cc_time[:, 2, g] += u_out_row * Sq_other_equal_num
                 # col: (), (dk, dv)
             r_cc_time[:, 2, g] += u_out_col * Skv_other_equal_num
-
+            
+        self.r_cc_time = np.copy(r_cc_time)
         balanced_r_cc_time = self.balance_comm_units_pool(comm_units_pool, r_cc_time)
-        self.r_cc_time = r_cc_time
         self.balanced_r_cc_time = balanced_r_cc_time
         return r_cc_time, balanced_r_cc_time    # (Sq / sq_split * bs / bs_split * Nh[0] / Nh_split * D * 2B) for comm
+    
+    def get_tot_comm_units(self) -> np.ndarray: # np.[fwd/bwd][Comm_in/Comm_out]
+        if not hasattr(self, 'tot_comm_units'):
+            self.get_relative_cc_time()
+        return self.tot_comm_units
     
     def get_absolute_cc_time(self) -> np.ndarray:
         if hasattr(self, 'ub_cc_time'):
