@@ -11,31 +11,32 @@ import time
 from heapq import heappush, heappop, heappushpop
 
 class Execution_Plan(): # input: kernel streams of gpus
-    def __init__(self, d_graph: Dependent_Graph, fob: bool, generate_plan=True):
+    def __init__(self, d_graph: Dependent_Graph, fob: bool, plan_type: str):
         # self.stream_kernel_lists  # (tot_sp, 3) -> list, 3 stands for comp, send, recv
         # self.gpu_kernel_lists
         # self.valid_kernels    # 
         # self.stream_num   # 3
         
         self.fob = fob  # fwd or bwd
-        self.plan_type = None
+        self.plan_type = plan_type
         self.d_graph = d_graph
         self.da_config = d_graph.da_config
         self.m_config = d_graph.m_config
         self.split_degrees = d_graph.split_degrees
         self.tot_sp = d_graph.tot_sp
-        if generate_plan:
-            self.plan_type = 'autmatic'
+        if plan_type == 'automatic':
             self.TIME_BUDGET = 5 * 60   # 5mins
             self.threshold = 1.3
             self.generate_execution_plan()
+        elif plan_type == 'ablation1':
+            self.generate_execution_plan_through_start_time()
     
     def get_plan_name(self):
-        if self.plan_type == 'automatic':
+        if self.plan_type == 'manual':
+            return f'SP={self.tot_sp}_fob={self.fob}_Y={self.Y}_X={self.X}_dim={self.first_dim}'
+        else:
             da_config = self.da_config
             return da_config.get_plan_name(self.fob)
-        elif self.plan_type == 'manual':
-            return f'SP={self.tot_sp}_fob={self.fob}_Y={self.Y}_X={self.X}_dim={self.first_dim}'
         return None
         
     def generate_execution_plan(self):
@@ -273,6 +274,16 @@ class Execution_Plan(): # input: kernel streams of gpus
                 for i in range(len(kernel_list) - 1):
                     kernel_list[i].add_edge(kernel_list[i + 1], fob)
     
+    def determine_kernel_order_by_bfs(self):
+        # self.stream_kernel_lists  # (tot_sp, 3) -> list, 3 stands for comp, send, recv
+        self.stream_num = 3
+        stream_kernel_lists = {}
+        for g in range(self.tot_sp):
+            for s in range(self.stream_num):
+                stream_kernel_lists[(g, s)] = []
+                # [TODO]:
+        
+    
     def generate_execution_plan_through_start_time(self):
         d_graph = self.d_graph
         fob = self.fob
@@ -357,5 +368,9 @@ class Execution_Plan(): # input: kernel streams of gpus
                 v.id = v_id
                 v_id += 1
         self.determine_kernel_order()
+        self.generate_execution_plan_through_start_time()
+    
+    def generate_plan_with_one_topological_order(self):
+        self.plan_type = 'ablation1'
         self.generate_execution_plan_through_start_time()
             

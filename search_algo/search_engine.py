@@ -15,6 +15,13 @@ class TASK_STATUS(Enum):
     EMPTY = - 1
     UNSETTLED = - 2
 
+
+class Evaluation_Configs():
+    def __init__(self, plan_type: str, MAX_QUEUE_SIZE: int, fob: bool):
+        self.plan_type = plan_type  # 'automatic', 'maunal', 'ablation1'
+        self.MAX_QUEUE_SIZE = MAX_QUEUE_SIZE
+        self.fob = fob
+
 class Dist_Attn_Config():
     def __init__(self, SP, S, Nh, bs, D, causal):
         self.SP = SP    # (inter, intra)
@@ -23,9 +30,13 @@ class Dist_Attn_Config():
         self.bs = bs
         self.D = D
         self.causal = causal
-        self.tot_sp = reduce(lambda x,y:x*y, SP)
+        # self.tot_sp = reduce(lambda x,y:x*y, SP)
         # self.S_per_gpu = (S[0] // self.tot_sp, S[1] // self.tot_sp)
     
+    @property
+    def tot_sp(self):
+        return reduce(lambda x,y:x*y, self.SP)
+
     @property
     def S_per_gpu(self):
         return (self.S[0] // self.tot_sp, self.S[1] // self.tot_sp)
@@ -407,7 +418,8 @@ class Dist_Attn_Schedule():
 
 
 class Search_Engine():
-    def __init__(self, da_config: Dist_Attn_Config, m_config: Machine_Config, init_schedule_list: list):
+    def __init__(self, exp_config: Evaluation_Configs, da_config: Dist_Attn_Config, m_config: Machine_Config, init_schedule_list: list):
+        self.exp_config = exp_config
         self.da_config = da_config
         self.m_config = m_config
         self.tot_sp = reduce(lambda x,y:x*y, self.da_config.SP)
@@ -434,8 +446,7 @@ class Search_Engine():
         # # extra comm ub (real ub)
         # self.ub[:, 1] = np.max(np.array([schedule.ub_comm_units for schedule in self.init_schedule_list]), axis=0)
         
-        # self.MAX_QUEUE_SIZE = 100
-        self.MAX_QUEUE_SIZE = 100000000
+        self.MAX_QUEUE_SIZE = exp_config.MAX_QUEUE_SIZE
         self.schedule_queues = [None, None]  # [fwd/bwd]  
         
         # extra comp ub (not a real ub in some case !!!)
@@ -449,9 +460,9 @@ class Search_Engine():
             SCHEDULE_UNIQUE_ID += 1
             set_global_var('SCHEDULE_UNIQUE_ID', SCHEDULE_UNIQUE_ID)
             fob = self.fob
-            print(f'SCHEDULE_UNIQUE_ID: {SCHEDULE_UNIQUE_ID}')
-            print(f'schedule:\n{schedule.schedule_table}', flush=True)
-            print(f'fob: {fob}, get_e2e_time(): {schedule.get_e2e_time()[fob]:.3e}, get_absolute_cc_time:{schedule.get_absolute_cc_time()[fob]}')
+            # print(f'SCHEDULE_UNIQUE_ID: {SCHEDULE_UNIQUE_ID}')
+            # print(f'schedule:\n{schedule.schedule_table}', flush=True)
+            # print(f'fob: {fob}, get_e2e_time(): {schedule.get_e2e_time()[fob]:.3e}, get_absolute_cc_time:{schedule.get_absolute_cc_time()[fob]}')
             return (- schedule.get_e2e_time()[self.fob], SCHEDULE_UNIQUE_ID, schedule)
         def unpack_func(q_item):
             return q_item[2]

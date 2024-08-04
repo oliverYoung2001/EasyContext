@@ -20,7 +20,7 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__),
                                              os.path.pardir)))
 from easy_context.dist_flash_attn.lightseq_async_attn import attention as lightseq_attn
 from easy_context.dist_flash_attn.async_communication import initialize_distributed
-from search_algo.search_engine import Dist_Attn_Config
+from search_algo.search_engine import Dist_Attn_Config, Evaluation_Configs
 from search_algo.dependent_graph import Cuda_Kernel, Comp_Kernel, Comm_Kernel
 from tests.distributed.device_communicators.pynccl import PyNcclCommunicator
 from orchestrated_attn.global_vars import *
@@ -299,8 +299,150 @@ def benchmark(args, f, shapes:dict, qkv_buf, dout_buf, warmup=11, num_iter=20, f
         mfu, hfu = (round(flops / pow(1000, 4) / (td / num_iter * world_size), 3) for flops in (m_flops, h_flops))
         print(f"mfu: {mfu} Tflops/s, hfu: {hfu} Tflops/s, {num_iter / td:.3f} iter/s, {td / num_iter:.3e} s/iter, ({(t1 - t0):.3f}, {(t2 - t1):.3f}, {td:.3f}) sec", flush=True)
 
+def benchmark_ops(placeholder_op, streams, global_group, device, f, inputs, \
+                warmup, warmup_cudagraph, num_iter, use_cudagraph, TRACE_NAME, args):
+    # warmup
+    placeholder_op(stream=streams[0]) # [NOTE]: aim to eliminate cpu overhead
+    # preprocess
+    for stream in streams[1:]:
+        stream.wait_stream(streams[0])
+    with torch.no_grad():
+        for _ in range(warmup):
+            _ = f(**inputs)
+    # postprocess
+    for stream in streams[1:]:
+        streams[0].wait_stream(stream)
+    torch.cuda.synchronize()
+    torch.distributed.barrier(group=global_group)   
+    # # [NOTE]: we don't barrier here to prevent WARN of 
+    # # "[W CUDAGraph.cpp:145] Warning: Waiting for pending NCCL work to finish before starting graph capture. (function operator())"
+    # print_rank_0(f'Warmup done !!!')
+
+    
+    if use_cudagraph:
+        if args.profiler_with_tensorboard:
+            with torch.profiler.profile():  # workaround of issue 75504 of PyTorch
+                pass
+        # Capture cuda graph
+        # torch.cuda.synchronize()
+        g = torch.cuda.CUDAGraph()
+        # return
+        torch.cuda.synchronize()
+        with torch.cuda.graph(g, stream=streams[0]):
+            pass
+            # preprocess
+            for stream in streams[1:]:
+                stream.wait_stream(torch.cuda.current_stream())
+            with torch.no_grad():
+                _ = f(**inputs)
+            # postprocess
+            for stream in streams[1:]:
+                torch.cuda.current_stream().wait_stream(stream)
+        
+    is_runned = False
+    
+    torch.cuda.synchronize()
+    torch.distributed.barrier(group=global_group)
+    t1 = time.time()
+    
+    # warmup cudagraph
+    if use_cudagraph:
+        for _ in range(warmup_cudagraph):
+            g.replay()
+            # torch.cuda.synchronize()
+            # torch.distributed.barrier(group=global_group)
+        # print_rank_0(f'Warmup cudagraph done !!!')
+
+                
+    torch.cuda.synchronize()
+    torch.distributed.barrier(group=global_group)
+    # SYNC_SIZE = 64 * 1024 * 1024 # 64MB
+    # sync_tensor = torch.empty((SYNC_SIZE), dtype=torch.int8, device=device)
+    
+    t2 = time.time()
+    td = - 1
+    # if args.profiler_with_tensorboard and not hasattr(args, "tb_profiled"):
+    if args.profiler_with_tensorboard:
+        args.tb_profiled = True
+        is_runned = True
+        BARRIER_FREQ = 4
+        WAIT, WARMUP, ACTIVE, REPEAT = BARRIER_FREQ * 1, BARRIER_FREQ * 1, BARRIER_FREQ * 3, 1
+        # WAIT, WARMUP, ACTIVE, REPEAT = BARRIER_FREQ * 0, BARRIER_FREQ * 0, BARRIER_FREQ * 1, 1
+        TOTAL_TURNS = (WAIT + WARMUP + ACTIVE) * (REPEAT)
+        with torch.profiler.profile(
+            activities=[torch.profiler.ProfilerActivity.CPU, torch.profiler.ProfilerActivity.CUDA],
+            schedule=torch.profiler.schedule(wait=WAIT, warmup=WARMUP, active=ACTIVE, repeat=REPEAT),
+            on_trace_ready=torch.profiler.tensorboard_trace_handler(
+                dir_name=f'{args.tb_dir}', 
+                worker_name=TRACE_NAME,
+            ),
+            record_shapes=True,
+            profile_memory=True,
+            with_stack=True,
+        ) as prof:
+            for iter in range(TOTAL_TURNS):
+                # torch.distributed.all_reduce(sync_tensor, async_op=False)    # for sync and alignment
+                if use_cudagraph:
+                    g.replay()
+                else:
+                    if iter % BARRIER_FREQ == 0:
+                        placeholder_op(stream=streams[0]) # [NOTE]: aim to eliminate cpu overhead
+                    # preprocess
+                    for stream in streams[1:]:
+                        stream.wait_stream(streams[0])
+                    with torch.no_grad():
+                        _ = f(**inputs)
+                    # postprocess
+                    for stream in streams[1:]:
+                        streams[0].wait_stream(stream)
+                if (iter + 1) % BARRIER_FREQ == 0:
+                    torch.cuda.synchronize()
+                    torch.distributed.barrier(group=global_group)
+                prof.step()
+        
+        num_iter = TOTAL_TURNS
+        
+    if not is_runned: 
+        # run
+        if use_cudagraph:
+            for _ in range(num_iter):
+                # torch.distributed.all_reduce(sync_tensor, async_op=False)    # for sync and alignment
+                g.replay()
+                # torch.cuda.synchronize()    # almost no effect on performance
+                # torch.distributed.barrier(group=global_group)   # 64TFlops -> 43TFlops
+        else:
+            for i in range(3):
+                event_start = torch.cuda.Event(enable_timing=True)
+                event_end = torch.cuda.Event(enable_timing=True)
+                placeholder_op(stream=streams[0]) # [NOTE]: aim to eliminate cpu overhead
+                event_start.record(stream=streams[0])
+                # preprocess
+                for stream in streams[1:]:
+                    stream.wait_stream(streams[0])
+                with torch.no_grad():
+                    for _ in range(num_iter):
+                        _ = f(**inputs)
+                # postprocess
+                for stream in streams[1:]:
+                    streams[0].wait_stream(stream)
+                event_end.record(stream=streams[0])
+                torch.cuda.synchronize()
+                td = event_start.elapsed_time(event_end) / 1000 # s
+
+    torch.cuda.synchronize()
+    torch.distributed.barrier(group=global_group)
+    t3 = time.time()
+    if td < 0:
+        td = t3 - t2
+    else:
+        td = torch.tensor(td, device=device)
+        torch.distributed.all_reduce(td, op=torch.distributed.ReduceOp.MAX, async_op=False)
+        torch.cuda.synchronize()
+        td = td.cpu().item()
+    return t1,t2, t3, td
+
 def benchmark_orchestrate(args, raw_f, shapes:dict, tensor_buf, warmup=11, num_iter=20, log=True, 
-                          plan_paths: list = [''], global_group=None, ncclcomm_global: PyNcclCommunicator = None, 
+                          exp_configs: list = [], global_group=None, ncclcomm_global: PyNcclCommunicator = None, 
                           use_cudagraph=False):
     print_rank_0(f'[INFO]: use_cudagraph: {use_cudagraph}')
     warmup = 4
@@ -363,7 +505,9 @@ def benchmark_orchestrate(args, raw_f, shapes:dict, tensor_buf, warmup=11, num_i
     SYNC_SIZE = 8 * pow(1024, 3) # 8GB
     sync_tensor = torch.empty((SYNC_SIZE), dtype=torch.int8, device=device)
     placeholder_op = partial(ncclcomm_global.all_reduce, sync_tensor)
-    for plan_path in plan_paths:
+    for exp_config in exp_configs:
+        plan_path = exp_config.plan_path
+        plan_type = exp_config.plan_type
         torch.cuda.empty_cache()
         t0 = time.time()
         SP = (1, world_size)
@@ -448,152 +592,15 @@ def benchmark_orchestrate(args, raw_f, shapes:dict, tensor_buf, warmup=11, num_i
         torch.cuda.synchronize()
         torch.distributed.barrier(group=global_group)
         
-        # warmup
-        placeholder_op(stream=streams[0]) # [NOTE]: aim to eliminate cpu overhead
-        # preprocess
-        for stream in streams[1:]:
-            stream.wait_stream(streams[0])
-        with torch.no_grad():
-            for _ in range(warmup):
-                _ = f(**inputs)
-        # postprocess
-        for stream in streams[1:]:
-            streams[0].wait_stream(stream)
-        torch.cuda.synchronize()
-        torch.distributed.barrier(group=global_group)   
-        # # [NOTE]: we don't barrier here to prevent WARN of 
-        # # "[W CUDAGraph.cpp:145] Warning: Waiting for pending NCCL work to finish before starting graph capture. (function operator())"
-        # print_rank_0(f'Warmup done !!!')
-    
-        
-        if use_cudagraph:
-            if args.profiler_with_tensorboard:
-                with torch.profiler.profile():  # workaround of issue 75504 of PyTorch
-                    pass
-            # Capture cuda graph
-            # torch.cuda.synchronize()
-            g = torch.cuda.CUDAGraph()
-            # return
-            torch.cuda.synchronize()
-            with torch.cuda.graph(g, stream=streams[0]):
-                pass
-                # preprocess
-                for stream in streams[1:]:
-                    stream.wait_stream(torch.cuda.current_stream())
-                with torch.no_grad():
-                    _ = f(**inputs)
-                # postprocess
-                for stream in streams[1:]:
-                    torch.cuda.current_stream().wait_stream(stream)
-            
-        is_runned = False
-        
-        torch.cuda.synchronize()
-        torch.distributed.barrier(group=global_group)
-        t1 = time.time()
-        
-        # warmup cudagraph
-        if use_cudagraph:
-            for _ in range(warmup_cudagraph):
-                g.replay()
-                # torch.cuda.synchronize()
-                # torch.distributed.barrier(group=global_group)
-            # print_rank_0(f'Warmup cudagraph done !!!')
-
-                    
-        torch.cuda.synchronize()
-        torch.distributed.barrier(group=global_group)
-        # SYNC_SIZE = 64 * 1024 * 1024 # 64MB
-        # sync_tensor = torch.empty((SYNC_SIZE), dtype=torch.int8, device=device)
-        
-        t2 = time.time()
-        td = - 1
-        # if args.profiler_with_tensorboard and not hasattr(args, "tb_profiled"):
-        if args.profiler_with_tensorboard:
-            args.tb_profiled = True
-            is_runned = True
-            BARRIER_FREQ = 4
-            WAIT, WARMUP, ACTIVE, REPEAT = BARRIER_FREQ * 1, BARRIER_FREQ * 1, BARRIER_FREQ * 3, 1
-            # WAIT, WARMUP, ACTIVE, REPEAT = BARRIER_FREQ * 0, BARRIER_FREQ * 0, BARRIER_FREQ * 1, 1
-            TOTAL_TURNS = (WAIT + WARMUP + ACTIVE) * (REPEAT)
-            TRACE_NAME = f'{os.environ["TRACE_NAME"]}_w{world_size}_r{rank}_S{seqlen}_bs{batch_size}_Nh{nheads}_D{nheads}_{f.__name__}'
-            with torch.profiler.profile(
-                activities=[torch.profiler.ProfilerActivity.CPU, torch.profiler.ProfilerActivity.CUDA],
-                schedule=torch.profiler.schedule(wait=WAIT, warmup=WARMUP, active=ACTIVE, repeat=REPEAT),
-                on_trace_ready=torch.profiler.tensorboard_trace_handler(
-                    dir_name=f'{args.tb_dir}', 
-                    worker_name=TRACE_NAME,
-                ),
-                record_shapes=True,
-                profile_memory=True,
-                with_stack=True,
-            ) as prof:
-                for iter in range(TOTAL_TURNS):
-                    # torch.distributed.all_reduce(sync_tensor, async_op=False)    # for sync and alignment
-                    if use_cudagraph:
-                        g.replay()
-                    else:
-                        if iter % BARRIER_FREQ == 0:
-                            placeholder_op(stream=streams[0]) # [NOTE]: aim to eliminate cpu overhead
-                        # preprocess
-                        for stream in streams[1:]:
-                            stream.wait_stream(streams[0])
-                        with torch.no_grad():
-                            _ = f(**inputs)
-                        # postprocess
-                        for stream in streams[1:]:
-                            streams[0].wait_stream(stream)
-                    if (iter + 1) % BARRIER_FREQ == 0:
-                        torch.cuda.synchronize()
-                        torch.distributed.barrier(group=global_group)
-                    prof.step()
-            
-            num_iter = TOTAL_TURNS
-            
-        if not is_runned: 
-            # run
-            if use_cudagraph:
-                for _ in range(num_iter):
-                    # torch.distributed.all_reduce(sync_tensor, async_op=False)    # for sync and alignment
-                    g.replay()
-                    # torch.cuda.synchronize()    # almost no effect on performance
-                    # torch.distributed.barrier(group=global_group)   # 64TFlops -> 43TFlops
-            else:
-                for i in range(3):
-                    event_start = torch.cuda.Event(enable_timing=True)
-                    event_end = torch.cuda.Event(enable_timing=True)
-                    placeholder_op(stream=streams[0]) # [NOTE]: aim to eliminate cpu overhead
-                    event_start.record(stream=streams[0])
-                    # preprocess
-                    for stream in streams[1:]:
-                        stream.wait_stream(streams[0])
-                    with torch.no_grad():
-                        for _ in range(num_iter):
-                            _ = f(**inputs)
-                    # postprocess
-                    for stream in streams[1:]:
-                        streams[0].wait_stream(stream)
-                    event_end.record(stream=streams[0])
-                    torch.cuda.synchronize()
-                    td = event_start.elapsed_time(event_end) / 1000 # s
-
-        torch.cuda.synchronize()
-        torch.distributed.barrier(group=global_group)
-        t3 = time.time()
-        if td < 0:
-            td = t3 - t2
-        else:
-            td = torch.tensor(td, device=device)
-            torch.distributed.all_reduce(td, op=torch.distributed.ReduceOp.MAX, async_op=False)
-            torch.cuda.synchronize()
-            td = td.cpu().item()
-            
+        TRACE_NAME = f'{os.environ["TRACE_NAME"]}_w{world_size}_r{rank}_S{seqlen}_bs{batch_size}_Nh{nheads}_D{nheads}_{f.__name__}'
+        t1, t2, t3, td = benchmark_ops(placeholder_op, streams, global_group, device, f, inputs, warmup, warmup_cudagraph, num_iter, use_cudagraph, TRACE_NAME, args)
 
         if rank == 0 and log:
         # if True:
             m_flops, h_flops = calc_flops(batch_size, seqlen * world_size, nheads, d, causal, fob=fob)
             mfu, hfu = (round(flops / pow(1000, 4) / (td / num_iter * world_size), 3) for flops in (m_flops, h_flops))
-            print(f"suffix: {plan_path.split('/')[-1]}, mfu: {mfu} Tflops/s, hfu: {hfu} Tflops/s, {num_iter / td:.3f} iter/s, {td / num_iter:.3e} s/iter, ({(t1 - t0):.3f}, {(t2 - t1):.3f}, {td:.3f}) sec", flush=True)
+            # print(f"suffix: {plan_path.split('/')[-1]}, mfu: {mfu} Tflops/s, hfu: {hfu} Tflops/s, {num_iter / td:.3f} iter/s, {td / num_iter:.3e} s/iter, ({(t1 - t0):.3f}, {(t2 - t1):.3f}, {td:.3f}) sec", flush=True)
+            print(f"plan_path: {plan_path}, mfu: {mfu} Tflops/s, hfu: {hfu} Tflops/s, {num_iter / td:.3f} iter/s, {td / num_iter:.3e} s/iter, ({(t1 - t0):.3f}, {(t2 - t1):.3f}, {td:.3f}) sec", flush=True)
 
 def benchmark_fused(args, raw_f, shapes:dict, tensor_buf, warmup=11, num_iter=20, log=True, 
                           plan_paths: list = [''], global_group=None, ncclcomm_global: PyNcclCommunicator = None, 
@@ -761,152 +768,15 @@ def benchmark_fused(args, raw_f, shapes:dict, tensor_buf, warmup=11, num_iter=20
         torch.cuda.synchronize()
         torch.distributed.barrier(group=global_group)
         
-        # warmup
-        placeholder_op(stream=streams[0]) # [NOTE]: aim to eliminate cpu overhead
-        # preprocess
-        for stream in streams[1:]:
-            stream.wait_stream(streams[0])
-        with torch.no_grad():
-            for _ in range(warmup):
-                _ = f(**inputs)
-        # postprocess
-        for stream in streams[1:]:
-            streams[0].wait_stream(stream)
-        torch.cuda.synchronize()
-        torch.distributed.barrier(group=global_group)   
-        # # [NOTE]: we don't barrier here to prevent WARN of 
-        # # "[W CUDAGraph.cpp:145] Warning: Waiting for pending NCCL work to finish before starting graph capture. (function operator())"
-        # print_rank_0(f'Warmup done !!!')
-    
-        
-        if use_cudagraph:
-            if args.profiler_with_tensorboard:
-                with torch.profiler.profile():  # workaround of issue 75504 of PyTorch
-                    pass
-            # Capture cuda graph
-            # torch.cuda.synchronize()
-            g = torch.cuda.CUDAGraph()
-            # return
-            torch.cuda.synchronize()
-            with torch.cuda.graph(g, stream=streams[0]):
-                pass
-                # preprocess
-                for stream in streams[1:]:
-                    stream.wait_stream(torch.cuda.current_stream())
-                with torch.no_grad():
-                    _ = f(**inputs)
-                # postprocess
-                for stream in streams[1:]:
-                    torch.cuda.current_stream().wait_stream(stream)
-            
-        is_runned = False
-        
-        torch.cuda.synchronize()
-        torch.distributed.barrier(group=global_group)
-        t1 = time.time()
-        
-        # warmup cudagraph
-        if use_cudagraph:
-            for _ in range(warmup_cudagraph):
-                g.replay()
-                # torch.cuda.synchronize()
-                # torch.distributed.barrier(group=global_group)
-            # print_rank_0(f'Warmup cudagraph done !!!')
-
-                    
-        torch.cuda.synchronize()
-        torch.distributed.barrier(group=global_group)
-        # SYNC_SIZE = 64 * 1024 * 1024 # 64MB
-        # sync_tensor = torch.empty((SYNC_SIZE), dtype=torch.int8, device=device)
-        
-        t2 = time.time()
-        td = - 1
-        # if args.profiler_with_tensorboard and not hasattr(args, "tb_profiled"):
-        if args.profiler_with_tensorboard:
-            args.tb_profiled = True
-            is_runned = True
-            BARRIER_FREQ = 4
-            WAIT, WARMUP, ACTIVE, REPEAT = BARRIER_FREQ * 1, BARRIER_FREQ * 1, BARRIER_FREQ * 3, 1
-            # WAIT, WARMUP, ACTIVE, REPEAT = BARRIER_FREQ * 0, BARRIER_FREQ * 0, BARRIER_FREQ * 1, 1
-            TOTAL_TURNS = (WAIT + WARMUP + ACTIVE) * (REPEAT)
-            TRACE_NAME = f'{os.environ["TRACE_NAME"]}_w{world_size}_r{rank}_S{seqlen}_bs{batch_size}_Nh{nheads}_D{nheads}_{f.__name__}'
-            with torch.profiler.profile(
-                activities=[torch.profiler.ProfilerActivity.CPU, torch.profiler.ProfilerActivity.CUDA],
-                schedule=torch.profiler.schedule(wait=WAIT, warmup=WARMUP, active=ACTIVE, repeat=REPEAT),
-                on_trace_ready=torch.profiler.tensorboard_trace_handler(
-                    dir_name=f'{args.tb_dir}', 
-                    worker_name=TRACE_NAME,
-                ),
-                record_shapes=True,
-                profile_memory=True,
-                with_stack=True,
-            ) as prof:
-                for iter in range(TOTAL_TURNS):
-                    # torch.distributed.all_reduce(sync_tensor, async_op=False)    # for sync and alignment
-                    if use_cudagraph:
-                        g.replay()
-                    else:
-                        if iter % BARRIER_FREQ == 0:
-                            placeholder_op(stream=streams[0]) # [NOTE]: aim to eliminate cpu overhead
-                        # preprocess
-                        for stream in streams[1:]:
-                            stream.wait_stream(streams[0])
-                        with torch.no_grad():
-                            _ = f(**inputs)
-                        # postprocess
-                        for stream in streams[1:]:
-                            streams[0].wait_stream(stream)
-                    if (iter + 1) % BARRIER_FREQ == 0:
-                        torch.cuda.synchronize()
-                        torch.distributed.barrier(group=global_group)
-                    prof.step()
-            
-            num_iter = TOTAL_TURNS
-            
-        if not is_runned: 
-            # run
-            if use_cudagraph:
-                for _ in range(num_iter):
-                    # torch.distributed.all_reduce(sync_tensor, async_op=False)    # for sync and alignment
-                    g.replay()
-                    # torch.cuda.synchronize()    # almost no effect on performance
-                    # torch.distributed.barrier(group=global_group)   # 64TFlops -> 43TFlops
-            else:
-                for i in range(3):
-                    event_start = torch.cuda.Event(enable_timing=True)
-                    event_end = torch.cuda.Event(enable_timing=True)
-                    placeholder_op(stream=streams[0]) # [NOTE]: aim to eliminate cpu overhead
-                    event_start.record(stream=streams[0])
-                    # preprocess
-                    for stream in streams[1:]:
-                        stream.wait_stream(streams[0])
-                    with torch.no_grad():
-                        for _ in range(num_iter):
-                            _ = f(**inputs)
-                    # postprocess
-                    for stream in streams[1:]:
-                        streams[0].wait_stream(stream)
-                    event_end.record(stream=streams[0])
-                    torch.cuda.synchronize()
-                    td = event_start.elapsed_time(event_end) / 1000 # s
-
-        torch.cuda.synchronize()
-        torch.distributed.barrier(group=global_group)
-        t3 = time.time()
-        if td < 0:
-            td = t3 - t2
-        else:
-            td = torch.tensor(td, device=device)
-            torch.distributed.all_reduce(td, op=torch.distributed.ReduceOp.MAX, async_op=False)
-            torch.cuda.synchronize()
-            td = td.cpu().item()
-            
+        TRACE_NAME = f'{os.environ["TRACE_NAME"]}_w{world_size}_r{rank}_S{seqlen}_bs{batch_size}_Nh{nheads}_D{nheads}_{f.__name__}'
+        t1, t2, t3, td = benchmark_ops(placeholder_op, streams, global_group, device, f, inputs, warmup, warmup_cudagraph, num_iter, use_cudagraph, TRACE_NAME, args)
 
         if rank == 0 and log:
         # if True:
             m_flops, h_flops = calc_flops(batch_size, seqlen * world_size, nheads, d, causal, fob=fob)
             mfu, hfu = (round(flops / pow(1000, 4) / (td / num_iter * world_size), 3) for flops in (m_flops, h_flops))
             print(f"suffix: {plan_path.split('/')[-1]}, mfu: {mfu} Tflops/s, hfu: {hfu} Tflops/s, {num_iter / td:.3f} iter/s, {td / num_iter:.3e} s/iter, ({(t1 - t0):.3f}, {(t2 - t1):.3f}, {td:.3f}) sec", flush=True)
+            # print(f"plan_path: {plan_path}, mfu: {mfu} Tflops/s, hfu: {hfu} Tflops/s, {num_iter / td:.3f} iter/s, {td / num_iter:.3e} s/iter, ({(t1 - t0):.3f}, {(t2 - t1):.3f}, {td:.3f}) sec", flush=True)
 
     
 def main(args):
@@ -950,6 +820,8 @@ def main(args):
         # overlapped_hierarchy_attn_func,     # another case
         orchestrated_attn_func,
     ]
+    
+    # Configs:
     bs = 1
     D = 128
     # Ss = [
@@ -967,14 +839,14 @@ def main(args):
     Ss_per_gpu = [
         # 256,
         # 512,
-        # 1 * 1024,   # 1K
+        1 * 1024,   # 1K
         # 2 * 1024,
         # 4 * 1024,
         # 8 * 1024,
         # 16 * 1024,
         # 32 * 1024,
         # 64 * 1024,
-        128 * 1024, # 128K, # [NOTE]: ERROR in backward
+        # 128 * 1024, # 128K, # [NOTE]: ERROR in backward
     ]
     Ss = [S * world_size for S in Ss_per_gpu]
     Nhs = [ # configs of llama2
@@ -984,7 +856,10 @@ def main(args):
     #    80,  # 70b 
     ]
     fob = 0
-    fob = 1
+    # fob = 1
+    causal = True
+    # causal = False
+    
     tensor_buf = torch.randn(
         (6 * bs * max(Ss) * max(Nhs) * D), device=device, dtype=DTYPE, requires_grad=False
     )
@@ -1007,60 +882,66 @@ def main(args):
                 torch.cuda.empty_cache()
                 if f == orchestrated_attn_func:
                 # if False:
+                    fob = 0
                     SPs = (PROC_INFO['node_num'], PROC_INFO['tasks_per_node'])
-                    # da_config = Dist_Attn_Config(SP=SPs, S=(S, S), Nh=(Nh, Nh), D=D, bs=bs, causal=False)
-                    # par_dir = f'{os.path.dirname(__file__)}/search_algo/execution_plans/SP{da_config.SP}_S{da_config.S}'
-                    # # print(f'{os.path.exists(par_dir)}')
-                    # # plan_name = da_config.get_plan_name(fob=0 if forward_only else 1)
-                    # plan_file = f'{par_dir}/{plan_name}{plan_suffix}.pkl'
-                    
-                    plan_suffixes = ['_example', '_qo', '_kv', '_kv', '_qo', '_example']
-                    plan_suffixes = ['_example_old', '_qo_old', '_kv_old', '_example', '_qo', '_kv']
-                    plan_suffixes = ['_example', '_qo', '_kv', '_example_old', '_qo_old', '_kv_old', '_example', '_qo', '_kv']
-                    plan_suffixes = ['_example', '_example', '_qo', '_qo', '_kv', '_kv', '_example', '_example', '_qo', '_qo', '_kv', '_kv']
-                    
-                    plan_suffixes = ['_example', '_qo', '_kv']
-                    # plan_suffixes = ['_kv']
-                    # plan_suffixes = ['_example']
-                    # NUM_ALG = 100
-                    # for _ in range(NUM_ALG):
-                    # # for _ in range(NUM_ALG - 1, - 1, - 1):
-                    #     plan_suffixes.append(f'_alg{_}')
-                    # plan_suffixes = ['_example_old', '_alg12']
-                    # plan_suffixes = ['_alg12']
-                    
-                    # NUM_ALG = 4
-                    # plan_suffixes = []
-                    # for _ in range(1, NUM_ALG):
-                    #     plan_suffixes.append(f'_alg{_}')
-                    
-                    par_dir = f'{os.path.dirname(__file__)}/search_algo/execution_plans/intra_SP{SPs[1]}_fob={fob}'
-                    plan_paths = []
-                    for plan_name in os.listdir(par_dir):
-                        plan_paths.append(f'{par_dir}/{plan_name}')
-                    # # kv filter
-                    # kv_filter = lambda x: 'X=1' in x
+                    da_config = Dist_Attn_Config(SP=SPs, S=(S, S), Nh=(Nh, Nh), D=D, bs=bs, causal=causal)
+                    # Config1: Algorithms for intra causal attention
+                    exp_configs = []
+                    plan_types = ['ablation0', 'ablation1', 'automatic']
+                    plan_types = ['ablation1', 'automatic']
+                    plan_files = []
+                    plan_name = da_config.get_plan_name(fob=fob)
+                    NUM_ALG = 100
+                    for _ in range(NUM_ALG):
+                        plan_files.append(f'{plan_name}_alg{_}.pkl')
+                    for plan_file in plan_files:
+                        for plan_type in plan_types:
+                            par_dir = f'{os.path.dirname(__file__)}/search_algo/execution_plans/SP{da_config.SP}_S{da_config.S}'
+                            if plan_type == 'ablation1':
+                                par_dir = f'{par_dir}_{plan_type}'
+                            assert os.path.exists(par_dir), f'{par_dir} not exists'
+                            
+                            exp_config = Evaluation_Configs(
+                                plan_type=plan_type,
+                                MAX_QUEUE_SIZE=0,
+                                fob=fob,
+                            )
+                            plan_path = f'{par_dir}/{plan_file}'
+                            assert os.path.exists(plan_path), f'{plan_path} not exists'
+                            exp_config.plan_path = plan_path
+                            exp_configs.append(exp_config)
+                        
+                    # # Config2: Blocking algorithms for intra full attention
+                    # par_dir = f'{os.path.dirname(__file__)}/search_algo/execution_plans/intra_SP{SPs[1]}_fob={fob}'
+                    # plan_paths = []
+                    # for plan_name in os.listdir(par_dir):
+                    #     plan_paths.append(f'{par_dir}/{plan_name}')
+                    # # # kv filter
+                    # # kv_filter = lambda x: 'X=1' in x
+                    # # for i in range(len(plan_paths) - 1, - 1, - 1):
+                    # #     if not kv_filter(plan_paths[i]):
+                    # #         plan_paths.pop(i)
+                    # # X=2 filter
+                    # x_filter = lambda x: 'X=2' in x
                     # for i in range(len(plan_paths) - 1, - 1, - 1):
-                    #     if not kv_filter(plan_paths[i]):
+                    #     if not x_filter(plan_paths[i]):
                     #         plan_paths.pop(i)
-                    # X=2 filter
-                    x_filter = lambda x: 'X=2' in x
-                    for i in range(len(plan_paths) - 1, - 1, - 1):
-                        if not x_filter(plan_paths[i]):
-                            plan_paths.pop(i)
                     # print_rank_0(f'plan_paths: {plan_paths}')
-                    # benchmark_op = partial(benchmark_orchestrate,
+                    
+                    # normal comp&comm
+                    benchmark_op = partial(benchmark_orchestrate,
+                        args, f, shapes, tensor_buf, log=True, exp_configs=exp_configs, 
+                        global_group=gloo_global_group, ncclcomm_global=ncclcomm_global
+                    )
+                    benchmark_op(use_cudagraph=False)
+                    # benchmark_op(use_cudagraph=True)
+                    
+                    # # fused comp&comm
+                    # benchmark_op = partial(benchmark_fused,
                     #     args, f, shapes, tensor_buf, log=True, plan_paths=plan_paths, 
                     #     global_group=gloo_global_group, ncclcomm_global=ncclcomm_global
                     # )
                     # benchmark_op(use_cudagraph=False)
-                    # benchmark_op(use_cudagraph=True)
-                    # fused comp&comm
-                    benchmark_op = partial(benchmark_fused,
-                        args, f, shapes, tensor_buf, log=True, plan_paths=plan_paths, 
-                        global_group=gloo_global_group, ncclcomm_global=ncclcomm_global
-                    )
-                    benchmark_op(use_cudagraph=False)
                 else:
                     benchmark(args, f, shapes, qkv_buf, dout_buf, forward_only=True, log=True)
                 # benchmark(args, f, shapes, forward_only=False, log=True)
