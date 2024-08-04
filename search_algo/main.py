@@ -11,8 +11,8 @@ import pickle
 
 def get_exp_config():
     plan_type = 'automatic'
-    plan_type = 'maunal'
-    plan_type = 'ablation1'
+    # plan_type = 'maunal'
+    # plan_type = 'ablation1'
     MAX_QUEUE_SIZE = 100
     fob = 0
     return Evaluation_Configs(plan_type, MAX_QUEUE_SIZE, fob)

@@ -120,6 +120,9 @@ def intra_attn_forward(
             ('o', 'c'): Output_Col_Fwd(),
         }
         p_fwd_comp_func = partial(fwd_comp_func, out_row=idata_buf[('o', 'r')], out_col=idata_buf[('o', 'c')])
+        # for kernel in execution_plan.gpu_kernel_lists[local_rank]:
+        #     print(f'rank{rank}: {kernel.key}, {(kernel._start_time, kernel.id)}', flush=True)
+        # print(f'rank{rank}: print kernels done !!!', flush=True)
         for kernel in execution_plan.gpu_kernel_lists[local_rank]:
             # if kernel.key[- 2] == 'i':  # only input comm, cudagraph OK !!!
             # if isinstance(kernel, Comp_Kernel) or kernel.key[- 2] == 'i':   # input comm + comp

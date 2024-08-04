@@ -537,25 +537,44 @@ def benchmark_orchestrate(args, raw_f, shapes:dict, tensor_buf, warmup=11, num_i
         if execution_plan.da_config.Nh != Nhs:
             execution_plan.da_config.Nh = Nhs
         # create streams
+        if exp_config.plan_type == 'ablation0':
+            stream_num = 1 # comp stream
+            for kernel in execution_plan.gpu_kernel_lists[local_rank]:
+                if not isinstance(kernel, Comp_Kernel): # Comp
+                    stream_num += 1
+            execution_plan.stream_num = stream_num
+        
         if not is_exist_global_var('streams'):
             streams = []
+        else:
+            streams = get_global_var('streams')
+        if len(streams) < execution_plan.stream_num:
             # streams.append(torch.cuda.current_stream())
             # print(f'rank{rank}, current_device: {torch.cuda.current_device()}')
             priorities = [0, - 1, - 2]
-            priorities = [0, 0, 0]
-            for _ in range(0, execution_plan.stream_num):
+            priorities = [0] * execution_plan.stream_num
+            for _ in range(len(streams), execution_plan.stream_num):
                 streams.append(torch.cuda.Stream(torch.cuda.current_device(), priority=priorities[_]))
             set_global_var('streams', streams)
-        streams = get_global_var('streams')
         # set stream for eash kernel
-        for kernel in execution_plan.gpu_kernel_lists[local_rank]:
-            if isinstance(kernel, Comp_Kernel):
-                kernel.stream = streams[0]
-            else:
-                if kernel.key[3] == local_rank:
-                    kernel.stream = streams[1]    # Send
+        if exp_config.plan_type == 'ablation0':
+            comm_stream_id = 1
+            for kernel in execution_plan.gpu_kernel_lists[local_rank]:
+                if isinstance(kernel, Comp_Kernel):
+                    kernel.stream = streams[0]
                 else:
-                    kernel.stream = streams[2]    # Recv
+                    kernel.stream = streams[comm_stream_id]
+                    comm_stream_id += 1
+            assert comm_stream_id == execution_plan.stream_num
+        else:
+            for kernel in execution_plan.gpu_kernel_lists[local_rank]:
+                if isinstance(kernel, Comp_Kernel):
+                    kernel.stream = streams[0]
+                else:
+                    if kernel.key[3] == local_rank:
+                        kernel.stream = streams[1]    # Send
+                    else:
+                        kernel.stream = streams[2]    # Recv
         # build nccl communicator for each pair of ranks
         ncclcomm_dict = get_global_var('ncclcomm_dict')
         # create gloo group for each pair of ranks
@@ -887,13 +906,22 @@ def main(args):
                     da_config = Dist_Attn_Config(SP=SPs, S=(S, S), Nh=(Nh, Nh), D=D, bs=bs, causal=causal)
                     # Config1: Algorithms for intra causal attention
                     exp_configs = []
-                    plan_types = ['ablation0', 'ablation1', 'automatic']
-                    plan_types = ['ablation1', 'automatic']
-                    plan_files = []
+                    plan_types = ['ablation0', 'automatic', 'ablation1']
+                    # plan_types = ['ablation1', 'automatic']
+                    plan_types = ['ablation0', 'automatic']
+                    
                     plan_name = da_config.get_plan_name(fob=fob)
-                    NUM_ALG = 100
-                    for _ in range(NUM_ALG):
-                        plan_files.append(f'{plan_name}_alg{_}.pkl')
+                    
+                    plan_suffixes = []
+                    # NUM_ALG = 100
+                    # for _ in range(NUM_ALG):
+                    #     plan_suffixes.append(f'_alg{_}')
+                    plan_suffixes = ['_example', '_kv', '_qo']
+                        
+                    plan_files = []
+                    for plan_suffix in plan_suffixes:
+                        plan_files.append(f'{plan_name}{plan_suffix}.pkl')
+                        
                     for plan_file in plan_files:
                         for plan_type in plan_types:
                             par_dir = f'{os.path.dirname(__file__)}/search_algo/execution_plans/SP{da_config.SP}_S{da_config.S}'

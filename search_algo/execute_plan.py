@@ -132,7 +132,7 @@ class Execution_Plan(): # input: kernel streams of gpus
             kernel_list = []
             for s in range(self.stream_num):
                 kernel_list += self.stream_kernel_lists[(g, s)]
-            kernel_list.sort(key=lambda x: x.start_time.value())
+            kernel_list.sort(key=lambda x: (x.start_time.value(), x.id))
             self.gpu_kernel_lists.append(kernel_list)
         return mylp
     
