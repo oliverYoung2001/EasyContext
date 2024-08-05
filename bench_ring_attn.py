@@ -36,7 +36,7 @@ warnings.filterwarnings("ignore")   # disable warning caused by lightseq
 
 PROC_INFO: dict
 DTYPE = torch.bfloat16
-
+placeholder_op = None
 
 # def zigzag_ring_flash_attn_func_opt(*args, **kwargs):
 #     print(f'args: {args}, kwargs: {kwargs}')
@@ -223,7 +223,6 @@ def benchmark(args, f, shapes:dict, qkv_buf, dout_buf, warmup=11, num_iter=20, f
     
     # if args.profiler_with_tensorboard and not hasattr(args, "tb_profiled"):
     if args.profiler_with_tensorboard:
-        sync_tensor = torch.empty((1 * 1024 * 1024 * 1024), dtype=DTYPE, device=device)
         args.tb_profiled = True
         is_runned = True
         BARRIER_FREQ = 4
@@ -295,10 +294,11 @@ def benchmark(args, f, shapes:dict, qkv_buf, dout_buf, warmup=11, num_iter=20, f
         mfu, hfu = (round(flops / pow(1000, 4) / (td / num_iter * world_size), 3) for flops in (m_flops, h_flops))
         print(f"mfu: {mfu} Tflops/s, hfu: {hfu} Tflops/s, {num_iter / td:.3f} iter/s, {td / num_iter:.3e} s/iter, ({(t1 - t0):.3f}, {(t2 - t1):.3f}, {td:.3f}) sec", flush=True)
 
-def benchmark_ops(placeholder_op, streams, global_group, device, f, inputs, \
+def benchmark_ops(streams, global_group, device, f, inputs, \
                 warmup, warmup_cudagraph, num_iter, use_cudagraph, TRACE_NAME, args):
     torch.cuda.empty_cache()
     # warmup
+    global placeholder_op
     placeholder_op(stream=streams[0]) # [NOTE]: aim to eliminate cpu overhead
     # preprocess
     for stream in streams[1:]:
@@ -353,8 +353,6 @@ def benchmark_ops(placeholder_op, streams, global_group, device, f, inputs, \
                 
     torch.cuda.synchronize()
     torch.distributed.barrier(group=global_group)
-    # SYNC_SIZE = 64 * 1024 * 1024 # 64MB
-    # sync_tensor = torch.empty((SYNC_SIZE), dtype=torch.int8, device=device)
     
     t2 = time.time()
     td = - 1
@@ -509,9 +507,6 @@ def benchmark_orchestrate(args, raw_f, da_config: Dist_Attn_Config, tensor_buf: 
         }
         return inputs
 
-    SYNC_SIZE = 8 * pow(1024, 3) # 8GB
-    sync_tensor = torch.empty((SYNC_SIZE), dtype=torch.int8, device=device)
-    placeholder_op = partial(ncclcomm_global.all_reduce, sync_tensor)
     for exp_config in exp_configs:
         plan_path = exp_config.plan_path
         plan_type = exp_config.plan_type
@@ -619,7 +614,7 @@ def benchmark_orchestrate(args, raw_f, da_config: Dist_Attn_Config, tensor_buf: 
         torch.distributed.barrier(group=global_group)
         
         TRACE_NAME = f'{os.environ["TRACE_NAME"]}_w{world_size}_r{rank}_S({Sq},{Skv})_bs{batch_size}_Nh{nheads}_D{nheads}_{f.__name__}'
-        t1, t2, t3, td = benchmark_ops(placeholder_op, streams, global_group, device, f, inputs, warmup, warmup_cudagraph, num_iter, use_cudagraph, TRACE_NAME, args)
+        t1, t2, t3, td = benchmark_ops(streams, global_group, device, f, inputs, warmup, warmup_cudagraph, num_iter, use_cudagraph, TRACE_NAME, args)
 
         if rank == 0 and log:
         # if True:
@@ -717,9 +712,6 @@ def benchmark_fused(args, raw_f, da_config: Dist_Attn_Config, tensor_buf, warmup
         }
         return inputs
 
-    SYNC_SIZE = 8 * pow(1024, 3) # 8GB
-    sync_tensor = torch.empty((SYNC_SIZE), dtype=torch.int8, device=device)
-    placeholder_op = partial(ncclcomm_global.all_reduce, sync_tensor)
     for plan_path in plan_paths:
         torch.cuda.empty_cache()
         t0 = time.time()
@@ -797,7 +789,7 @@ def benchmark_fused(args, raw_f, da_config: Dist_Attn_Config, tensor_buf, warmup
         torch.distributed.barrier(group=global_group)
         
         TRACE_NAME = f'{os.environ["TRACE_NAME"]}_w{world_size}_r{rank}_S{seqlen}_bs{batch_size}_Nh{nheads}_D{nheads}_{f.__name__}'
-        t1, t2, t3, td = benchmark_ops(placeholder_op, streams, global_group, device, f, inputs, warmup, warmup_cudagraph, num_iter, use_cudagraph, TRACE_NAME, args)
+        t1, t2, t3, td = benchmark_ops(streams, global_group, device, f, inputs, warmup, warmup_cudagraph, num_iter, use_cudagraph, TRACE_NAME, args)
 
         if rank == 0 and log:
         # if True:
@@ -845,7 +837,7 @@ def run_all_intra_attn(args, ncclcomm_global, gloo_global_group):
     multiplying_powers = [1, 2, 3, 4, 5, 6, 7]
     Sqs = [S * power for S in S_base for power in multiplying_powers if S * power <= S_BOUND[1]]
     Sqs = sorted(list(set(Sqs)))    # Sq per GPU
-    Sqs = [64 * 1024]
+    Sqs = [16 * 1024]
     Skvs = Sqs
     print_rank_0(f'Sqs: {Sqs}')
     
@@ -938,6 +930,12 @@ def main(args):
 
     device = torch.device(f"cuda:{PROC_INFO['deviceid']}")
     torch.cuda.set_device(device)
+    
+    # preprocess placeholder_op
+    global placeholder_op
+    SYNC_SIZE = 8 * pow(1024, 3) # 8GB
+    sync_tensor = torch.empty((SYNC_SIZE), dtype=torch.int8, device=device)
+    placeholder_op = partial(ncclcomm_global.all_reduce, sync_tensor)
 
 
     # PROC_INFO['tasks_per_node'] = 2 # for test 4 x 2
