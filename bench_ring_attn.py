@@ -134,7 +134,7 @@ def get_XY_from_plan_path(plan_path: str):
     assert res is not None, f'Invalid plan_path: {plan_path}'
     return (int(res.group(2)), int(res.group(1)))   # (X, Y)
      
-def benchmark(args, f, shapes:dict, qkv_buf, dout_buf, warmup=11, num_iter=20, forward_only=True, log=True):
+def benchmark(args, f, da_config: Dist_Attn_Config, tensor_buf, warmup=11, num_iter=20, forward_only=True, log=True):
     # warmup = 0
     # num_iter = 20
     torch.cuda.synchronize()
@@ -150,12 +150,13 @@ def benchmark(args, f, shapes:dict, qkv_buf, dout_buf, warmup=11, num_iter=20, f
     device = torch.device(f"cuda:{PROC_INFO['deviceid']}")
     torch.cuda.set_device(device)
 
-    batch_size = shapes['bs']
-    seqlen = shapes['S']
-    nheads = shapes['Nh']
-    d = shapes['D']
+    batch_size = da_config.bs
+    Sq, Skv = da_config.S_per_gpu   # Sq, Skv per gpu !!!
+    nheads = da_config.Nh[0]    # Nh, Ng
+    d = da_config.D
     if f == flash_attn_func:
-        seqlen *= world_size
+        Sq *= world_size
+        Skv *= world_size
         world_size = 1
     dropout_p = 0
     causal = True
@@ -164,14 +165,22 @@ def benchmark(args, f, shapes:dict, qkv_buf, dout_buf, warmup=11, num_iter=20, f
     # assert seqlen % (2 * world_size) == 0
     assert d % 8 == 0
 
-    qkv = qkv_buf[: 3 * batch_size * seqlen * nheads * d].view(3 * batch_size, seqlen, nheads, d)
+    Q_shape = (batch_size, Sq, nheads, d)
+    K_shape = (batch_size, Skv, nheads, d)
+    Q_numel = math.prod(Q_shape)
+    K_numel = math.prod(K_shape)
+    q = tensor_buf[: Q_numel].view(Q_shape)
+    k = tensor_buf[Q_numel: Q_numel + K_numel].view(K_shape)
+    v = tensor_buf[Q_numel + K_numel: Q_numel + K_numel * 2].view(K_shape)
+    dout = tensor_buf[Q_numel + K_numel * 2: Q_numel * 2 + K_numel * 2].view(Q_shape)
+    qkv = tensor_buf[: Q_numel + K_numel * 2]
     qkv.requires_grad = True
-    dout = dout_buf[: batch_size * seqlen * nheads * d].view(batch_size, seqlen, nheads, d)
     # bsz, nh, seq_len, hdim
     if f == lightseq_attn_func:
-        qkv = qkv.permute(0, 2, 1, 3)
+        q = q.permute(0, 2, 1, 3)
+        k = k.permute(0, 2, 1, 3)
+        v = v.permute(0, 2, 1, 3)
         dout = dout.permute(0, 2, 1, 3)
-    q, k, v = qkv.chunk(3, dim=0)
     
     inputs = {
         "q": q,
@@ -229,7 +238,7 @@ def benchmark(args, f, shapes:dict, qkv_buf, dout_buf, warmup=11, num_iter=20, f
         WAIT, WARMUP, ACTIVE, REPEAT = BARRIER_FREQ * 1, BARRIER_FREQ * 1, BARRIER_FREQ * 3, 1
         # WAIT, WARMUP, ACTIVE, REPEAT = BARRIER_FREQ * 0, BARRIER_FREQ * 0, BARRIER_FREQ * 1, 1
         TOTAL_TURNS = (WAIT + WARMUP + ACTIVE) * (REPEAT)
-        TRACE_NAME = f'{os.environ["TRACE_NAME"]}_w{world_size}_r{rank}_S{seqlen}_bs{batch_size}_Nh{nheads}_D{nheads}_{f.__name__}_{"f" if forward_only else "f+b"}'
+        TRACE_NAME = f'{os.environ["TRACE_NAME"]}_w{world_size}_r{rank}_S({Sq},{Skv})_bs{batch_size}_Nh{nheads}_D{nheads}_{f.__name__}_{"f" if forward_only else "f+b"}'
         with torch.profiler.profile(
             activities=[torch.profiler.ProfilerActivity.CPU, torch.profiler.ProfilerActivity.CUDA],
             schedule=torch.profiler.schedule(wait=WAIT, warmup=WARMUP, active=ACTIVE, repeat=REPEAT),
@@ -290,7 +299,7 @@ def benchmark(args, f, shapes:dict, qkv_buf, dout_buf, warmup=11, num_iter=20, f
     td = t3 - t2
 
     if rank == 0 and log:
-        m_flops, h_flops = calc_flops(batch_size, seqlen * world_size, nheads, d, causal, fob = 0 if forward_only else 2)
+        m_flops, h_flops = calc_flops(batch_size, (Sq * world_size, Skv * world_size), nheads, d, causal, fob = 0 if forward_only else 2)
         mfu, hfu = (round(flops / pow(1000, 4) / (td / num_iter * world_size), 3) for flops in (m_flops, h_flops))
         print(f"mfu: {mfu} Tflops/s, hfu: {hfu} Tflops/s, {num_iter / td:.3f} iter/s, {td / num_iter:.3e} s/iter, ({(t1 - t0):.3f}, {(t2 - t1):.3f}, {td:.3f}) sec", flush=True)
 
@@ -627,7 +636,7 @@ def benchmark_orchestrate(args, raw_f, da_config: Dist_Attn_Config, tensor_buf: 
 def benchmark_fused(args, raw_f, da_config: Dist_Attn_Config, tensor_buf, warmup=11, num_iter=20, log=True, 
                           plan_paths: list = [''], global_group=None, ncclcomm_global: PyNcclCommunicator = None, 
                           use_cudagraph=False):
-    print_rank_0(f'[INFO]: use_cudagraph: {use_cudagraph}')
+    # print_rank_0(f'[INFO]: use_cudagraph: {use_cudagraph}')
     warmup = 4
     warmup_cudagraph = 100
     num_iter = 4
@@ -639,19 +648,19 @@ def benchmark_fused(args, raw_f, da_config: Dist_Attn_Config, tensor_buf, warmup
     local_size = PROC_INFO['tasks_per_node']
     nodeid = PROC_INFO['nodeid']
     if rank == 0:
-        print(f'# {raw_f.__name__}', flush=True)
+        print(f'# {raw_f.__name__} fused', flush=True)
     world_size = dist.get_world_size()
     device = torch.device(f"cuda:{PROC_INFO['deviceid']}")
     torch.cuda.set_device(device)
 
-    batch_size = shapes['bs']
-    seqlen = shapes['S']
-    nheads = shapes['Nh']
-    d = shapes['D']
+    batch_size = da_config.bs
+    Sq, Skv = da_config.S_per_gpu   # Sq, Skv per gpu !!!
+    nheads = da_config.Nh[0]    # Nh, Ng
+    d = da_config.D
     dropout_p = 0
     deterministic = False
     SPs = (PROC_INFO['node_num'], PROC_INFO['tasks_per_node'])
-    da_config = Dist_Attn_Config(SP=SPs, S=(seqlen * world_size, seqlen * world_size), Nh=(nheads, nheads), D=d, bs=batch_size, causal=False)
+    # da_config = Dist_Attn_Config(SP=SPs, S=(seqlen * world_size, seqlen * world_size), Nh=(nheads, nheads), D=d, bs=batch_size, causal=False)
 
     assert d % 8 == 0
     
@@ -666,15 +675,15 @@ def benchmark_fused(args, raw_f, da_config: Dist_Attn_Config, tensor_buf, warmup
         # # lse_buf = tensor_buf[5 * batch_size * seqlen * nheads * d: ]
         # lse = lse_buf[: batch_size * seqlen * nheads * 1].view(batch_size, nheads, seqlen)   # [mbs, Nh, S]
         if fob == 0:    # forward
-            ir_nelems = batch_size * seqlen * nheads * d   # q
-            ic_nelems = 2 * (batch_size * seqlen * nheads * d)   # k, v
-            or_nelems = batch_size * seqlen * nheads * d   # o, (lse)
+            ir_nelems = batch_size * Sq * nheads * d   # q
+            ic_nelems = 2 * (batch_size * Skv * nheads * d)   # k, v
+            or_nelems = batch_size * Sq * nheads * d   # o, (lse)
             oc_nelems = 0
         else:   # backward
-            ir_nelems = batch_size * seqlen * nheads * (d * 2 + 1 * (2 + 1))   # q, do, D, lse
-            ic_nelems = 2 * (batch_size * seqlen * nheads * d)   # k, v
-            or_nelems = batch_size * seqlen * nheads * d        # dq
-            oc_nelems = (batch_size * seqlen * nheads * d) * 2  # dk, dv
+            ir_nelems = batch_size * Sq * nheads * (d * 2 + 1 * (2 + 1))   # q, do, D, lse
+            ic_nelems = 2 * (batch_size * Skv * nheads * d)   # k, v
+            or_nelems = batch_size * Sq * nheads * d        # dq
+            oc_nelems = (batch_size * Skv * nheads * d) * 2  # dk, dv
 
         ir_tot = ir_nelems * X
         ic_tot = ic_nelems * Y
@@ -788,14 +797,15 @@ def benchmark_fused(args, raw_f, da_config: Dist_Attn_Config, tensor_buf, warmup
         torch.cuda.synchronize()
         torch.distributed.barrier(group=global_group)
         
-        TRACE_NAME = f'{os.environ["TRACE_NAME"]}_w{world_size}_r{rank}_S{seqlen}_bs{batch_size}_Nh{nheads}_D{nheads}_{f.__name__}'
+        TRACE_NAME = f'{os.environ["TRACE_NAME"]}_w{world_size}_r{rank}_S({Sq},{Skv})_bs{batch_size}_Nh{nheads}_D{nheads}_{f.__name__}'
         t1, t2, t3, td = benchmark_ops(streams, global_group, device, f, inputs, warmup, warmup_cudagraph, num_iter, use_cudagraph, TRACE_NAME, args)
 
         if rank == 0 and log:
         # if True:
-            m_flops, h_flops = calc_flops(batch_size, seqlen * world_size, nheads, d, causal, fob=fob)
+            m_flops, h_flops = calc_flops(batch_size, (Sq * world_size, Skv * world_size), nheads, d, causal, fob=fob)
             mfu, hfu = (round(flops / pow(1000, 4) / (td / num_iter * world_size), 3) for flops in (m_flops, h_flops))
-            print(f"suffix: {plan_path.split('/')[-1]}, mfu: {mfu} Tflops/s, hfu: {hfu} Tflops/s, {num_iter / td:.3f} iter/s, {td / num_iter:.3e} s/iter, ({(t1 - t0):.3f}, {(t2 - t1):.3f}, {td:.3f}) sec", flush=True)
+            print(f"mfu: {mfu} Tflops/s, hfu: {hfu} Tflops/s, {num_iter / td:.3f} iter/s, {td / num_iter:.3e} s/iter, "
+                  f"({(t1 - t0):.3f}, {(t2 - t1):.3f}, {td:.3f}) sec", flush=True)
             # print(f"plan_path: {plan_path}, mfu: {mfu} Tflops/s, hfu: {hfu} Tflops/s, {num_iter / td:.3f} iter/s, {td / num_iter:.3e} s/iter, ({(t1 - t0):.3f}, {(t2 - t1):.3f}, {td:.3f}) sec", flush=True)
 
 
@@ -828,8 +838,8 @@ def run_all_intra_attn(args, ncclcomm_global, gloo_global_group):
         1,
     ]
     Nhs = [
+        1,
         32, 
-        # 1,
     ]
     
     S_BOUND = [256, 64 * 1024]  # lower-bound and upper-bound
@@ -837,7 +847,7 @@ def run_all_intra_attn(args, ncclcomm_global, gloo_global_group):
     multiplying_powers = [1, 2, 3, 4, 5, 6, 7]
     Sqs = [S * power for S in S_base for power in multiplying_powers if S * power <= S_BOUND[1]]
     Sqs = sorted(list(set(Sqs)))    # Sq per GPU
-    Sqs = [16 * 1024]
+    # Sqs = [64 * 1024]
     Skvs = Sqs
     print_rank_0(f'Sqs: {Sqs}')
     
@@ -846,8 +856,6 @@ def run_all_intra_attn(args, ncclcomm_global, gloo_global_group):
     tensor_buf = torch.empty(
         (6 * bs * MAX_SEQ * max(Nhs) * D), device=torch.cuda.current_device(), dtype=DTYPE, requires_grad=False
     )   # 6 * 512MB = 3GB
-    qkv_buf = tensor_buf[: (3 * bs * MAX_SEQ * max(Nhs) * D)]
-    dout_buf = tensor_buf[(3 * bs * MAX_SEQ * max(Nhs) * D): ]
 
 
     for fob in fobs:
@@ -867,8 +875,7 @@ def run_all_intra_attn(args, ncclcomm_global, gloo_global_group):
         #     if not x_filter(plan_paths[i]):
         #         plan_paths.pop(i)
         plan_paths.sort()   # Y=1(qo), Y=2, ..., Y=N(kv)
-        plan_paths = plan_paths[: 1]
-        print_rank_0(f'plan_paths: {plan_paths}')
+        print_rank_0(f'fob={fob}, plan_paths: {plan_paths}')
         
         # exp_configs:
         plan_types = ['automatic']
@@ -890,24 +897,26 @@ def run_all_intra_attn(args, ncclcomm_global, gloo_global_group):
                     print_rank_0(f'{da_config}:')
                     
                     # Execution:
-                    # baselines
-                    # for f in baseline_funcs:
-                    #     benchmark(args, f, shapes, qkv_buf, dout_buf, forward_only=True, log=True)
-                    # orchestrated_attn_func:
-                    # normal comp&comm
+                    # 1 baselines
+                    if fob == 0:
+                        for f in baseline_funcs:
+                            benchmark(args, f, da_config, tensor_buf, forward_only=True, log=True)
+                    
+                    # 2 orchestrated_attn_func:
+                    # 2.1 normal comp&comm
                     benchmark_op = partial(benchmark_orchestrate,
                         args, orchestrated_attn_func, da_config, tensor_buf, log=True, exp_configs=exp_configs, 
                         global_group=gloo_global_group, ncclcomm_global=ncclcomm_global
                     )
                     benchmark_op(use_cudagraph=False)
-                    # benchmark_op(use_cudagraph=True)
                     
-                    # # fused comp&comm
-                    # benchmark_op = partial(benchmark_fused,
-                    #     args, orchestrated_attn_func, da_config, tensor_buf, log=True, plan_paths=plan_paths, 
-                    #     global_group=gloo_global_group, ncclcomm_global=ncclcomm_global
-                    # )
-                    # benchmark_op(use_cudagraph=False)
+                    # 2.2 fused comp&comm
+                    if Nh == 1:
+                        benchmark_op = partial(benchmark_fused,
+                            args, orchestrated_attn_func, da_config, tensor_buf, log=True, plan_paths=plan_paths, 
+                            global_group=gloo_global_group, ncclcomm_global=ncclcomm_global
+                        )
+                        benchmark_op(use_cudagraph=False)
     
     
 def main(args):
