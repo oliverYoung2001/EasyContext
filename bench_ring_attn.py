@@ -847,9 +847,9 @@ def run_all_intra_attn(args, ncclcomm_global, gloo_global_group):
     multiplying_powers = [1, 2, 3, 4, 5, 6, 7]
     Sqs = [S * power for S in S_base for power in multiplying_powers if S * power <= S_BOUND[1]]
     Sqs = sorted(list(set(Sqs)))    # Sq per GPU
-    # Sqs = [64 * 1024]
     Skvs = Sqs
     print_rank_0(f'Sqs: {Sqs}')
+    print_rank_0(f'Skvs: {Skvs}')
     
     # pre-allocated buffer:
     MAX_SEQ = max(max(Sqs), max(Skvs))

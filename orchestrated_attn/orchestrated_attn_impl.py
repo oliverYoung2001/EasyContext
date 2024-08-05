@@ -155,19 +155,20 @@ def intra_attn_forward(
             # step1: input data layout transform
             if execution_plan.da_config.bs == 1:    # always true !!!
                 Q_shape = list(inp_row.Q.shape)
-                assert len(Q_shape) == 4    # (bs, S, Nh, D)
+                assert len(Q_shape) == 4    # (bs, Sq, Nh, D)
                 Q_shape_row = copy.deepcopy(Q_shape)
-                Q_shape_row[1] *= X         # (bs, X * S, Nh, D)
+                Q_shape_row[1] *= X         # (bs, X * Sq, Nh, D)
                 inp_row_tot = Input_Row_Fwd(buf_dict['ir'].view(Q_shape_row))
                 
-                Q_shape_col = copy.deepcopy(Q_shape)
-                Q_shape_col[1] *= Y
-                Q_shape_col_tot = copy.deepcopy(Q_shape)
-                Q_shape_col_tot = [Y, 2] + Q_shape_col_tot
+                K_shape = list(inp_col.K.shape) # (bs, Skv, Nh, D)
+                K_shape_col = copy.deepcopy(K_shape)
+                K_shape_col[1] *= Y             # (bs, Y * Skv, Nh, D)
+                K_shape_col_tot = copy.deepcopy(K_shape)
+                K_shape_col_tot = [Y, 2] + K_shape_col_tot
                 streams[0].wait_event(event_ic)
-                inp_col_tot_data = buf_dict['ic'].view(Q_shape_col_tot).transpose(0, 1).transpose(1, 2).flatten(2, 3).contiguous()    # [2, bs, Y * S, Nh, D]
-                K_tot = inp_col_tot_data[0]  # [bs, Y * S, Nh, D]
-                V_tot = inp_col_tot_data[1]  # [bs, Y * S, Nh, D]
+                inp_col_tot_data = buf_dict['ic'].view(K_shape_col_tot).transpose(0, 1).transpose(1, 2).flatten(2, 3).contiguous()    # [2, bs, Y * Skv, Nh, D]
+                K_tot = inp_col_tot_data[0]  # [bs, Y * Skv, Nh, D]
+                V_tot = inp_col_tot_data[1]  # [bs, Y * Skv, Nh, D]
                 inp_col_tot = Input_Col_Fwd(K_tot, V_tot, inp_col_tot_data.flatten())
                 
                 out_row_tot = Output_Row_Fwd(buf_dict['or'].view(Q_shape_row))
@@ -323,21 +324,24 @@ def intra_attn_backward(
         with torch.cuda.stream(streams[0]):
             # step1: input data layout transform
             if execution_plan.da_config.bs == 1:    # always true !!!
-                Q_shape = list(inp_row.Q.shape)     # (bs, S, Nh, D)
+                Q_shape = list(inp_row.Q.shape)     # (bs, Sq, Nh, D)
                 Q_nelem = math.prod(Q_shape)
-                lse_shape = list(inp_row.lse.shape) # (bs, Nh, S)
+                K_shape = list(inp_col.K.shape)     # (bs, Skv, Nh, D)
+                K_nelem = math.prod(K_shape)
+                lse_shape = list(inp_row.lse.shape) # (bs, Nh, Sq)
                 lse_nelem = math.prod(lse_shape)
-                assert len(Q_shape) == 4        # (bs, S, Nh, D)
-                assert len(lse_shape) == 3      # (bs, Nh, S)
+                assert len(Q_shape) == 4        # (bs, Sq, Nh, D)
+                assert len(K_shape) == 4        # (bs, Skv, Nh, D)
+                assert len(lse_shape) == 3      # (bs, Nh, Sq)
 
                 # ir_tot
                 streams[0].wait_event(event_ir)
                 Q_shape_row = copy.deepcopy(Q_shape)
-                Q_shape_row[1] *= X         # (bs, X * S, Nh, D)
+                Q_shape_row[1] *= X         # (bs, X * Sq, Nh, D)
                 Q_nelem_row = math.prod(Q_shape_row)
                 lse_shape_row = copy.deepcopy(lse_shape)
                 assert lse_shape_row[1] == 1, 'Now Nh > 1 not supported in fused backward !!!'    # Nh == 1
-                lse_shape_row[2] *= X       # (bs, Nh, X * S)
+                lse_shape_row[2] *= X       # (bs, Nh, X * Sq)
                 lse_nelem_row = math.prod(lse_shape_row)
                 t_list = []
                 offsets = [0, Q_nelem, 2 * Q_nelem, 2 * Q_nelem + 2 * lse_nelem, 2 * Q_nelem + 3 * lse_nelem]   # Q, dO, D, lse
@@ -355,23 +359,23 @@ def intra_attn_backward(
                 inp_row_tot = Input_Row_Bwd(Q_tot, dO_tot, D_tot, lse_tot, inp_row_tot_data)
                 
                 # ic_tot
-                Q_shape_col = copy.deepcopy(Q_shape)
-                Q_shape_col[1] *= Y
-                Q_nelem_col = math.prod(Q_shape_col)
-                Q_shape_col_tot = copy.deepcopy(Q_shape)
-                Q_shape_col_tot = [Y, 2] + Q_shape_col_tot
+                K_shape_col = copy.deepcopy(K_shape)
+                K_shape_col[1] *= Y
+                K_nelem_col = math.prod(K_shape_col)
+                K_shape_col_tot = copy.deepcopy(K_shape)
+                K_shape_col_tot = [Y, 2] + K_shape_col_tot
                 streams[0].wait_event(event_ic)
-                inp_col_tot_data = buf_dict['ic'].view(Q_shape_col_tot).transpose(0, 1).transpose(1, 2).flatten(2, 3).contiguous()    # [2, bs, Y * S, Nh, D]
-                K_tot = inp_col_tot_data[0]  # [bs, Y * S, Nh, D]
-                V_tot = inp_col_tot_data[1]  # [bs, Y * S, Nh, D]
+                inp_col_tot_data = buf_dict['ic'].view(K_shape_col_tot).transpose(0, 1).transpose(1, 2).flatten(2, 3).contiguous()    # [2, bs, Y * Skv, Nh, D]
+                K_tot = inp_col_tot_data[0]  # [bs, Y * Skv, Nh, D]
+                V_tot = inp_col_tot_data[1]  # [bs, Y * Skv, Nh, D]
                 inp_col_tot = Input_Col_Bwd(K_tot, V_tot, inp_col_tot_data.flatten())
                 
                 # or_tot
                 out_row_tot = Output_Row_Bwd(buf_dict['or'].view(Q_shape_row))
                 
                 # oc_tot
-                dK_tot = buf_dict['oc'][: Q_nelem_col].view(Q_shape_col)
-                dV_tot = buf_dict['oc'][Q_nelem_col: ].view(Q_shape_col)
+                dK_tot = buf_dict['oc'][: K_nelem_col].view(K_shape_col)
+                dV_tot = buf_dict['oc'][K_nelem_col: ].view(K_shape_col)
                 out_col_tot = Output_Col_Bwd(dK_tot, dV_tot, buf_dict['oc'].flatten())
             else:
                 raise NotImplementedError()
@@ -384,7 +388,7 @@ def intra_attn_backward(
         comm.reduce_scatter('r', buf_dict['or'], out_row, streams[1])
         with torch.cuda.stream(streams[0]):
             # step3: output  layout transform
-            out_col_tot_data = buf_dict['oc'].view((2, Y, Q_nelem)).transpose(0, 1).contiguous()    # [Y, 2, bs, S, Nh, D]
+            out_col_tot_data = buf_dict['oc'].view((2, Y, K_nelem)).transpose(0, 1).contiguous()    # [Y, 2, bs, Skv, Nh, D]
             event_oc.record(streams[0])
         streams[1].wait_event(event_oc)
         comm.reduce_scatter('c', out_col_tot_data, out_col, streams[1])
