@@ -114,8 +114,8 @@ def filter_kwargs(func, kwargs):
     sig = inspect.signature(func)
     return {k: v for k, v in kwargs.items() if k in sig.parameters}
 
-def calc_flops(mbs, S, Nh, D, causal=True, fob=0):
-    flops = 2 * 2 * mbs * S * S * Nh * D
+def calc_flops(mbs, S: tuple, Nh, D, causal=True, fob=0):
+    flops = 2 * 2 * mbs * S[0] * S[1] * Nh * D
     if causal:
         flops = flops // 2
     if fob == 0:
@@ -164,10 +164,6 @@ def benchmark(args, f, shapes:dict, qkv_buf, dout_buf, warmup=11, num_iter=20, f
     # assert seqlen % (2 * world_size) == 0
     assert d % 8 == 0
 
-    # qkv = torch.empty(
-    #     3 * batch_size, seqlen, nheads, d, device=device, dtype=DTYPE, requires_grad=True
-    # )
-    # dout = torch.empty(batch_size, seqlen, nheads, d, device=device, dtype=DTYPE)
     qkv = qkv_buf[: 3 * batch_size * seqlen * nheads * d].view(3 * batch_size, seqlen, nheads, d)
     qkv.requires_grad = True
     dout = dout_buf[: batch_size * seqlen * nheads * d].view(batch_size, seqlen, nheads, d)
@@ -301,6 +297,7 @@ def benchmark(args, f, shapes:dict, qkv_buf, dout_buf, warmup=11, num_iter=20, f
 
 def benchmark_ops(placeholder_op, streams, global_group, device, f, inputs, \
                 warmup, warmup_cudagraph, num_iter, use_cudagraph, TRACE_NAME, args):
+    torch.cuda.empty_cache()
     # warmup
     placeholder_op(stream=streams[0]) # [NOTE]: aim to eliminate cpu overhead
     # preprocess
@@ -439,12 +436,13 @@ def benchmark_ops(placeholder_op, streams, global_group, device, f, inputs, \
         torch.distributed.all_reduce(td, op=torch.distributed.ReduceOp.MAX, async_op=False)
         torch.cuda.synchronize()
         td = td.cpu().item()
+    torch.cuda.empty_cache()
     return t1,t2, t3, td
 
-def benchmark_orchestrate(args, raw_f, shapes:dict, tensor_buf, warmup=11, num_iter=20, log=True, 
+def benchmark_orchestrate(args, raw_f, da_config: Dist_Attn_Config, tensor_buf: torch.Tensor, warmup=11, num_iter=20, log=True, 
                           exp_configs: list = [], global_group=None, ncclcomm_global: PyNcclCommunicator = None, 
                           use_cudagraph=False):
-    print_rank_0(f'[INFO]: use_cudagraph: {use_cudagraph}')
+    # print_rank_0(f'[INFO]: use_cudagraph: {use_cudagraph}')
     warmup = 4
     warmup_cudagraph = 100
     num_iter = 4
@@ -460,46 +458,55 @@ def benchmark_orchestrate(args, raw_f, shapes:dict, tensor_buf, warmup=11, num_i
     device = torch.device(f"cuda:{PROC_INFO['deviceid']}")
     torch.cuda.set_device(device)
 
-    batch_size = shapes['bs']
-    seqlen = shapes['S']
-    nheads = shapes['Nh']
-    d = shapes['D']
+    # Configs:
+    batch_size = da_config.bs
+    Sq, Skv = da_config.S_per_gpu   # Sq, Skv per gpu !!!
+    nheads = da_config.Nh[0]    # Nh, Ng
+    d = da_config.D
     dropout_p = 0
     deterministic = False
 
     assert d % 8 == 0
     
     def create_inputs(fob: int):
-        qkvdo = tensor_buf[: 4 * batch_size * seqlen * nheads * d].view(4 * batch_size, seqlen, nheads, d)
-        # qkv.requires_grad = True
-        q, k, v, do = qkvdo.chunk(4, dim=0)
-        D_buf = tensor_buf[4 * batch_size * seqlen * nheads * d: ]
-        D = D_buf[: 2 * batch_size * seqlen * nheads * 1].view(FULL_DTYPE).view(batch_size, nheads, seqlen)   # [mbs, Nh, S], torch.float32, 2 stands for 2 torch.bfloat16
-        lse_buf = D_buf[2 * batch_size * seqlen * nheads * 1: ]
-        # q, k, v, do, o = qkvdoo.chunk(5, dim=0)
-        # lse_buf = tensor_buf[5 * batch_size * seqlen * nheads * d: ]
-        lse = lse_buf[: batch_size * seqlen * nheads * 1].view(batch_size, nheads, seqlen)   # [mbs, Nh, S]
+        # qkvdo = tensor_buf[: 4 * batch_size * seqlen * nheads * d].view(4 * batch_size, seqlen, nheads, d)
+        # # qkv.requires_grad = True
+        # q, k, v, do = qkvdo.chunk(4, dim=0)
+        # D_buf = tensor_buf[4 * batch_size * seqlen * nheads * d: ]
+        # D = D_buf[: 2 * batch_size * seqlen * nheads * 1].view(FULL_DTYPE).view(batch_size, nheads, seqlen)   # [mbs, Nh, S], torch.float32, 2 stands for 2 torch.bfloat16
+        # lse_buf = D_buf[2 * batch_size * seqlen * nheads * 1: ]
+        # # q, k, v, do, o = qkvdoo.chunk(5, dim=0)
+        # # lse_buf = tensor_buf[5 * batch_size * seqlen * nheads * d: ]
+        # lse = lse_buf[: batch_size * seqlen * nheads * 1].view(batch_size, nheads, seqlen)   # [mbs, Nh, S]
+        Q_buf = tensor_buf[2 * batch_size * Skv * nheads * d: ]
+        KV_buf = tensor_buf
         if fob == 0:    # forward
-            inputs = {
-                "inp_row": Input_Row_Fwd(q), 
-                "inp_col": Input_Col_Fwd(k, v),
-                "dropout_p": dropout_p,
-                "causal": None,
-                "deterministic": deterministic,
-                "sm_scale": q.shape[-1] ** (-0.5),
-                "PROC_INFO": PROC_INFO,
+            buf_dict = {
+                ('i', 'r'): Input_Row_Fwd.from_da_config_with_buf(da_config, Q_buf),
+                ('i', 'c'): Input_Col_Fwd.from_da_config_with_buf(da_config, KV_buf),
+                ('o', 'r'): Output_Row_Fwd.from_da_config_with_buf(da_config, Q_buf),
+                ('o', 'c'): Output_Col_Fwd(),
             }
-        else:   # backward
             
-            inputs = {
-                "inp_row": Input_Row_Bwd(q, do, D, lse), 
-                "inp_col": Input_Col_Bwd(k, v),
-                "dropout_p": dropout_p,
-                "causal": None,
-                "deterministic": deterministic,
-                "softmax_scale": q.shape[-1] ** (-0.5),
-                "PROC_INFO": PROC_INFO,
+        else:   # backward
+            buf_dict = {
+                ('i', 'r'): Input_Row_Bwd.from_da_config_with_buf(da_config, Q_buf),
+                ('i', 'c'): Input_Col_Bwd.from_da_config_with_buf(da_config, KV_buf),
+                ('o', 'r'): Output_Row_Bwd.from_da_config_with_buf(da_config, Q_buf),
+                ('o', 'c'): Output_Col_Bwd.from_da_config_with_buf(da_config, KV_buf),
             }
+        buf_dict['graph_type'] = 'general'
+        inputs = {
+            "inp_row": buf_dict[('i', 'r')], 
+            "inp_col": buf_dict[('i', 'c')],
+            "dropout_p": dropout_p,
+            "causal": None,
+            "deterministic": deterministic,
+            "sm_scale": d ** (-0.5),
+            "softmax_scale": d ** (-0.5),
+            "PROC_INFO": PROC_INFO,
+            'buf_dict': buf_dict
+        }
         return inputs
 
     SYNC_SIZE = 8 * pow(1024, 3) # 8GB
@@ -510,8 +517,8 @@ def benchmark_orchestrate(args, raw_f, shapes:dict, tensor_buf, warmup=11, num_i
         plan_type = exp_config.plan_type
         torch.cuda.empty_cache()
         t0 = time.time()
-        SP = (1, world_size)
-        Ss = (seqlen * world_size, seqlen * world_size)
+        SP = da_config.SP
+        Ss = (Sq * world_size, Skv * world_size)
         Nhs = (nheads, nheads)
         bs = batch_size
         # load plan
@@ -611,17 +618,18 @@ def benchmark_orchestrate(args, raw_f, shapes:dict, tensor_buf, warmup=11, num_i
         torch.cuda.synchronize()
         torch.distributed.barrier(group=global_group)
         
-        TRACE_NAME = f'{os.environ["TRACE_NAME"]}_w{world_size}_r{rank}_S{seqlen}_bs{batch_size}_Nh{nheads}_D{nheads}_{f.__name__}'
+        TRACE_NAME = f'{os.environ["TRACE_NAME"]}_w{world_size}_r{rank}_S({Sq},{Skv})_bs{batch_size}_Nh{nheads}_D{nheads}_{f.__name__}'
         t1, t2, t3, td = benchmark_ops(placeholder_op, streams, global_group, device, f, inputs, warmup, warmup_cudagraph, num_iter, use_cudagraph, TRACE_NAME, args)
 
         if rank == 0 and log:
         # if True:
-            m_flops, h_flops = calc_flops(batch_size, seqlen * world_size, nheads, d, causal, fob=fob)
+            m_flops, h_flops = calc_flops(batch_size, (Sq * world_size, Skv * world_size), nheads, d, causal, fob=fob)
             mfu, hfu = (round(flops / pow(1000, 4) / (td / num_iter * world_size), 3) for flops in (m_flops, h_flops))
             # print(f"suffix: {plan_path.split('/')[-1]}, mfu: {mfu} Tflops/s, hfu: {hfu} Tflops/s, {num_iter / td:.3f} iter/s, {td / num_iter:.3e} s/iter, ({(t1 - t0):.3f}, {(t2 - t1):.3f}, {td:.3f}) sec", flush=True)
-            print(f"plan_path: {plan_path}, mfu: {mfu} Tflops/s, hfu: {hfu} Tflops/s, {num_iter / td:.3f} iter/s, {td / num_iter:.3e} s/iter, ({(t1 - t0):.3f}, {(t2 - t1):.3f}, {td:.3f}) sec", flush=True)
+            print(f"mfu: {mfu} Tflops/s, hfu: {hfu} Tflops/s, {num_iter / td:.3f} iter/s, "
+                  f"{td / num_iter:.3e} s/iter, ({(t1 - t0):.3f}, {(t2 - t1):.3f}, {td:.3f}) sec", flush=True)
 
-def benchmark_fused(args, raw_f, shapes:dict, tensor_buf, warmup=11, num_iter=20, log=True, 
+def benchmark_fused(args, raw_f, da_config: Dist_Attn_Config, tensor_buf, warmup=11, num_iter=20, log=True, 
                           plan_paths: list = [''], global_group=None, ncclcomm_global: PyNcclCommunicator = None, 
                           use_cudagraph=False):
     print_rank_0(f'[INFO]: use_cudagraph: {use_cudagraph}')
@@ -693,6 +701,7 @@ def benchmark_fused(args, raw_f, shapes:dict, tensor_buf, warmup=11, num_iter=20
             'ic_tot': ic_tot,
             'or_tot': or_tot,
             'oc_tot': oc_tot,
+            'graph_type': 'fused',
         }
         ir_class = Input_Row_Fwd if fob == 0 else Input_Row_Bwd
         ic_class = Input_Col_Fwd if fob == 0 else Input_Col_Bwd
@@ -797,6 +806,117 @@ def benchmark_fused(args, raw_f, shapes:dict, tensor_buf, warmup=11, num_iter=20
             print(f"suffix: {plan_path.split('/')[-1]}, mfu: {mfu} Tflops/s, hfu: {hfu} Tflops/s, {num_iter / td:.3f} iter/s, {td / num_iter:.3e} s/iter, ({(t1 - t0):.3f}, {(t2 - t1):.3f}, {td:.3f}) sec", flush=True)
             # print(f"plan_path: {plan_path}, mfu: {mfu} Tflops/s, hfu: {hfu} Tflops/s, {num_iter / td:.3f} iter/s, {td / num_iter:.3e} s/iter, ({(t1 - t0):.3f}, {(t2 - t1):.3f}, {td:.3f}) sec", flush=True)
 
+
+def run_all_intra_attn(args, ncclcomm_global, gloo_global_group):
+    global PROC_INFO
+    baseline_funcs = [
+        ring_flash_attn_func,
+        zigzag_ring_flash_attn_func,      # baseline
+        # zigzag_ring_flash_attn_func_opt,  # sol1
+        stripe_flash_attn_func,
+        # lightseq_attn_func,
+        # flash_attn_func,
+        # hierarchy_attn_func,                # one case
+        # overlapped_hierarchy_attn_func,     # another case
+    ]
+    world_size = PROC_INFO['world_size']
+    local_size = PROC_INFO['tasks_per_node']
+    node_num = PROC_INFO['node_num']
+    assert node_num == 1 and world_size == 8
+    
+    # fix configs:
+    bs = 1
+    D = 128
+    causal = False
+    SPs = (node_num, local_size)
+    
+    # variable configs:
+    fobs = [
+        0, 
+        1,
+    ]
+    Nhs = [
+        32, 
+        # 1,
+    ]
+    
+    S_BOUND = [256, 64 * 1024]  # lower-bound and upper-bound
+    S_base = [1 << logS for logS in range(int(math.log2(S_BOUND[0])), int(math.log2(S_BOUND[1])) + 1)]
+    multiplying_powers = [1, 2, 3, 4, 5, 6, 7]
+    Sqs = [S * power for S in S_base for power in multiplying_powers if S * power <= S_BOUND[1]]
+    Sqs = sorted(list(set(Sqs)))    # Sq per GPU
+    Sqs = [64 * 1024]
+    Skvs = Sqs
+    print_rank_0(f'Sqs: {Sqs}')
+    
+    # pre-allocated buffer:
+    MAX_SEQ = max(max(Sqs), max(Skvs))
+    tensor_buf = torch.empty(
+        (6 * bs * MAX_SEQ * max(Nhs) * D), device=torch.cuda.current_device(), dtype=DTYPE, requires_grad=False
+    )   # 6 * 512MB = 3GB
+    qkv_buf = tensor_buf[: (3 * bs * MAX_SEQ * max(Nhs) * D)]
+    dout_buf = tensor_buf[(3 * bs * MAX_SEQ * max(Nhs) * D): ]
+
+
+    for fob in fobs:
+        # Config2: Blocking algorithms for intra full attention
+        par_dir = f'{os.path.dirname(__file__)}/search_algo/execution_plans/intra_SP{local_size}_fob={fob}'
+        plan_paths = []
+        for plan_name in os.listdir(par_dir):
+            plan_paths.append(f'{par_dir}/{plan_name}')
+        # # kv filter
+        # kv_filter = lambda x: 'X=1' in x
+        # for i in range(len(plan_paths) - 1, - 1, - 1):
+        #     if not kv_filter(plan_paths[i]):
+        #         plan_paths.pop(i)
+        # # X=2 filter
+        # x_filter = lambda x: 'X=2' in x
+        # for i in range(len(plan_paths) - 1, - 1, - 1):
+        #     if not x_filter(plan_paths[i]):
+        #         plan_paths.pop(i)
+        plan_paths.sort()   # Y=1(qo), Y=2, ..., Y=N(kv)
+        plan_paths = plan_paths[: 1]
+        print_rank_0(f'plan_paths: {plan_paths}')
+        
+        # exp_configs:
+        plan_types = ['automatic']
+        exp_configs = []
+        for plan_type in plan_types:
+            for plan_path in plan_paths:
+                exp_config = Evaluation_Configs(
+                        plan_type=plan_type,
+                        MAX_QUEUE_SIZE=0,
+                        fob=fob,
+                        plan_path=plan_path,
+                    )
+                exp_configs.append(exp_config)
+        
+        for Nh in Nhs:
+            for Sq in Sqs:
+                for Skv in Skvs:
+                    da_config = Dist_Attn_Config(SP=SPs, S=(Sq * world_size, Skv * world_size), Nh=(Nh, Nh), D=D, bs=bs, causal=causal)
+                    print_rank_0(f'{da_config}:')
+                    
+                    # Execution:
+                    # baselines
+                    # for f in baseline_funcs:
+                    #     benchmark(args, f, shapes, qkv_buf, dout_buf, forward_only=True, log=True)
+                    # orchestrated_attn_func:
+                    # normal comp&comm
+                    benchmark_op = partial(benchmark_orchestrate,
+                        args, orchestrated_attn_func, da_config, tensor_buf, log=True, exp_configs=exp_configs, 
+                        global_group=gloo_global_group, ncclcomm_global=ncclcomm_global
+                    )
+                    benchmark_op(use_cudagraph=False)
+                    # benchmark_op(use_cudagraph=True)
+                    
+                    # # fused comp&comm
+                    # benchmark_op = partial(benchmark_fused,
+                    #     args, orchestrated_attn_func, da_config, tensor_buf, log=True, plan_paths=plan_paths, 
+                    #     global_group=gloo_global_group, ncclcomm_global=ncclcomm_global
+                    # )
+                    # benchmark_op(use_cudagraph=False)
+    
     
 def main(args):
     global PROC_INFO
@@ -824,6 +944,9 @@ def main(args):
     # PROC_INFO['tasks_per_node'] = 4 # for test 2 x 4
     # PROC_INFO['local_rank'] %= PROC_INFO['tasks_per_node']
     # PROC_INFO['nodeid'] = PROC_INFO['rank'] // PROC_INFO['tasks_per_node']
+    
+    run_all_intra_attn(args, ncclcomm_global, gloo_global_group)
+    return
     
 
     forward_only = False
@@ -879,7 +1002,7 @@ def main(args):
     causal = True
     # causal = False
     
-    tensor_buf = torch.randn(
+    tensor_buf = torch.empty(
         (6 * bs * max(Ss) * max(Nhs) * D), device=device, dtype=DTYPE, requires_grad=False
     )
     qkv_buf = tensor_buf[: (3 * bs * max(Ss) * max(Nhs) * D)]

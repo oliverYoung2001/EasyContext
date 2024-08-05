@@ -103,7 +103,7 @@ def intra_attn_forward(
         lse = lse.transpose(-2, -1).contiguous().unsqueeze(dim=-1) # block_out, block_lse # [mbs, S, Nh, D], [mbs, S, Nh, 1]
         return (Output_Row_Fwd(O, lse), Output_Col_Fwd())
     
-    if buf_dict is None:    # general cases
+    if buf_dict['graph_type'] == 'general':    # general cases
         data_dict = {}  # (b_id, h_id, r/c_id, i/o, r/c) -> Integrated_Data
         
         # initialize Comm
@@ -113,13 +113,7 @@ def intra_attn_forward(
         # ir_idata, ic_idata = Input_Row_Fwd(q), Input_Col_Fwd(k, v)
         data_dict[(0, 0, local_rank, 'i', 'r')] = inp_row
         data_dict[(0, 0, local_rank, 'i', 'c')] = inp_col
-        idata_buf = {
-            ('i', 'r'): Input_Row_Fwd.from_idata(inp_row),
-            ('i', 'c'): Input_Col_Fwd.from_idata(inp_col),
-            ('o', 'r'): Output_Row_Fwd.from_execution_plan(execution_plan, inp_row.Q),
-            ('o', 'c'): Output_Col_Fwd(),
-        }
-        p_fwd_comp_func = partial(fwd_comp_func, out_row=idata_buf[('o', 'r')], out_col=idata_buf[('o', 'c')])
+        p_fwd_comp_func = partial(fwd_comp_func, out_row=buf_dict[('o', 'r')], out_col=buf_dict[('o', 'c')])
         # for kernel in execution_plan.gpu_kernel_lists[local_rank]:
         #     print(f'rank{rank}: {kernel.key}, {(kernel._start_time, kernel.id)}', flush=True)
         # print(f'rank{rank}: print kernels done !!!', flush=True)
@@ -133,12 +127,12 @@ def intra_attn_forward(
                 # torch.profiler.itt.range_push(f'{kernel.key}')
                 # print_rank_0(f'kernel.key: {kernel.key}')
                 # print(f'rank{rank}, kernel.key: {kernel.key}', flush=True)
-                execute_kernel(kernel, data_dict, PROC_INFO, p_fwd_comp_func, comm, idata_buf, causal)
+                execute_kernel(kernel, data_dict, PROC_INFO, p_fwd_comp_func, comm, buf_dict, causal)
                 # torch.profiler.itt.range_pop()
         # print(f'rank{rank}, Out !!!', flush=True)
         # return None
         return data_dict[(0, 0, local_rank, 'o', 'r')]
-    else:   # (X, Y) cases
+    elif buf_dict['graph_type'] == 'fused':   # (X, Y) cases
         assert causal == False, 'Intra attn XY not support causal == True'
         X, Y = execution_plan.X, execution_plan.Y
         cur_x_id = local_rank % X
@@ -194,6 +188,8 @@ def intra_attn_forward(
         comm.reduce_scatter('r', buf_dict['or'], out_row, streams[1])
         # comm.all_gather('c', buf_dict['oc'], out_col, streams[1])
         return out_row
+    else:
+        raise Exception(f"graph_type {buf_dict['graph_type']} not supported !!!")
 
     
 def orchestrated_attn_forward(
@@ -278,7 +274,7 @@ def intra_attn_backward(
         )
         return (out_row, out_col)
     
-    if buf_dict is None:    # general cases
+    if buf_dict['graph_type'] == 'general':    # general cases
         data_dict = {}  # (b_id, h_id, r/c_id, i/o, r/c) -> Integrated_Data
         
         # initialize Comm
@@ -289,13 +285,7 @@ def intra_attn_backward(
         # ir_idata, ic_idata = Input_Row_Fwd(q), Input_Col_Fwd(k, v)
         data_dict[(0, 0, local_rank, 'i', 'r')] = inp_row
         data_dict[(0, 0, local_rank, 'i', 'c')] = inp_col
-        idata_buf = {
-            ('i', 'r'): Input_Row_Bwd.from_idata(inp_row),
-            ('i', 'c'): Input_Col_Bwd.from_idata(inp_col),
-            ('o', 'r'): Output_Row_Bwd.from_execution_plan(execution_plan, inp_row.Q),
-            ('o', 'c'): Output_Col_Bwd.from_execution_plan(execution_plan, inp_row.Q),
-        }
-        p_bwd_comp_func = partial(bwd_comp_func, out_row=idata_buf[('o', 'r')], out_col=idata_buf[('o', 'c')])
+        p_bwd_comp_func = partial(bwd_comp_func, out_row=buf_dict[('o', 'r')], out_col=buf_dict[('o', 'c')])
         for kernel in execution_plan.gpu_kernel_lists[local_rank]:
             # if kernel.key[- 2] == 'i':  # only input comm, cudagraph OK !!!
             # if isinstance(kernel, Comp_Kernel) or kernel.key[- 2] == 'i':   # input comm + comp
@@ -304,10 +294,10 @@ def intra_attn_backward(
             # if False:
             if True:
                 # print(f'rank{rank}: {kernel.key}', flush=True)
-                execute_kernel(kernel, data_dict, PROC_INFO, p_bwd_comp_func, comm, idata_buf, causal)
+                execute_kernel(kernel, data_dict, PROC_INFO, p_bwd_comp_func, comm, buf_dict, causal)
         # return None
         return (data_dict[(0, 0, local_rank, 'o', 'r')], data_dict[(0, 0, local_rank, 'o', 'c')])
-    else:   # (X, Y) cases
+    elif buf_dict['graph_type'] == 'fused':   # (X, Y) cases
         assert causal == False, 'Intra attn XY not support causal == True'
         X, Y = execution_plan.X, execution_plan.Y
         cur_x_id = local_rank % X
@@ -399,6 +389,8 @@ def intra_attn_backward(
         streams[1].wait_event(event_oc)
         comm.reduce_scatter('c', out_col_tot_data, out_col, streams[1])
         return (out_row, out_col)
+    else:
+        raise Exception(f"graph_type {buf_dict['graph_type']} not supported !!!")
     
     
 def orchestrated_attn_backward(

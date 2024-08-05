@@ -25,6 +25,9 @@ def print_rank_0(message):
 def get_Q_shape_from_da_config(da_config: Dist_Attn_Config) -> Tuple:
     return (da_config.bs, da_config.S_per_gpu[0], da_config.Nh[0], da_config.D)
 
+def get_K_shape_from_da_config(da_config: Dist_Attn_Config) -> Tuple:
+    return (da_config.bs, da_config.S_per_gpu[1], da_config.Nh[0], da_config.D)
+
 def get_lse_shape_from_da_config(da_config: Dist_Attn_Config) -> Tuple:
     return (da_config.bs, da_config.Nh[0], da_config.S_per_gpu[0])
 
@@ -56,6 +59,7 @@ class Input_Col_Fwd(Integrated_Data):
         if data is not None:
             self.data = data
         else:
+            raise Exception(f'torch.cat here !!!')
             self.data = torch.cat([K.flatten(), K.flatten()], dim=0)
         self.K = self.data[: K.numel()].view_as(K)
         self.V = self.data[K.numel() :].view_as(V)
@@ -69,11 +73,13 @@ class Input_Col_Fwd(Integrated_Data):
     
     @classmethod
     def from_da_config_with_buf(cls, da_config: Dist_Attn_Config, buf: torch.Tensor):
-        Q_shape = get_Q_shape_from_da_config(da_config)
-        Q_numel = math.prod(Q_shape)
-        K = buf[: Q_numel].view(Q_shape)
-        V = buf[Q_numel: ].view(Q_shape)
-        return cls(K, V, buf)
+        K_shape = get_K_shape_from_da_config(da_config)
+        K_numel = math.prod(K_shape)
+        tot_numel = K_numel * 2
+        data = buf[: tot_numel]   # assert data.numel() == tot_numel
+        K = data[: K_numel].view(K_shape)
+        V = data[K_numel: ].view(K_shape)
+        return cls(K, V, data)
 
 class Output_Row_Fwd(Integrated_Data):
     def __init__(self, O, lse: Optional[torch.Tensor] = None): # [mbs, Sq, Nh, D], [mbs, Sq, Nh, 1]
@@ -100,6 +106,13 @@ class Output_Row_Fwd(Integrated_Data):
         O_numel = math.prod(O_shape)
         data = torch.empty(O_numel, dtype=x.dtype, device=x.device)
         O = data.view(O_shape)
+        return cls(O)
+    
+    @classmethod
+    def from_da_config_with_buf(cls, da_config: Dist_Attn_Config, buf: torch.Tensor):
+        Q_shape = get_Q_shape_from_da_config(da_config)
+        Q_numel = math.prod(Q_shape)
+        O = buf[: Q_numel].view(Q_shape)
         return cls(O)
         
         
@@ -136,6 +149,7 @@ class Input_Row_Bwd(Integrated_Data):
         if data is not None:
             self.data = data
         else:
+            raise Exception(f'torch.cat here !!!')
             self.data = torch.cat([Q.flatten(), dO.flatten(), D.flatten().view(Q.dtype), lse.flatten()], dim=0)
         self.Q = self.data[: Q.numel()].view_as(Q)
         self.dO = self.data[Q.numel(): Q.numel() + dO.numel()].view_as(dO)
@@ -157,11 +171,13 @@ class Input_Row_Bwd(Integrated_Data):
         lse_shape = get_lse_shape_from_da_config(da_config)
         Q_numel = math.prod(Q_shape)
         lse_numel = math.prod(lse_shape)
-        Q = buf[: Q_numel].view(Q_shape)
-        dO = buf[Q_numel: Q_numel * 2].view(Q_shape)
-        D = buf[Q_numel * 2: - lse_numel].view(FULL_DTYPE).view(lse_shape)
-        lse = buf[- lse_numel:].view(lse_shape)
-        return cls(Q, dO, D, lse, buf)
+        tot_numel = Q_numel * 2 + lse_numel * (2 + 1)
+        data = buf[: tot_numel]
+        Q = data[: Q_numel].view(Q_shape)
+        dO = data[Q_numel: Q_numel * 2].view(Q_shape)
+        D = data[Q_numel * 2: - lse_numel].view(FULL_DTYPE).view(lse_shape)
+        lse = data[- lse_numel:].view(lse_shape)
+        return cls(Q, dO, D, lse, data)
 
     
     # def __init__(self, Q, dO, O, lse, data: Optional[torch.Tensor] = None):      # normal version
@@ -188,6 +204,7 @@ class Input_Col_Bwd(Integrated_Data):
         if data is not None:
             self.data = data
         else:
+            raise Exception(f'torch.cat here !!!')
             self.data = torch.cat([K.flatten(), K.flatten()], dim=0)
         self.K = self.data[: K.numel()].view_as(K)
         self.V = self.data[K.numel() :].view_as(V)
@@ -201,11 +218,13 @@ class Input_Col_Bwd(Integrated_Data):
     
     @classmethod
     def from_da_config_with_buf(cls, da_config: Dist_Attn_Config, buf: torch.Tensor):
-        Q_shape = get_Q_shape_from_da_config(da_config)
-        Q_numel = math.prod(Q_shape)
-        K = buf[: Q_numel].view(Q_shape)
-        V = buf[Q_numel: ].view(Q_shape)
-        return cls(K, V, buf)
+        K_shape = get_K_shape_from_da_config(da_config)
+        K_numel = math.prod(K_shape)
+        tot_numel = K_numel * 2
+        data = buf[: tot_numel]   # assert data.numel() == tot_numel
+        K = data[: K_numel].view(K_shape)
+        V = data[K_numel: ].view(K_shape)
+        return cls(K, V, data)
 
 class Output_Row_Bwd(Integrated_Data):
     def __init__(self, dQ):
@@ -223,6 +242,13 @@ class Output_Row_Bwd(Integrated_Data):
         dQ = data.view(dQ_shape)
         return cls(dQ)
     
+    @classmethod
+    def from_da_config_with_buf(cls, da_config: Dist_Attn_Config, buf: torch.Tensor):
+        Q_shape = get_Q_shape_from_da_config(da_config)
+        Q_numel = math.prod(Q_shape)
+        dQ = buf[: Q_numel].view(Q_shape)
+        return cls(dQ)
+    
     def reduce(self, other):
         pass
         # self.data.add_(other.data)  # inplace operation
@@ -232,6 +258,7 @@ class Output_Col_Bwd(Integrated_Data):
         if data is not None:
             self.data = data
         else:
+            raise Exception(f'torch.cat here !!!')
             self.data = torch.cat([dK.flatten(), dV.flatten()], dim=0)
         self.dK = self.data[: dK.numel()].view_as(dK)
         self.dV = self.data[dK.numel() :].view_as(dV)
@@ -246,6 +273,16 @@ class Output_Col_Bwd(Integrated_Data):
         data = torch.empty(dK_numel + dV_numel, dtype=x.dtype, device=x.device)
         dK = data[: dK_numel].view(dK_shape)
         dV = data[dK_numel: ].view(dV_shape)
+        return cls(dK, dV, data)
+    
+    @classmethod
+    def from_da_config_with_buf(cls, da_config: Dist_Attn_Config, buf: torch.Tensor):
+        K_shape = get_K_shape_from_da_config(da_config)
+        K_numel = math.prod(K_shape)
+        tot_numel = K_numel * 2
+        data = buf[: tot_numel]   # assert data.numel() == tot_numel
+        dK = data[: K_numel].view(K_shape)
+        dV = data[K_numel: ].view(K_shape)
         return cls(dK, dV, data)
     
     def reduce(self, other):

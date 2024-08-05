@@ -12,8 +12,14 @@ import copy
 import math
 
 def get_configs():
-    SP0, SP1 = 1, 4
-    Sq = Skv = 4 * 1024   # 4k
+    SP0, SP1 = 1, 2
+    Sq = Skv = 2 * 1024   # 2k
+    SP0, SP1 = 1, 3
+    Sq = Skv = 3 * 1024   # 3k
+    # SP0, SP1 = 1, 4
+    # Sq = Skv = 4 * 1024   # 4k
+    # SP0, SP1 = 1, 5
+    # Sq = Skv = 5 * 1024   # 5k
     # SP0, SP1 = 1, 8
     # Sq = Skv = 16 * 1024   # 16k
     # Sq = Skv = 8 * 1024   # 8k
@@ -129,9 +135,9 @@ class Brute_Force_Search_Engine():
         return next_pos
     
     def apply_pruning_passed(self, cur_pos: tuple, g: int):
-        # pruning strategy 1: comp
-        if self.cur_cc_units[self.fob, 0, g] + 1 >= self.ub_cc_units[self.fob, 0]:
-            return False
+        # # pruning strategy 1: comp
+        # if self.cur_cc_units[self.fob, 0, g] + 1 >= self.ub_cc_units[self.fob, 0]:
+        #     return False
         # pruning strategy 2: comp
         if self.cur_cc_units[self.fob, 0, g] > self.ub_comp:
             return False
@@ -153,7 +159,7 @@ class Brute_Force_Search_Engine():
         Args:
             cur_pos (list): current position, [split_degree[2], split_degree[3], split_degree[0], split_degree[1]]
         """
-        print(f'cur_pos: {cur_pos}')
+        # print(f'cur_pos: {cur_pos}')
         if self.is_end(cur_pos):
             new_schedule = copy.deepcopy(self.cur_schedule)
             self.schedule_queues[self.fob].push(new_schedule)
@@ -166,8 +172,8 @@ class Brute_Force_Search_Engine():
         next_pos = self.get_next_unsettled_pos(cur_pos)
         
         for g in range(self.tot_sp):    # fill in gpu_id
-            # if not self.apply_pruning_passed(cur_pos, g):
-            #     continue
+            if not self.apply_pruning_passed(cur_pos, g):
+                continue
             self.update_cur_status(cur_pos, g)
             self.brute_force_search(next_pos)
             self.restore_cur_status(cur_pos, g)
