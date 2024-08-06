@@ -30,13 +30,13 @@ class Cuda_Kernel():
         v.add_precursor(self)
                 
 class Comp_Kernel(Cuda_Kernel):
-    def __init__(self, key: tuple, m_config: Machine_Config, flashattn_map_key: tuple):
+    def __init__(self, key: tuple, m_config: Machine_Config, comp_map_key: tuple, hierarchy: int):
         # dict keys: (b_id, h_id, r_id, c_id, gpuid)
         super().__init__(key, m_config, 'comp')
         # flashattn profile map_key:
-        self.flashattn_map_key = flashattn_map_key
+        self.comp_map_key = comp_map_key
         # kernel time
-        self.time = m_config.flashattn_profile_map.get_comp_time_from_map_key(flashattn_map_key)    # [fwd/bwd]
+        self.time = m_config.comp_profile_maps[hierarchy].get_comp_time_from_map_key(comp_map_key)    # [fwd/bwd]
     
     
 class Comm_Kernel(Cuda_Kernel):
@@ -57,7 +57,7 @@ class Comm_Kernel(Cuda_Kernel):
 
 
 class Dependent_Graph():
-    def __init__(self, schedule: Dist_Attn_Schedule, fob: bool, hierarchy: int):
+    def __init__(self, schedule: Dist_Attn_Schedule, fob: bool):
         # [NOTE]: only support star tree of broadcase/reduce here !!!
         # build dependent graph from schedule_table
         
@@ -66,15 +66,15 @@ class Dependent_Graph():
         self.m_config = schedule.m_config
         self.split_degrees = schedule.split_degrees
         self.fob = fob  # fwd or bwd
-        self.hierarchy = hierarchy  # (0, 1) -> (inter-machine, intra-machine)
         self.tot_sp = schedule.tot_sp
+        self.hierarchy = hierarchy = schedule.da_config.hierarchy
         # self.root_kernel = Cuda_Kernel()
         # comp: (b_id, h_id, r_id, c_id, gpuid) -> Cuda_Kernel
         # comm: (b_id, h_id, r/c_id, send, recv, i/o, r/c) -> Cuda_Kernel
         self.kernel_dict = {}
         
         # step1: Build Comp Kernel
-        flashattn_map_key = schedule.m_config.flashattn_profile_map.get_comp_map_key(schedule.da_config, [1, 1], schedule.split_degrees)
+        comp_map_key = schedule.m_config.comp_profile_maps[hierarchy].get_comp_map_key(schedule.da_config, [1, 1], schedule.split_degrees)
         for i in range(schedule.split_degrees[2]):   # split_bs
             for j in range(schedule.split_degrees[3]):   # split_Nh
                 for k in range(schedule.split_degrees[0]):   # split_Sq
@@ -82,7 +82,7 @@ class Dependent_Graph():
                         if schedule.schedule_table[i, j, k, l] >= 0:    # Valid comp kernel
                             comp_key = (i, j, k, l, schedule.schedule_table[i, j, k, l])
                             assert comp_key not in self.kernel_dict.keys()
-                            self.kernel_dict[comp_key] = Comp_Kernel(comp_key, schedule.m_config, flashattn_map_key)
+                            self.kernel_dict[comp_key] = Comp_Kernel(comp_key, schedule.m_config, comp_map_key, hierarchy)
         # step2: Build Comm Kernel
         assert schedule.split_degrees[0] == schedule.split_degrees[1] # [NOTE]: now only support Sq_split == Skv_split !!!
         comm_raw_map_key = schedule.m_config.comm_profile_maps[hierarchy].get_comm_map_key(schedule.da_config, [1, 1], schedule.split_degrees)

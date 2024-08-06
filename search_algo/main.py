@@ -68,8 +68,9 @@ def main():
     print(f'fob: {fob}, get_e2e_time(): {schedule.get_e2e_time()[fob]:.3e}, '
           f'get_absolute_cc_time:{schedule.get_absolute_cc_time()[fob]}')
 
-    # d_graph = Dependent_Graph(schedule, exp_config.fob, hierarchy)
-    # execute_plan = Execution_Plan(d_graph, exp_config.fob)
+    d_graph = Dependent_Graph(schedule, exp_config.fob)
+    execute_plan = Execution_Plan(d_graph, exp_config.fob, plan_type=exp_config.plan_type)
+    execute_plan.print_lp_result()
     return
     init_schedule_list = get_init_schedule_list(da_config, m_config)
     search_engine = Search_Engine(exp_config, da_config, m_config, init_schedule_list)

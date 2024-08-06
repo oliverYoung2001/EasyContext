@@ -5,17 +5,13 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__),
 from search_algo.global_vars import *
 from search_algo.utils import convert_profile_data_to_map, FinitePriorityQueue, \
                               convert_profile_data_to_comm_map, convert_node_profile_data_to_comp_map
+from search_algo.manual_schedules import get_qo_schedule_table, get_kv_schedule_table, get_cc_optimal_schedule_table
 from functools import reduce
 import numpy as np
 from enum import Enum
 import copy
 import json
 import math
-
-class TASK_STATUS(Enum):
-    EMPTY = - 1
-    UNSETTLED = - 2
-
 
 class Evaluation_Configs():
     def __init__(self, plan_type: str, MAX_QUEUE_SIZE: int, fob: bool, plan_path: str = None, hierarchy: bool = 1):
@@ -248,7 +244,7 @@ class Dist_Attn_Schedule():
             assert np.prod(schedule_table[:, :, k, k] == np.expand_dims(S_map[:, k], axis=1)) == 1
                 
         assert schedule_table.shape == (split_degrees[2], split_degrees[3], split_degrees[0], split_degrees[1])
-        # self.tot_sp = reduce(lambda x,y:x*y, self.da_config.SP)
+        self.tot_sp = reduce(lambda x,y:x*y, self.da_config.SP)
         self.hierarchy_sp = da_config.SP[da_config.hierarchy]
         self.schedule_table = schedule_table
         self.S_map = S_map
@@ -496,7 +492,7 @@ class Search_Engine():
             schedule.get_ub_cc_units_constrain()
         self.ub = np.empty((2, 2), dtype=np.float32)    # [fwd/bwd][Comp/Comm]
         self.ub = self.ub.fill(np.inf)
-        
+        # [TODO]: need to modify tot_sp !!!
         # Now only support split_degrees = [tot_sp, tot_sp, 1, 1], S_map = np.arange(tot_sp)
         self.split_degrees = [self.tot_sp, self.tot_sp, 1, 1]
         
@@ -659,76 +655,6 @@ def get_profile_data(SP: tuple):
             convert_profile_data_to_comm_map(INTER_COMM_FILE_NAME, 16),
             convert_profile_data_to_comm_map(INTRA_COMM_FILE_NAME, 1),
         )
-
-def get_qo_schedule_table(split_degrees: list, S_map: np.ndarray, causal: bool):
-    assert len(split_degrees) == 4
-    assert S_map.shape == (split_degrees[2], min(split_degrees[0], split_degrees[1]))
-    qo_schedule_table = np.zeros((split_degrees[2], split_degrees[3], split_degrees[0], split_degrees[1]), dtype=np.int32)
-    qo_schedule_table.fill(TASK_STATUS.EMPTY.value) 
-    for i in range(split_degrees[2]):   # split_bs
-        for j in range(split_degrees[3]):   # split_Nh
-            for k in range(split_degrees[0]):   # split_Sq
-                for l in range(split_degrees[1]):   # split_Skv
-                    if causal and k < l:
-                        continue
-                    qo_schedule_table[i, j, k, l] = S_map[i, l]
-    return qo_schedule_table
-
-def get_kv_schedule_table(split_degrees: list, S_map: np.ndarray, causal: bool):
-    assert len(split_degrees) == 4
-    assert S_map.shape == (split_degrees[2], min(split_degrees[0], split_degrees[1]))
-    kv_schedule_table = np.zeros((split_degrees[2], split_degrees[3], split_degrees[0], split_degrees[1]), dtype=np.int32)
-    kv_schedule_table -= 1  # -1 means not used
-    for i in range(split_degrees[2]):   # split_bs
-        for j in range(split_degrees[3]):   # split_Nh
-            for k in range(split_degrees[0]):   # split_Sq
-                for l in range(split_degrees[1]):   # split_Skv
-                    if causal and k < l:
-                        continue
-                    kv_schedule_table[i, j, k, l] = S_map[i, k]
-    return kv_schedule_table
-
-def get_cc_optimal_schedule_table(split_degrees: list, S_map: np.ndarray, causal: bool):
-    assert len(split_degrees) == 4
-    assert S_map.shape == (split_degrees[2], min(split_degrees[0], split_degrees[1]))
-    assert split_degrees[0] == split_degrees[1]
-    assert split_degrees[2] == split_degrees[3] == 1
-    if split_degrees[0] == 4:
-        if causal:
-            cc_schedule_table = np.array([[[
-                [0, -1, -1, -1],
-                [1,  1, -1, -1],
-                [0,  0,  2, -1],
-                [1,  3,  2,  3],
-            ]]], dtype=np.int32)
-        else:
-            cc_schedule_table = np.array([[[
-                [0,  1,  0,  1],
-                [0,  1,  0,  1],
-                [2,  3,  2,  3],
-                [2,  3,  2,  3],
-            ]]], dtype=np.int32)
-    elif split_degrees[0] == 5:
-        if causal:
-            cc_schedule_table = np.array([[[
-                [ 0, -1, -1, -1, -1],
-                [ 0,  1, -1, -1, -1],
-                [ 1,  1,  2, -1, -1],
-                [ 0,  4,  2,  3, -1],
-                [ 3,  4,  2,  3,  4],
-            ]]], dtype=np.int32)
-        else:
-            raise NotImplementedError()
-    elif split_degrees[0] == 3:
-        if causal:
-            cc_schedule_table = np.array([[[
-                [ 0, -1, -1],
-                [ 0,  1, -1],
-                [ 0,  1,  2],
-            ]]], dtype=np.int32)
-        else:
-            raise NotImplementedError()
-    return cc_schedule_table
 
 def create_schedule(da_config, m_config, split_degrees: list, S_map: np.ndarray, schedule_table_func, hierarchy: bool = 1):
     return Dist_Attn_Schedule(da_config, m_config, split_degrees, S_map, \

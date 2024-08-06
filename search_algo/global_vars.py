@@ -1,4 +1,11 @@
 
+from enum import Enum
+
+# GLOBAL CONSTANTS
+class TASK_STATUS(Enum):
+    EMPTY = - 1
+    UNSETTLED = - 2
+
 # GLOBAL VARS
 BYTE_MULTPLE_UP = 1024
 BYTE_MULTPLE_DOWN = 1000
