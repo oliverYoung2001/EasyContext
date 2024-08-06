@@ -3,7 +3,8 @@ import os
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__),
                                              os.path.pardir, os.path.pardir)))
 from search_algo.global_vars import *
-from search_algo.utils import convert_profile_data_to_map, FinitePriorityQueue, convert_profile_data_to_comm_map
+from search_algo.utils import convert_profile_data_to_map, FinitePriorityQueue, \
+                              convert_profile_data_to_comm_map, convert_node_profile_data_to_comp_map
 from functools import reduce
 import numpy as np
 from enum import Enum
@@ -17,20 +18,22 @@ class TASK_STATUS(Enum):
 
 
 class Evaluation_Configs():
-    def __init__(self, plan_type: str, MAX_QUEUE_SIZE: int, fob: bool, plan_path: str = None):
+    def __init__(self, plan_type: str, MAX_QUEUE_SIZE: int, fob: bool, plan_path: str = None, hierarchy: bool = 1):
         self.plan_type = plan_type  # 'automatic', 'maunal', 'ablation1'
         self.MAX_QUEUE_SIZE = MAX_QUEUE_SIZE
         self.fob = fob
         self.plan_path = plan_path
+        self.hierarchy = hierarchy
 
 class Dist_Attn_Config():
-    def __init__(self, SP, S, Nh, bs, D, causal):
+    def __init__(self, SP, S, Nh, bs, D, causal, hierarchy=1):
         self.SP = SP    # (inter, intra)
         self.S = S  # (Sq, Skv)
         self.Nh = Nh    # (Nh, Ng)
         self.bs = bs
         self.D = D
         self.causal = causal
+        self.hierarchy = hierarchy
         # self.tot_sp = reduce(lambda x,y:x*y, SP)
         # self.S_per_gpu = (S[0] // self.tot_sp, S[1] // self.tot_sp)
     
@@ -50,8 +53,21 @@ class Dist_Attn_Config():
         ret = ret.replace(' ', '')
         return ret
 
-class FlashAttn_Profile_Map():
+class Comp_Profile_Map():
+    def __init__(self):
+        pass
+    
+    def get_comp_time_from_map_key(self, map_key: tuple) -> np.ndarray:
+        assert map_key in self.profile_map.keys(), f"Key {map_key} not found in profile_map"
+        return self.profile_map[map_key]    # [fwd/bwd], (s)
+    
+    def get_comp_time(self, da_config: Dist_Attn_Config, batch_degrees: list, split_degrees: list) -> np.ndarray:
+        map_key = self.get_comp_map_key(da_config, batch_degrees, split_degrees)
+        return self.get_comp_time_from_map_key(map_key)    
+
+class FlashAttn_Profile_Map(Comp_Profile_Map):
     def __init__(self, profile_map):
+        super().__init__()
         self.profile_map = profile_map
     
     def merge_comp_map_key(self, map_key0: tuple, map_key1: tuple, merge_dim: int) -> tuple:
@@ -103,13 +119,55 @@ class FlashAttn_Profile_Map():
         map_key = (min(Sq_split, Skv_split), bs_split, Nh_split, da_config.D, Sq_split / Skv_split, False)
         return map_key
     
-    def get_comp_time_from_map_key(self, map_key: tuple) -> np.ndarray:
-        assert map_key in self.profile_map.keys(), f"Key {map_key} not found in profile_map"
-        return self.profile_map[map_key]    # [fwd/bwd], (s)
-    
-    def get_comp_time(self, da_config: Dist_Attn_Config, batch_degrees: list, split_degrees: list) -> np.ndarray:
-        map_key = self.get_comp_map_key(da_config, batch_degrees, split_degrees)
-        return self.get_comp_time_from_map_key(map_key)    
+class Inter_Comp_Profile_Map(Comp_Profile_Map):
+    def __init__(self, profile_map):
+        super().__init__()
+        self.profile_map = profile_map
+
+    # [TODO]
+    def merge_comp_map_key(self, map_key0: tuple, map_key1: tuple, merge_dim: int) -> tuple:
+        raise NotImplementedError
+        # map_key: (min(Sq, Skv), bs, Nh, D, Sq/Skv, causal)
+        assert not (map_key0[5] or map_key1[5]), "Can't merge two map_key when one is causal"
+        # merge_dim: consistent with split_degrees (0, 1, 2, 3) -> (Sq, Skv, bs, Nh)
+        assert merge_dim in range(0, 4), "Merge dim is out of range [0, 3] which is consistent with [Sq, Skv, bs, Nh]"
+        if merge_dim in [0, 1]:  # Sq, Skv
+            for d in [1, 2, 3, 5]:
+                assert map_key0[d] == map_key1[d], f"map_key0[{d}] != map_key1[{d}]"
+            S0 = (map_key0[0] * map_key0[4], map_key0[0]) if map_key0[4] >= 1 else (map_key0[0], map_key0[0] / map_key0[4]) # Sq, Skv
+            S1 = (map_key1[0] * map_key1[4], map_key1[0]) if map_key1[4] >= 1 else (map_key1[0], map_key1[0] / map_key1[4]) # Sq, Skv
+            assert S0[merge_dim ^ 1] == S0[merge_dim ^ 1], f"S0[{merge_dim ^ 1}] != S1[{merge_dim ^ 1}]"
+            S01 = (S0[0] + S1[0], S0[1]) if merge_dim == 0 else (S0[0], S0[1] + S1[1])
+            
+            assert S01[0] / S01[1] in [0.25, 0.5, 1, 2, 4], \
+                f"Current profile data doesn't contain this Q/K Sequence ratio: {S01[0] / S01[1]}"
+            return (min(S01[0], S01[1]), map_key0[1], map_key0[2], map_key0[3], S01[0] / S01[1], map_key0[5])
+        else:
+            for d in range(5):
+                if d != merge_dim - 1:
+                    assert map_key0[d] == map_key1[d], f"map_key0[{d}] != map_key1[{d}]"
+            map_key_merged = list(map_key0)
+            map_key_merged[merge_dim - 1] += map_key1[merge_dim - 1]
+            return tuple(map_key_merged)
+                
+    def get_comp_map_key(self, da_config: Dist_Attn_Config, batch_degrees: list, split_degrees: list) -> tuple:
+        # Example for key:
+        # SP=(1,8),S=(24576,524288),Nh=(1,1),bs=1,D=128,causal=False:
+        # cur_map_key = (SP, S, Nh, bs, D, causal)  # S per GPU !!!
+
+        # hierarchy == 0
+        assert len(batch_degrees) == 2  # Q, KV
+        assert len(split_degrees) == 4  # Sq, Skv, bs, Nh
+        Sq_split = da_config.S[0] * batch_degrees[0] // da_config.SP[1] // split_degrees[0]
+        Skv_split = da_config.S[1] * batch_degrees[1] // da_config.SP[1] // split_degrees[1]
+        bs_split = da_config.bs // split_degrees[2]
+        Nhq_split = da_config.Nh[0] // split_degrees[3]
+        Nhg_split = da_config.Nh[1] // split_degrees[3]
+        assert da_config.Nh[0] == da_config.Nh[1], \
+            f"Current profile data doesn't contain this GQA: (Nh={da_config.Nh[0]}, Ng={da_config.Nh[1]})"
+        # [TODO]: differentiate causal and noncausal
+        map_key = ((1, da_config.SP[1]), (Sq_split, Skv_split), (Nhq_split, Nhg_split), bs_split, da_config.D, False)
+        return map_key
 
 class Comm_Profile_Map():
     def __init__(self, profile_map):
@@ -138,41 +196,45 @@ class Comm_Profile_Map():
 
        
 class Machine_Config():
-    def __init__(self, BW, flashattn_profile_map: dict, inter_comm_profile_map: dict, intra_comm_profile_map: dict):
+    def __init__(self, BW, flashattn_profile_map: dict, inter_comp_profile_map: dict, inter_comm_profile_map: dict, intra_comm_profile_map: dict):
         self.BW = BW
-        self.flashattn_profile_map = FlashAttn_Profile_Map(flashattn_profile_map)
+        # self.flashattn_profile_map = FlashAttn_Profile_Map(flashattn_profile_map)
+        # self.inter_comp_profile_map = Inter_Comp_Profile_Map(inter_comp_profile_map)
+        self.comp_profile_maps = [Inter_Comp_Profile_Map(inter_comp_profile_map), FlashAttn_Profile_Map(flashattn_profile_map)]
         self.comm_profile_maps = [Comm_Profile_Map(inter_comm_profile_map), Comm_Profile_Map(intra_comm_profile_map)]    # inter/intra-machine
     
-    def merge_comm_map_key(self, map_key0: tuple, map_key1: tuple) -> tuple:
-        return (map_key0[0] + map_key1[0])
+    # def merge_comm_map_key(self, map_key0: tuple, map_key1: tuple) -> tuple:
+    #     return (map_key0[0] + map_key1[0])
     
-    def get_comm_map_key(self, da_config: Dist_Attn_Config, batch_degrees: list, split_degrees: list) -> tuple:
-        # [NOTE]: Now only support inter-machine communication
-        assert(len(batch_degrees) == 2) # Q, KV
-        tot_sp = reduce(lambda x,y:x*y, da_config.SP)
-        Sq = da_config.S[0] * batch_degrees[0] // tot_sp
-        # Skv = da_config.S[1] * batch_degrees[1] // tot_sp
-        return (Sq * (da_config.bs / split_degrees[2]) * (da_config.Nh[0] / split_degrees[3]) * da_config.D * 2,)    # B
+    # def get_comm_map_key(self, da_config: Dist_Attn_Config, batch_degrees: list, split_degrees: list) -> tuple:
+    #     # [NOTE]: Now only support inter-machine communication
+    #     assert(len(batch_degrees) == 2) # Q, KV
+    #     tot_sp = reduce(lambda x,y:x*y, da_config.SP)
+    #     Sq = da_config.S[0] * batch_degrees[0] // tot_sp
+    #     # Skv = da_config.S[1] * batch_degrees[1] // tot_sp
+    #     return (Sq * (da_config.bs / split_degrees[2]) * (da_config.Nh[0] / split_degrees[3]) * da_config.D * 2,)    # B
     
-    def get_comm_time_from_map_key(self, map_key: tuple) -> float:
-        return map_key[0] / pow(BYTE_MULTPLE_DOWN, 3) / self.BW[1]    # Intra-Machine, GB/s
+    # def get_comm_time_from_map_key(self, map_key: tuple) -> float:
+    #     return map_key[0] / pow(BYTE_MULTPLE_DOWN, 3) / self.BW[1]    # Intra-Machine, GB/s
     
-    def get_comm_time(self, da_config: Dist_Attn_Config, batch_degrees: list, split_degrees: list) -> float:
-        comm_map_key = self.get_comm_map_key(da_config, batch_degrees, split_degrees)
-        return self.get_comm_time_from_map_key(comm_map_key)
+    # def get_comm_time(self, da_config: Dist_Attn_Config, batch_degrees: list, split_degrees: list) -> float:
+    #     comm_map_key = self.get_comm_map_key(da_config, batch_degrees, split_degrees)
+    #     return self.get_comm_time_from_map_key(comm_map_key)
 
 
     
 class Dist_Attn_Schedule():
     def __init__(self, da_config: Dist_Attn_Config, m_config: Machine_Config, 
-                 split_degrees: list, S_map: np.ndarray, schedule_table: np.ndarray = None):
+                 split_degrees: list, S_map: np.ndarray, schedule_table: np.ndarray = None, hierarchy: int = 1):
         self.da_config = da_config
         self.m_config = m_config
+        self.hierarchy = hierarchy  
         assert len(split_degrees) == 4
         self.split_degrees = split_degrees   # Sq, Skv, bs, Nh
         assert max(split_degrees[0], split_degrees[1]) % min(split_degrees[0], split_degrees[1]) == 0
         assert split_degrees[0] == split_degrees[1] # [NOTE]: now only support Sq_split == Skv_split !!!
         assert S_map.shape == (split_degrees[2], min(split_degrees[0], split_degrees[1]))
+        assert schedule_table.shape == (split_degrees[2], split_degrees[3], split_degrees[0], split_degrees[1])
         if schedule_table is None:  # initialize schedule_table
             schedule_table = np.empty((split_degrees[2], split_degrees[3], split_degrees[0], split_degrees[1]), dtype=np.int32)
             schedule_table.fill(TASK_STATUS.UNSETTLED.value)
@@ -183,11 +245,11 @@ class Dist_Attn_Schedule():
                 schedule_table[:, :, k, k] = np.expand_dims(S_map[:, k], axis=1)    # we can set the diagonal elements directly
         
         for k in range(split_degrees[0]):   # we should assert diagonal elements first
-            for k in range(split_degrees[0]):
-                assert np.prod(schedule_table[:, :, k, k] == np.expand_dims(S_map[:, k], axis=1)) == 1
+            assert np.prod(schedule_table[:, :, k, k] == np.expand_dims(S_map[:, k], axis=1)) == 1
                 
         assert schedule_table.shape == (split_degrees[2], split_degrees[3], split_degrees[0], split_degrees[1])
-        self.tot_sp = reduce(lambda x,y:x*y, self.da_config.SP)
+        # self.tot_sp = reduce(lambda x,y:x*y, self.da_config.SP)
+        self.hierarchy_sp = da_config.SP[da_config.hierarchy]
         self.schedule_table = schedule_table
         self.S_map = S_map
         
@@ -246,7 +308,7 @@ class Dist_Attn_Schedule():
         assert (np.absolute(tot_comm_units[:, 0] - tot_comm_units[:, 1]) / tot_comm_units[:, 0]).sum() < 2e-6
         self.tot_comm_units = tot_comm_units
         
-        self.ave_comm_units = np.max(tot_comm_units, axis=-1) / self.tot_sp    # [fwd/bwd]
+        self.ave_comm_units = np.max(tot_comm_units, axis=-1) / self.hierarchy_sp    # [fwd/bwd]
         ub_comm_units = np.maximum(self.ave_comm_units, np.max(r_cc_time[:, 1:, :], axis=(-2,-1)))   # [fwd/bwd]
         # print(f'ub_comm_units (before):\n{ub_comm_units}')
         comm_units_pool = dict(sorted(comm_units_pool.items(), key=lambda x: len(x[0]), reverse=False)) # sort by sp_set size (small -> large)
@@ -282,7 +344,7 @@ class Dist_Attn_Schedule():
         if hasattr(self, 'r_cc_time'):
             return self.r_cc_time, self.balanced_r_cc_time
         
-        r_cc_time = np.zeros((2, 3, self.tot_sp), dtype=np.float32)
+        r_cc_time = np.zeros((2, 3, self.hierarchy_sp), dtype=np.float32)
         # comm units count: fwd, bwd
         u_inp_row = self.u_inp_row
         u_inp_col = self.u_inp_col
@@ -293,12 +355,12 @@ class Dist_Attn_Schedule():
         comm_units_pool = {}  # {sp_set -> comm_units[fwd/bwd][Comm_in/Comm_out]}
         
         # comp units
-        for g in range(self.tot_sp):
+        for g in range(self.hierarchy_sp):
             r_cc_time[:, 0, g] = np.sum(self.schedule_table == g)
         self.ub_comp_units = np.max(r_cc_time[:, 0, :], axis=-1)    # [fwd/bwd]
         # print(f'ub_comp_units:\n{self.ub_comp_units}')
         # comm units
-        for g in range(self.tot_sp):
+        for g in range(self.hierarchy_sp):
             Sq_self_mask = np.expand_dims( # [split_degrees[2], 1, split_degrees[0]]
                 np.repeat(
                     self.S_map, 
@@ -387,9 +449,9 @@ class Dist_Attn_Schedule():
         if hasattr(self, 'ub_cc_time'):
             return self.ub_cc_time
         _, cc_time = self.get_relative_cc_time()
-        assert cc_time.shape == (2, 3, self.da_config.SP[0] * self.da_config.SP[1])
-        self.unit_comp_time = self.m_config.flashattn_profile_map.get_comp_time(self.da_config, [1, 1], self.split_degrees) # (s), [fwd/bwd]
-        self.unit_comm_time = self.m_config.get_comm_time(self.da_config, [1, 1], self.split_degrees)    # (s), scalar
+        assert cc_time.shape == (2, 3, self.da_config.SP[self.da_config.hierarchy])
+        self.unit_comp_time = self.m_config.comp_profile_maps[self.hierarchy].get_comp_time(self.da_config, [1, 1], self.split_degrees)    # (s), scalar
+        self.unit_comm_time = self.m_config.comm_profile_maps[self.hierarchy].get_comm_time(self.da_config, [1, 1], self.split_degrees)    # (s), scalar
         self.ub_cc_time = np.empty((2, 2), dtype=np.float32)    # [fwd/bwd][Comp/Comm]
         self.ub_cc_time[:, 0] = self.ub_comp_units * self.unit_comp_time # (s), [fwd/bwd]
         self.ub_cc_time[:, 1] = self.ub_comm_units * self.unit_comm_time # (s), [fwd/bwd]
@@ -580,19 +642,22 @@ class Search_Engine():
         # self.brute_force_search(self.get_next_unsettled_pos((0, 0, 0, 0)))
 
 
-def get_profile_data():
+def get_profile_data(SP: tuple):
     BW = (12.5, 215)   # Inter-Machine, Intra-Machine, GB/s, bidirectional
     PROFILE_FILE_NAME = './prof_data/time_flashattn_ratio.json'
-    INTER_COMM_FIlE_NAME = './prof_data/cb_16_g3018-9.log'
-    INTRA_COMM_FIlE_NAME = './prof_data/cb_8_g3028.log'
-    INTRA_COMM_FIlE_NAME = './prof_data/cb_8_3017_2_21_5.log'
+    INTER_COMP_FILE_NAME = f'./prof_data/wrapper_intra_SP={SP[1]}_all.log'
+    
+    INTER_COMM_FILE_NAME = './prof_data/cb_16_g3018-9.log'
+    # INTRA_COMM_FILE_NAME = './prof_data/cb_8_g3028.log'
+    INTRA_COMM_FILE_NAME = './prof_data/cb_8_3017_2_21_5.log'
     with open(PROFILE_FILE_NAME, 'r') as f:
         profile_data = json.load(f)
     assert 'flash_attn' in profile_data.keys(), 'flash_attn not found in profile_data'
     
     return Machine_Config(BW, convert_profile_data_to_map(profile_data['flash_attn']), \
-            convert_profile_data_to_comm_map(INTER_COMM_FIlE_NAME, 16),
-            convert_profile_data_to_comm_map(INTRA_COMM_FIlE_NAME, 8),
+            convert_node_profile_data_to_comp_map(INTER_COMP_FILE_NAME, SP[1]), \
+            convert_profile_data_to_comm_map(INTER_COMM_FILE_NAME, 16),
+            convert_profile_data_to_comm_map(INTRA_COMM_FILE_NAME, 1),
         )
 
 def get_qo_schedule_table(split_degrees: list, S_map: np.ndarray, causal: bool):
@@ -623,9 +688,61 @@ def get_kv_schedule_table(split_degrees: list, S_map: np.ndarray, causal: bool):
                     kv_schedule_table[i, j, k, l] = S_map[i, k]
     return kv_schedule_table
 
-def create_schedule(da_config, m_config, split_degrees: list, S_map: np.ndarray, schedule_table_func):
+def get_cc_optimal_schedule_table(split_degrees: list, S_map: np.ndarray, causal: bool):
+    assert len(split_degrees) == 4
+    assert S_map.shape == (split_degrees[2], min(split_degrees[0], split_degrees[1]))
+    assert split_degrees[0] == split_degrees[1]
+    assert split_degrees[2] == split_degrees[3] == 1
+    if split_degrees[0] == 4:
+        if causal:
+            cc_schedule_table = np.array([[[
+                [0, -1, -1, -1],
+                [1,  1, -1, -1],
+                [0,  0,  2, -1],
+                [1,  3,  2,  3],
+            ]]], dtype=np.int32)
+        else:
+            cc_schedule_table = np.array([[[
+                [0,  1,  0,  1],
+                [0,  1,  0,  1],
+                [2,  3,  2,  3],
+                [2,  3,  2,  3],
+            ]]], dtype=np.int32)
+    elif split_degrees[0] == 5:
+        if causal:
+            cc_schedule_table = np.array([[[
+                [ 0, -1, -1, -1, -1],
+                [ 0,  1, -1, -1, -1],
+                [ 1,  1,  2, -1, -1],
+                [ 0,  4,  2,  3, -1],
+                [ 3,  4,  2,  3,  4],
+            ]]], dtype=np.int32)
+        else:
+            raise NotImplementedError()
+    elif split_degrees[0] == 3:
+        if causal:
+            cc_schedule_table = np.array([[[
+                [ 0, -1, -1],
+                [ 0,  1, -1],
+                [ 0,  1,  2],
+            ]]], dtype=np.int32)
+        else:
+            raise NotImplementedError()
+    return cc_schedule_table
+
+def create_schedule(da_config, m_config, split_degrees: list, S_map: np.ndarray, schedule_table_func, hierarchy: bool = 1):
     return Dist_Attn_Schedule(da_config, m_config, split_degrees, S_map, \
-                              schedule_table_func(split_degrees, S_map, da_config.causal))
+                              schedule_table_func(split_degrees, S_map, da_config.causal), hierarchy)
+
+def get_cc_optimal_schedule(da_config, m_config):
+    '''
+    hierarchy: 0, 1 # 0 -> inter-machine, 1 -> intra-machine
+    '''
+    sp = da_config.SP[da_config.hierarchy]
+    split_degrees = [sp, sp, 1, 1]
+    S_map = np.empty((split_degrees[2], min(split_degrees[0], split_degrees[1])), dtype=np.int32)
+    S_map[:] = np.arange(sp)
+    return create_schedule(da_config, m_config, split_degrees, S_map, get_cc_optimal_schedule_table, da_config.hierarchy)
     
 def get_init_schedule_list(da_config, m_config):
     # [NOTE]: 

@@ -3,11 +3,12 @@ import os
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__),
                                              os.path.pardir)))
 from search_algo.search_engine import Search_Engine, Dist_Attn_Schedule, Dist_Attn_Config, Evaluation_Configs, \
-                                      get_profile_data, get_init_schedule_list
+                                      get_profile_data, get_init_schedule_list, get_cc_optimal_schedule
 from search_algo.dependent_graph import Dependent_Graph
 from search_algo.execute_plan import Execution_Plan
 from search_algo.global_vars import *
 import pickle
+import numpy as np
 
 def get_exp_config():
     plan_type = 'automatic'
@@ -15,33 +16,61 @@ def get_exp_config():
     # plan_type = 'ablation1'
     MAX_QUEUE_SIZE = 100
     fob = 0
-    return Evaluation_Configs(plan_type, MAX_QUEUE_SIZE, fob)
+    hierarchy = 0  # 0: intra-machine, 1: inter-machine
+    return Evaluation_Configs(plan_type, MAX_QUEUE_SIZE, fob, hierarchy=hierarchy)
 
 def get_configs():
-    SP0, SP1 = 1, 4
-    Sq = Skv = 4 * 1024   # 4k
+    # SP0, SP1 = 1, 4
     # SP0, SP1 = 1, 8
     # Sq = Skv = 16 * 1024   # 16k
     # Sq = Skv = 8 * 1024   # 8k
+    
+    SP0, SP1 = 4, 8
+
+    Sq = Skv = 1 * 1024   # S per GPU
     
     Nhq = Ng = 32
     bs = 1
     D = 128
     causal = False
     causal = True
-    return Dist_Attn_Config((SP0, SP1), (Sq, Skv), (Nhq, Ng), bs, D, causal)
+    
+    tot_sp = SP0 * SP1
+    hierarchy = 0
+    return Dist_Attn_Config((SP0, SP1), (Sq * tot_sp, Skv * tot_sp), (Nhq, Ng), bs, D, causal, hierarchy)
 
 def show_schedule(schedule: Dist_Attn_Schedule, fob, name):
     print(f'{name}, schedule:\n{schedule.schedule_table}', flush=True)
     print(f'fob: {fob}, get_e2e_time(): {schedule.get_e2e_time()[fob]:.3e}, get_absolute_cc_time:{schedule.get_absolute_cc_time()[fob]}')
     if schedule.split_degrees[0] != schedule.da_config.SP[1] or schedule.split_degrees[1] != schedule.da_config.SP[1]:
         return
-    
+
 def main():
     exp_config = get_exp_config()
+    fob = exp_config.fob
     da_config = get_configs()
+    hierarchy = da_config.hierarchy
     print(f'plan_name: {da_config.get_plan_name(fob=0)}', flush=True)
-    m_config = get_profile_data()
+    m_config = get_profile_data(da_config.SP)
+    
+    # for debugging Parallel Graph Transformation Engine
+    schedule = get_cc_optimal_schedule(da_config, m_config)
+    print(f'schedule:\n{schedule.schedule_table}', flush=True)
+    # print(f'fob: {fob}, get_e2e_time(): {schedule.get_e2e_time()[fob]:.3e}, get_absolute_cc_time:{schedule.get_absolute_cc_time()[fob]}')
+    # print(f'fob: {fob}, get_relative_cc_time:{schedule.get_relative_cc_time()[fob]}')
+    print(f'fob: {fob}, get_tot_comm_units: {schedule.get_tot_comm_units()[fob][0]}')
+    schedule.get_relative_cc_time()
+    balanced_r_cc_time = schedule.balanced_r_cc_time[fob]
+    r_cc_time = schedule.r_cc_time[fob]
+    print(f'get_relative_cc_time:\n{r_cc_time}')
+    print(f'get_balanced_relative_cc_time: {np.max(balanced_r_cc_time[1:])}, '
+          f'{np.max(balanced_r_cc_time[0])}\n{balanced_r_cc_time}')
+    print(f'fob: {fob}, get_e2e_time(): {schedule.get_e2e_time()[fob]:.3e}, '
+          f'get_absolute_cc_time:{schedule.get_absolute_cc_time()[fob]}')
+
+    # d_graph = Dependent_Graph(schedule, exp_config.fob, hierarchy)
+    # execute_plan = Execution_Plan(d_graph, exp_config.fob)
+    return
     init_schedule_list = get_init_schedule_list(da_config, m_config)
     search_engine = Search_Engine(exp_config, da_config, m_config, init_schedule_list)
     search_engine.search_optimal_schedules()
