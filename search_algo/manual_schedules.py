@@ -46,18 +46,18 @@ def get_cc_optimal_schedule_table(split_degrees: list, S_map: np.ndarray, causal
                 [0,  0,  2, -1],
                 [1,  3,  2,  3],
             ]]], dtype=np.int32)
-            # cc_schedule_table = np.array([[[
-            #     [0, -1, -1, -1],
-            #     [1,  1, -1, -1],
-            #     [0,  0,  2, -1],
-            #     [3,  1,  2,  3],
-            # ]]], dtype=np.int32)
-            # cc_schedule_table = np.array([[[
-            #     [0, -1, -1, -1],
-            #     [1,  1, -1, -1],
-            #     [1,  2,  2, -1],
-            #     [0,  3,  0,  3],
-            # ]]], dtype=np.int32)
+            cc_schedule_table = np.array([[[
+                [0, -1, -1, -1],
+                [1,  1, -1, -1],
+                [0,  0,  2, -1],
+                [3,  1,  2,  3],
+            ]]], dtype=np.int32)
+            cc_schedule_table = np.array([[[
+                [0, -1, -1, -1],
+                [1,  1, -1, -1],
+                [1,  2,  2, -1],
+                [0,  3,  0,  3],
+            ]]], dtype=np.int32)
         else:
             cc_schedule_table = np.array([[[
                 [0,  1,  0,  1],

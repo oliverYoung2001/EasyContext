@@ -301,8 +301,8 @@ def intra_attn_backward(
     elif buf_dict['graph_type'] == 'fused':   # (X, Y) cases
         assert causal == False, 'Intra attn XY not support causal == True'
         X, Y = execution_plan.X, execution_plan.Y
-        cur_x_id = local_rank % X
-        cur_y_id = local_rank // X
+        cur_x_id = local_rank % X   # [0, X)
+        cur_y_id = local_rank // X  # [0, Y)
         comm = IntraComm_fused(PROC_INFO, X, Y)
         ir_nelems= buf_dict['ir_nelems']
         or_nelems = buf_dict['or_nelems']
@@ -314,7 +314,7 @@ def intra_attn_backward(
         event_ic = torch.cuda.Event()
         event_oc = torch.cuda.Event()
         event_comp = torch.cuda.Event()
-        # Allgather rc
+        # # Allgather rc
         comm.all_gather('r', inp_row, buf_dict['ir'], streams[1])
         event_ir.record(streams[1])
         comm.all_gather('c', inp_col, buf_dict['ic'], streams[1])
@@ -349,7 +349,8 @@ def intra_attn_backward(
                 for idx in range(len(offsets) - 1):
                     for x in range(X):
                         t_list.append(buf_dict['ir'][ir_nelems * x + offsets[idx]: ir_nelems * x + offsets[idx + 1]].flatten())
-                inp_row_tot_data = torch.cat(t_list)
+                inp_row_tot_data = torch.cat(t_list, out=buf_dict['ir_'])    # [NOTE]: passed !!!
+                # inp_row_tot_data = torch.cat(t_list)                       # failed !!!
                 assert inp_row_tot_data.numel() == 2 * Q_nelem_row + 3 * lse_nelem_row
                 
                 Q_tot = inp_row_tot_data[: Q_nelem_row].view(Q_shape_row)
@@ -360,12 +361,12 @@ def intra_attn_backward(
                 
                 # ic_tot
                 K_shape_col = copy.deepcopy(K_shape)
-                K_shape_col[1] *= Y
+                K_shape_col[1] *= Y     # (bs, Y * Skv, Nh, D)
                 K_nelem_col = math.prod(K_shape_col)
                 K_shape_col_tot = copy.deepcopy(K_shape)
-                K_shape_col_tot = [Y, 2] + K_shape_col_tot
+                K_shape_col_tot = [Y, 2] + K_shape_col_tot  # (Y, 2, bs, Skv, Nh, D)
                 streams[0].wait_event(event_ic)
-                inp_col_tot_data = buf_dict['ic'].view(K_shape_col_tot).transpose(0, 1).transpose(1, 2).flatten(2, 3).contiguous()    # [2, bs, Y * Skv, Nh, D]
+                inp_col_tot_data = buf_dict['ic'].view(K_shape_col_tot).transpose(0, 1).transpose(1, 2).flatten(2, 3).contiguous() # [2, bs, Y * Skv, Nh, D]
                 K_tot = inp_col_tot_data[0]  # [bs, Y * Skv, Nh, D]
                 V_tot = inp_col_tot_data[1]  # [bs, Y * Skv, Nh, D]
                 inp_col_tot = Input_Col_Bwd(K_tot, V_tot, inp_col_tot_data.flatten())
@@ -380,7 +381,11 @@ def intra_attn_backward(
             else:
                 raise NotImplementedError()
             # step2: execute flashattn kernel
-            bwd_comp_func(inp_row_tot, inp_col_tot, out_row_tot, out_col_tot, causal)        
+            # print_rank_0(f"buf['ir']: {buf_dict['ir'].data_ptr()}, buf['ic']: {buf_dict['ic'].data_ptr()}, "
+            #              f"buf['or']: {buf_dict['or'].data_ptr()}, buf['oc']: {buf_dict['oc'].data_ptr()}")
+            # print_rank_0(f'inp_row_tot: {inp_row_tot.data.data_ptr()}, inp_col_tot: {inp_col_tot.data.data_ptr()}, '
+            #              f'out_row_tot: {out_row_tot.data.data_ptr()}, out_col_tot: {out_col_tot.data.data_ptr()}')
+            bwd_comp_func(inp_row_tot, inp_col_tot, out_row_tot, out_col_tot, causal)
             event_comp.record(streams[0])
         
         # ReduceScatter rc

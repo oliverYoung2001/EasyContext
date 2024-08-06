@@ -675,22 +675,24 @@ def benchmark_fused(args, raw_f, da_config: Dist_Attn_Config, tensor_buf, warmup
         # lse = lse_buf[: batch_size * seqlen * nheads * 1].view(batch_size, nheads, seqlen)   # [mbs, Nh, S]
         if fob == 0:    # forward
             ir_nelems = batch_size * Sq * nheads * d   # q
-            ic_nelems = 2 * (batch_size * Skv * nheads * d)   # k, v
+            ic_nelems = batch_size * Skv * nheads * (d * 2)   # k, v
             or_nelems = batch_size * Sq * nheads * d   # o, (lse)
             oc_nelems = 0
         else:   # backward
             ir_nelems = batch_size * Sq * nheads * (d * 2 + 1 * (2 + 1))   # q, do, D, lse
-            ic_nelems = 2 * (batch_size * Skv * nheads * d)   # k, v
+            ic_nelems = batch_size * Skv * nheads * (d * 2)   # k, v
             or_nelems = batch_size * Sq * nheads * d        # dq
-            oc_nelems = (batch_size * Skv * nheads * d) * 2  # dk, dv
+            oc_nelems = batch_size * Skv * nheads * (d * 2)  # dk, dv
 
         ir_tot = ir_nelems * X
         ic_tot = ic_nelems * Y
         or_tot = or_nelems * X
         oc_tot = oc_nelems * Y
-        cur_x_id = local_rank % X
-        cur_y_id = local_rank // X       
+        cur_x_id = local_rank % X   # [0, X)
+        cur_y_id = local_rank // X  # [0, Y)
+        # print_rank_0(f'ir_tot: {ir_tot}, ic_tot: {ic_tot}, or_tot: {or_tot}, oc_tot: {oc_tot}')
         buf = torch.empty(ir_tot + ic_tot + or_tot + oc_tot, dtype=DTYPE, device=device)
+        # print_rank_0(f'buf: {buf.numel() * 2} B')
         buf_dict = {
             'ir': buf[: ir_tot],
             'ic': buf[ir_tot: ir_tot + ic_tot],
@@ -706,6 +708,10 @@ def benchmark_fused(args, raw_f, da_config: Dist_Attn_Config, tensor_buf, warmup
             'oc_tot': oc_tot,
             'graph_type': 'fused',
         }
+        if fob == 1:
+            inp_row_extra_buf = torch.empty(ir_tot, dtype=DTYPE, device=device)
+            buf_dict['ir_'] = buf_dict['ir']
+            buf_dict['ir'] = inp_row_extra_buf
         ir_class = Input_Row_Fwd if fob == 0 else Input_Row_Bwd
         ic_class = Input_Col_Fwd if fob == 0 else Input_Col_Bwd
         inputs = {
@@ -833,7 +839,7 @@ def run_all_intra_attn(args, ncclcomm_global, gloo_global_group):
     
     # variable configs:
     fobs = [
-        0, 
+        # 0, 
         1,
     ]
     Nhs = [
@@ -847,6 +853,9 @@ def run_all_intra_attn(args, ncclcomm_global, gloo_global_group):
     Sqs = [S * power for S in S_base for power in multiplying_powers if S * power <= S_BOUND[1]]
     Sqs = sorted(list(set(Sqs)))    # Sq per GPU
     Skvs = Sqs
+    # Sqs = [327680 // world_size]
+    # Skvs = [2048 // world_size]
+    Sqs = [S for S in Sqs if S * world_size >= 327680]
     print_rank_0(f'Sqs: {Sqs}')
     print_rank_0(f'Skvs: {Skvs}')
     
@@ -855,6 +864,7 @@ def run_all_intra_attn(args, ncclcomm_global, gloo_global_group):
     tensor_buf = torch.empty(
         (6 * bs * MAX_SEQ * max(Nhs) * D), device=torch.cuda.current_device(), dtype=DTYPE, requires_grad=False
     )   # 6 * 512MB = 3GB
+    # print_rank_0(f'tensor_buf: {tensor_buf.numel() * 2} B')
 
 
     for fob in fobs:
@@ -874,6 +884,7 @@ def run_all_intra_attn(args, ncclcomm_global, gloo_global_group):
         #     if not x_filter(plan_paths[i]):
         #         plan_paths.pop(i)
         plan_paths.sort()   # Y=1(qo), Y=2, ..., Y=N(kv)
+        # plan_paths = plan_paths[0:1]    # only one plan
         print_rank_0(f'fob={fob}, plan_paths: {plan_paths}')
         
         # exp_configs:
@@ -892,6 +903,9 @@ def run_all_intra_attn(args, ncclcomm_global, gloo_global_group):
         for Nh in Nhs:
             for Sq in Sqs:
                 for Skv in Skvs:
+                    # S_gcd = math.gcd(Sq, Skv)
+                    # if (Sq // S_gcd not in multiplying_powers) or (Skv // S_gcd not in multiplying_powers):
+                    #     continue
                     da_config = Dist_Attn_Config(SP=SPs, S=(Sq * world_size, Skv * world_size), Nh=(Nh, Nh), D=D, bs=bs, causal=causal)
                     print_rank_0(f'{da_config}:')
                     
