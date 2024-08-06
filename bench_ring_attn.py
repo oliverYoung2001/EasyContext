@@ -589,25 +589,24 @@ def benchmark_orchestrate(args, raw_f, da_config: Dist_Attn_Config, tensor_buf: 
         # build nccl communicator for each pair of ranks
         ncclcomm_dict = get_global_var('ncclcomm_dict')
         # create gloo group for each pair of ranks
-        group_dict = {}
+        cpu_group_dict = get_global_var('cpu_group_dict')
         for kernel in execution_plan.valid_kernels:
             if isinstance(kernel, Comm_Kernel):
                 key = tuple(sorted([kernel.key[3], kernel.key[4]]))
-                if key not in group_dict.keys():
-                    group_dict[key] = torch.distributed.new_group(key, backend='gloo')
+                if key not in cpu_group_dict.keys():
+                    cpu_group_dict[key] = torch.distributed.new_group(key, backend='gloo')
         for kernel in execution_plan.valid_kernels:
             if isinstance(kernel, Comm_Kernel):
                 key = (kernel.key[3], kernel.key[4])    # (send, recv)
                 if key not in ncclcomm_dict.keys():
-                    # print_rank_0(f'key: {key}')
-                    # new_group = torch.distributed.new_group(key, backend='gloo')    # group must be create on every process ???
-                    new_group = group_dict[tuple(sorted(key))]
+                    new_group = cpu_group_dict[tuple(sorted(key))]
                     if rank in key:
                         # print(f'rank{rank}, key: {key}', flush=True)
                         ncclcomm_dict[key] = PyNcclCommunicator(new_group, device=local_rank)
                 if rank in key:
                     kernel.ncclcomm = ncclcomm_dict[key]
         set_global_var('ncclcomm_dict', ncclcomm_dict)
+        set_global_var('cpu_group_dict', cpu_group_dict)
         # print kernel orders
         # for r in range(local_size):
         #     print_rank_0(f'rank{r}:')
