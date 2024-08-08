@@ -10,6 +10,13 @@ import math
 import regex as re
 import numpy as np
 
+def get_factors(n: int):
+    factors = []
+    for i in range(1, n + 1):
+        if n % i == 0:
+            factors.append(i)
+    return factors
+
 class FinitePriorityQueue():
     """finite min heap
     """
@@ -79,8 +86,8 @@ def convert_profile_data_to_comm_map(file_name: str, num_gpus_div: int):
 def convert_node_profile_data_to_comp_map(file_name: str, local_size: int):
     # map_key: ((Sq, Skv), (Nhq, Nhg), bs, D, causal) -> Time[fwd/bwd]  # S per GPU !!!
     profile_map = {} 
-    fob = SP = S = Nh = bs = D = causal = None
-    cur_map_key = None
+    # fob = SP = S = Nh = bs = D = causal = None
+    # cur_map_key = None
     
 # fob=0, plan_paths: ['/home/zhaijidong/yhy/llm/EasyContext/search_algo/execution_plans/intra_SP8_fob=0/SP=8_fob=0_Y=1_X=8_dim=0.pkl', '/home/zhaijidong/yhy/llm/EasyContext/search_algo/execution_plans/intra_SP8_fob=0/SP=8_fob=0_Y=2_X=4_dim=0.pkl', '/home/zhaijidong/yhy/llm/EasyContext/search_algo/execution_plans/intra_SP8_fob=0/SP=8_fob=0_Y=4_X=2_dim=0.pkl', '/home/zhaijidong/yhy/llm/EasyContext/search_algo/execution_plans/intra_SP8_fob=0/SP=8_fob=0_Y=8_X=1_dim=0.pkl']
 
@@ -102,11 +109,21 @@ def convert_node_profile_data_to_comp_map(file_name: str, local_size: int):
 # mfu: 137.849 Tflops/s, hfu: 137.849 Tflops/s, 167.164 iter/s, 5.982e-03 s/iter, (0.094, 0.000, 0.024) sec
 # mfu: 121.863 Tflops/s, hfu: 121.863 Tflops/s, 147.778 iter/s, 6.767e-03 s/iter, (0.099, 0.000, 0.027) sec
 
+    baselines = ['ring_flash_attn_func', 'zigzag_ring_flash_attn_func', 'stripe_flash_attn_func']
+    skip_lines = 0
     pat0 = re.compile(r'^fob=(\d).*$')
     pat1 = re.compile(r'^SP=\((\d+),(\d+)\),S=\((\d+),(\d+)\),Nh=\((\d+),(\d+)\),bs=(\d+),D=(\d+),causal=(True|False).*$')
-    pat2 = re.compile(r'^.*iter/s, (-?(\d+(?:\.\d+)?(?:e-?\d+)?)) s/iter,.*$')
+    pat2 = re.compile(r'^.*iter/s, (-?(\d+(?:\.\d+)?(?:e[+-]\d+)?)) s/iter,.*$')
     with open(file_name, 'r') as f:
         for line in f.readlines():
+            if skip_lines > 0:
+                skip_lines -= 1
+                continue
+            for baseline in baselines:  # [NOTE]: Results of baseline models are error !!!
+                if baseline in line:
+                   skip_lines = 1
+                #    print(f'baseline: {baseline}')
+                   continue 
             res = pat2.match(line)
             if res:
                 # print(f'res: {res.group(0)}, {res.group(1)}')
@@ -114,25 +131,29 @@ def convert_node_profile_data_to_comp_map(file_name: str, local_size: int):
                 if cur_map_key not in profile_map:
                     profile_map[cur_map_key] = np.empty((2,), dtype=np.float32)
                     profile_map[cur_map_key].fill(np.inf)
+                # print(f'cur_map_key: {cur_map_key}, fob: {fob}, {float(res.group(1))}')
                 profile_map[cur_map_key][fob] = min(profile_map[cur_map_key][fob], float(res.group(1)))
                 continue
             res = pat1.match(line)
             if res:
-                # print(f'res: {res.group(0)}, {res.group(9)}')
+                # print(f'res: {res.group(0)}, {res.group(1)}, {res.group(2)}, {res.group(3)}, {res.group(4)}, {res.group(5)}, {res.group(6)}, {res.group(7)}, {res.group(8)}, {res.group(9)}')
                 SP = (int(res.group(1)), int(res.group(2)))
                 tot_sp = SP[0] * SP[1]
                 S = (int(res.group(3)) // tot_sp, int(res.group(4)) // tot_sp)
+                # S = (int(res.group(3)), int(res.group(4)))  # just for analysis !!!
                 Nh = (int(res.group(5)), int(res.group(6)))
                 bs = int(res.group(7))
                 D = int(res.group(8))
                 causal = res.group(9) == 'True'
                 cur_map_key = (SP, S, Nh, bs, D, causal)
+                # print(f'pat1, fob={fob}, cur_map_key: {cur_map_key}')
                 continue
             res = pat0.match(line)
             if res:
                 # print(f'res: {res.group(0)}, {res.group(1)}')
                 fob = int(res.group(1))
+                # print(f'fob: {fob}')
                 continue
             
-    # print(f'profile_map: {profile_map}')
+    # print(f'{profile_map}')
     return profile_map

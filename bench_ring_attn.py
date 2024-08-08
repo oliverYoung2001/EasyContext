@@ -159,7 +159,7 @@ def benchmark(args, f, da_config: Dist_Attn_Config, tensor_buf, warmup=11, num_i
         Skv *= world_size
         world_size = 1
     dropout_p = 0
-    causal = True
+    causal = da_config.causal
     deterministic = False
 
     # assert seqlen % (2 * world_size) == 0
@@ -450,9 +450,7 @@ def benchmark_orchestrate(args, raw_f, da_config: Dist_Attn_Config, tensor_buf: 
                           exp_configs: list = [], global_group=None, ncclcomm_global: PyNcclCommunicator = None, 
                           use_cudagraph=False):
     # print_rank_0(f'[INFO]: use_cudagraph: {use_cudagraph}')
-    warmup = 4
     warmup_cudagraph = 100
-    num_iter = 4
     torch.cuda.synchronize()
     torch.distributed.barrier(group=global_group)
     global PROC_INFO
@@ -636,9 +634,7 @@ def benchmark_fused(args, raw_f, da_config: Dist_Attn_Config, tensor_buf, warmup
                           plan_paths: list = [''], global_group=None, ncclcomm_global: PyNcclCommunicator = None, 
                           use_cudagraph=False):
     # print_rank_0(f'[INFO]: use_cudagraph: {use_cudagraph}')
-    warmup = 4
     warmup_cudagraph = 100
-    num_iter = 4
     torch.cuda.synchronize()
     torch.distributed.barrier(group=global_group)
     global PROC_INFO
@@ -843,9 +839,13 @@ def run_all_intra_attn(args, ncclcomm_global, gloo_global_group):
         1,
     ]
     Nhs = [
-        1,
+        # 1,
         32, 
     ]
+    
+    # experiment variables
+    WARMUP, NUM_ITER = 4, 4
+    WARMUP, NUM_ITER = 1, 2
     
     S_BOUND = [256, 64 * 1024]  # lower-bound and upper-bound
     S_base = [1 << logS for logS in range(int(math.log2(S_BOUND[0])), int(math.log2(S_BOUND[1])) + 1)]
@@ -855,7 +855,7 @@ def run_all_intra_attn(args, ncclcomm_global, gloo_global_group):
     Skvs = Sqs
     # Sqs = [327680 // world_size]
     # Skvs = [2048 // world_size]
-    Sqs = [S for S in Sqs if S * world_size >= 327680]
+    Sqs = [S for S in Sqs if S * world_size < 327680]
     print_rank_0(f'Sqs: {Sqs}')
     print_rank_0(f'Skvs: {Skvs}')
     
@@ -919,7 +919,8 @@ def run_all_intra_attn(args, ncclcomm_global, gloo_global_group):
                     # 2.1 normal comp&comm
                     benchmark_op = partial(benchmark_orchestrate,
                         args, orchestrated_attn_func, da_config, tensor_buf, log=True, exp_configs=exp_configs, 
-                        global_group=gloo_global_group, ncclcomm_global=ncclcomm_global
+                        global_group=gloo_global_group, ncclcomm_global=ncclcomm_global,
+                        warmup=WARMUP, num_iter=NUM_ITER,
                     )
                     benchmark_op(use_cudagraph=False)
                     
@@ -927,7 +928,8 @@ def run_all_intra_attn(args, ncclcomm_global, gloo_global_group):
                     if Nh == 1:
                         benchmark_op = partial(benchmark_fused,
                             args, orchestrated_attn_func, da_config, tensor_buf, log=True, plan_paths=plan_paths, 
-                            global_group=gloo_global_group, ncclcomm_global=ncclcomm_global
+                            global_group=gloo_global_group, ncclcomm_global=ncclcomm_global,
+                            warmup=WARMUP, num_iter=NUM_ITER,
                         )
                         benchmark_op(use_cudagraph=False)
     

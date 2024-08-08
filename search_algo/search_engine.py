@@ -657,9 +657,13 @@ def get_profile_data(SP: tuple):
         )
 
 def create_schedule(da_config, m_config, split_degrees: list, S_map: np.ndarray, schedule_table_func, hierarchy: bool = 1):
-    return Dist_Attn_Schedule(da_config, m_config, split_degrees, S_map, \
-                              schedule_table_func(split_degrees, S_map, da_config.causal), hierarchy)
-
+    schedule_table = schedule_table_func(split_degrees, S_map, da_config.causal)
+    if isinstance(schedule_table, list):
+        return [Dist_Attn_Schedule(da_config, m_config, split_degrees, S_map, st, hierarchy) for st in schedule_table]
+    else:
+        return Dist_Attn_Schedule(da_config, m_config, split_degrees, S_map, \
+                                schedule_table, hierarchy)
+    
 def get_cc_optimal_schedule(da_config, m_config):
     '''
     hierarchy: 0, 1 # 0 -> inter-machine, 1 -> intra-machine

@@ -4,11 +4,12 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__),
                                              os.path.pardir, os.path.pardir)))
 from search_algo.search_engine import Dist_Attn_Schedule, FlashAttn_Profile_Map, Machine_Config
 import numpy as np
-    
+from typing import Optional
+import copy
+
 class Cuda_Kernel():
-    def __init__(self, key: tuple, m_config: Machine_Config, type: str):
+    def __init__(self, key: tuple, type: str):
         self.key = key
-        self.m_config = m_config
         self.type = type
         self.precursors = set()
         self.successors = set()
@@ -31,8 +32,8 @@ class Cuda_Kernel():
                 
 class Comp_Kernel(Cuda_Kernel):
     def __init__(self, key: tuple, m_config: Machine_Config, comp_map_key: tuple, hierarchy: int):
-        # dict keys: (b_id, h_id, r_id, c_id, gpuid)
-        super().__init__(key, m_config, 'comp')
+        # dict keys: (b_id, h_id, r_id, c_id, gpuid) or (b_id, h_id, (r_ids), (c_ids), gpuid)
+        super().__init__(key, 'comp')
         # flashattn profile map_key:
         self.comp_map_key = comp_map_key
         # kernel time
@@ -42,7 +43,7 @@ class Comp_Kernel(Cuda_Kernel):
 class Comm_Kernel(Cuda_Kernel):
     def __init__(self, key: tuple, m_config: Machine_Config, comm_raw_map_key: tuple, units: np.ndarray, hierarchy: int):
         # dict keys: (b_id, h_id, r/c_id, send, recv, i/o, r/c)
-        super().__init__(key, m_config, 'comm')
+        super().__init__(key, 'comm')
         # Bytes of data to send/recv
         self.comp_raw_map_key = comm_raw_map_key
         assert units.shape == (2,)
@@ -53,11 +54,9 @@ class Comm_Kernel(Cuda_Kernel):
             m_config.comm_profile_maps[hierarchy].get_comm_time_from_map_key((comm_raw_map_key[0] * unit,))
             for unit in units
         ])    # [fwd/bwd]
-        
-
 
 class Dependent_Graph():
-    def __init__(self, schedule: Dist_Attn_Schedule, fob: bool):
+    def __init__(self, schedule: Dist_Attn_Schedule, fob: bool, kernel_dict: Optional[dict] = None):
         # [NOTE]: only support star tree of broadcase/reduce here !!!
         # build dependent graph from schedule_table
         
@@ -69,10 +68,29 @@ class Dependent_Graph():
         self.tot_sp = schedule.tot_sp
         self.hierarchy = hierarchy = schedule.da_config.hierarchy
         # self.root_kernel = Cuda_Kernel()
-        # comp: (b_id, h_id, r_id, c_id, gpuid) -> Cuda_Kernel
+        # comp: (b_id, h_id, r_id, c_id, gpuid) or (b_id, h_id, (r_ids), (c_ids), gpuid) -> Cuda_Kernel
         # comm: (b_id, h_id, r/c_id, send, recv, i/o, r/c) -> Cuda_Kernel
         self.kernel_dict = {}
+        if not kernel_dict:
+            self.create_raw_graph()
+        else:
+            self.kernel_dict = kernel_dict
         
+    # @classmethod
+    # def create_from_other_d_graph(cls, other_d_graph):
+    #     cls(other_d_graph.schedule, other_d_graph.fob, other_d_graph.kernel_dict)
+    
+    def __deepcopy__(self, memo=None):
+        if memo is None:
+            memo = {}
+        new_self = copy.copy(self)
+        new_self.kernel_dict = copy.deepcopy(self.kernel_dict, memo)
+        return new_self
+    
+    def create_raw_graph(self):
+        schedule = self.schedule
+        hierarchy = self.hierarchy
+        fob = self.fob
         # step1: Build Comp Kernel
         comp_map_key = schedule.m_config.comp_profile_maps[hierarchy].get_comp_map_key(schedule.da_config, [1, 1], schedule.split_degrees)
         for i in range(schedule.split_degrees[2]):   # split_bs
@@ -149,7 +167,6 @@ class Dependent_Graph():
                                 # output col reduce
                                 comm_key = (i, j, l, dst_g_id, cur_g_id, 'o', 'c')
                                 comp_kernel.add_edge(self.kernel_dict[comm_key], fob)
-        
-        
+    
                             
         
