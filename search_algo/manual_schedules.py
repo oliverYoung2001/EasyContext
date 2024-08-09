@@ -38,6 +38,78 @@ def get_cc_optimal_schedule_table(split_degrees: list, S_map: np.ndarray, causal
     assert S_map.shape == (split_degrees[2], min(split_degrees[0], split_degrees[1]))
     assert split_degrees[0] == split_degrees[1]
     assert split_degrees[2] == split_degrees[3] == 1
+    print(f'split_degrees: {split_degrees}, causal: {split_degrees}', flush=True)
+    cc_schedule_table = None
+    if split_degrees[0] == 16:
+        cc_schedule_table = np.array([[[
+            [0, 1, 2, 3, 0, 1, 2, 3, 0, 1, 2, 3, 0, 1, 2, 3],
+            [0, 1, 2, 3, 0, 1, 2, 3, 0, 1, 2, 3, 0, 1, 2, 3],
+            [0, 1, 2, 3, 0, 1, 2, 3, 0, 1, 2, 3, 0, 1, 2, 3],
+            [0, 1, 2, 3, 0, 1, 2, 3, 0, 1, 2, 3, 0, 1, 2, 3],
+            [4, 5, 6, 7, 4, 5, 6, 7, 4, 5, 6, 7, 4, 5, 6, 7],
+            [4, 5, 6, 7, 4, 5, 6, 7, 4, 5, 6, 7, 4, 5, 6, 7],
+            [4, 5, 6, 7, 4, 5, 6, 7, 4, 5, 6, 7, 4, 5, 6, 7],
+            [4, 5, 6, 7, 4, 5, 6, 7, 4, 5, 6, 7, 4, 5, 6, 7],
+            [8, 9, 10, 11, 8, 9, 10, 11, 8, 9, 10, 11, 8, 9, 10, 11],
+            [8, 9, 10, 11, 8, 9, 10, 11, 8, 9, 10, 11, 8, 9, 10, 11],
+            [8, 9, 10, 11, 8, 9, 10, 11, 8, 9, 10, 11, 8, 9, 10, 11],
+            [8, 9, 10, 11, 8, 9, 10, 11, 8, 9, 10, 11, 8, 9, 10, 11],
+            [12, 13, 14, 15, 12, 13, 14, 15, 12, 13, 14, 15, 12, 13, 14, 15],
+            [12, 13, 14, 15, 12, 13, 14, 15, 12, 13, 14, 15, 12, 13, 14, 15],
+            [12, 13, 14, 15, 12, 13, 14, 15, 12, 13, 14, 15, 12, 13, 14, 15],
+            [12, 13, 14, 15, 12, 13, 14, 15, 12, 13, 14, 15, 12, 13, 14, 15],
+        ]]], dtype=np.int32)
+        if causal:
+            for i in range(split_degrees[0]):
+                for j in range(split_degrees[1]):
+                    if i < j:
+                        cc_schedule_table[0, 0, i, j] = - 1
+            return cc_schedule_table
+        else:
+            return cc_schedule_table
+    if split_degrees[0] == 8:
+        cc_schedule_table = np.array([[[    # 2 * 4 = Y * X
+            [0, 1, 2, 3, 0, 1, 2, 3],
+            [0, 1, 2, 3, 0, 1, 2, 3],
+            [0, 1, 2, 3, 0, 1, 2, 3],
+            [0, 1, 2, 3, 0, 1, 2, 3],
+            [4, 5, 6, 7, 4, 5, 6, 7],
+            [4, 5, 6, 7, 4, 5, 6, 7],
+            [4, 5, 6, 7, 4, 5, 6, 7],
+            [4, 5, 6, 7, 4, 5, 6, 7],
+        ]]], dtype=np.int32)
+        if causal:
+            for i in range(split_degrees[0]):
+                for j in range(split_degrees[1]):
+                    if i < j:
+                        cc_schedule_table[0, 0, i, j] = - 1
+            return cc_schedule_table
+        else:
+            return cc_schedule_table
+    if split_degrees[0] == 6:
+        if causal:
+            cc_schedule_tables = []
+            cc_schedule_table = np.array([[[
+                [0, -1, -1, -1, -1, -1],
+                [1,  1, -1, -1, -1, -1],
+                [0,  0,  2, -1, -1, -1],
+                [1,  3,  2,  3, -1, -1],
+                [0,  4,  5,  3,  4, -1],
+                [1,  4,  5,  3,  4,  5],
+            ]]], dtype=np.int32)
+            cc_schedule_tables.append(cc_schedule_table)
+            cc_schedule_table = np.array([[[
+                [0, -1, -1, -1, -1, -1],
+                [1,  1, -1, -1, -1, -1],
+                [0,  2,  2, -1, -1, -1],
+                [0,  3,  3,  3, -1, -1],
+                [0,  2,  2,  5,  4, -1],
+                [1,  1,  4,  5,  4,  5],
+            ]]], dtype=np.int32)
+            cc_schedule_tables.append(cc_schedule_table)
+            return cc_schedule_tables
+        else:
+            raise NotImplementedError()
     if split_degrees[0] == 4:
         if causal:
             cc_schedule_tables = []

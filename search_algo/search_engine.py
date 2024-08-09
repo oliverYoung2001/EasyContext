@@ -12,6 +12,7 @@ from enum import Enum
 import copy
 import json
 import math
+from typing import Optional
 
 class Evaluation_Configs():
     def __init__(self, plan_type: str, MAX_QUEUE_SIZE: int, fob: bool, plan_path: str = None, hierarchy: bool = 1):
@@ -30,6 +31,7 @@ class Dist_Attn_Config():
         self.D = D
         self.causal = causal
         self.hierarchy = hierarchy
+        self.hierarchy_sp = SP[hierarchy]
         # self.tot_sp = reduce(lambda x,y:x*y, SP)
         # self.S_per_gpu = (S[0] // self.tot_sp, S[1] // self.tot_sp)
     
@@ -221,7 +223,7 @@ class Machine_Config():
     
 class Dist_Attn_Schedule():
     def __init__(self, da_config: Dist_Attn_Config, m_config: Machine_Config, 
-                 split_degrees: list, S_map: np.ndarray, schedule_table: np.ndarray = None, hierarchy: int = 1):
+                 split_degrees: list, S_map: np.ndarray, schedule_table: Optional[np.ndarray] = None, hierarchy: int = 1):
         self.da_config = da_config
         self.m_config = m_config
         self.hierarchy = hierarchy  
@@ -230,7 +232,6 @@ class Dist_Attn_Schedule():
         assert max(split_degrees[0], split_degrees[1]) % min(split_degrees[0], split_degrees[1]) == 0
         assert split_degrees[0] == split_degrees[1] # [NOTE]: now only support Sq_split == Skv_split !!!
         assert S_map.shape == (split_degrees[2], min(split_degrees[0], split_degrees[1]))
-        assert schedule_table.shape == (split_degrees[2], split_degrees[3], split_degrees[0], split_degrees[1])
         if schedule_table is None:  # initialize schedule_table
             schedule_table = np.empty((split_degrees[2], split_degrees[3], split_degrees[0], split_degrees[1]), dtype=np.int32)
             schedule_table.fill(TASK_STATUS.UNSETTLED.value)
@@ -239,11 +240,10 @@ class Dist_Attn_Schedule():
                     schedule_table[:, :, k, k + 1:] = TASK_STATUS.EMPTY.value
             for k in range(split_degrees[0]):
                 schedule_table[:, :, k, k] = np.expand_dims(S_map[:, k], axis=1)    # we can set the diagonal elements directly
-        
+        assert schedule_table.shape == (split_degrees[2], split_degrees[3], split_degrees[0], split_degrees[1])
         for k in range(split_degrees[0]):   # we should assert diagonal elements first
             assert np.prod(schedule_table[:, :, k, k] == np.expand_dims(S_map[:, k], axis=1)) == 1
                 
-        assert schedule_table.shape == (split_degrees[2], split_degrees[3], split_degrees[0], split_degrees[1])
         self.tot_sp = reduce(lambda x,y:x*y, self.da_config.SP)
         self.hierarchy_sp = da_config.SP[da_config.hierarchy]
         self.schedule_table = schedule_table
@@ -336,7 +336,6 @@ class Dist_Attn_Schedule():
         # [TODO]: support sth like ring comm !
         # comp unit: (Sq_split, Skv_split)
         # comm unit: Skv_split / Sq_split for cross_attn (kv, dkv); Nh[1] / Nh[0] for GQA (kv, dkv)
-        # print(f'schedule:\n{self.schedule_table}')
         if hasattr(self, 'r_cc_time'):
             return self.r_cc_time, self.balanced_r_cc_time
         
@@ -357,6 +356,7 @@ class Dist_Attn_Schedule():
         # print(f'ub_comp_units:\n{self.ub_comp_units}')
         # comm units
         for g in range(self.hierarchy_sp):
+            # print(f'g: {g}')
             Sq_self_mask = np.expand_dims( # [split_degrees[2], 1, split_degrees[0]]
                 np.repeat(
                     self.S_map, 
@@ -375,14 +375,14 @@ class Dist_Attn_Schedule():
                 axis=-2
             )
             Skv_other_mask = Skv_self_mask ^ 1
-            Sq_self_unequal_num = np.logical_and(
+            Sq_self_unequal_num = np.logical_and(   # 0/1
                 np.logical_or.reduce(
                     np.logical_and(self.schedule_table != g, self.schedule_table >= 0), 
                     axis=-1
                 ),
                 Sq_self_mask
             ).sum()
-            Skv_self_unequal_num = np.logical_and(
+            Skv_self_unequal_num = np.logical_and(  # 0/1
                 np.logical_or.reduce(
                     np.logical_and(self.schedule_table != g, self.schedule_table >= 0),
                     axis=-2
@@ -397,6 +397,8 @@ class Dist_Attn_Schedule():
                 np.logical_or.reduce(self.schedule_table == g, axis=-2),
                 Skv_other_mask
             ).sum()
+            # print(f'Sq_self_unequal_num: {Sq_self_unequal_num}, Skv_self_unequal_num: {Skv_self_unequal_num} '
+            #       f'Sq_other_equal_num: {Sq_other_equal_num}, Skv_other_equal_num: {Skv_other_equal_num}', flush=True)
             
             # input, in: fix
                 # row: (q), (q, o, do)
@@ -480,6 +482,30 @@ class Dist_Attn_Schedule():
         self.ub_cc_units_constrain[:, 1] = self.e2e_time / self.unit_comm_time
         return self.ub_cc_units_constrain   # [fwd/bwd][Comp/Comm(units)]
 
+    def print_schedule(self, fob: bool):
+        # print(f'SCHEDULE_UNIQUE_ID: {SCHEDULE_UNIQUE_ID}')
+        print(f'schedule:\n{self.schedule_table}', flush=True)
+        print(f'get_tot_comm_units: {self.get_tot_comm_units()[fob][0]}', flush=True)   # optimize !!!
+        self.get_relative_cc_time()
+        balanced_r_cc_time = self.balanced_r_cc_time[fob]
+        r_cc_time = self.r_cc_time[fob]
+        print(f'get_relative_cc_time:\n{r_cc_time[1:]}', flush=True)    # only comm
+        print(f'get_balanced_relative_cc_time: {np.max(balanced_r_cc_time[1:])}, '
+            f'{np.max(balanced_r_cc_time[0])}\n{balanced_r_cc_time[1:]}', flush=True)   # only comm
+        # print(f'fob: {fob}, get_e2e_time(): {schedule.get_e2e_time()[fob]:.3e}, '
+        #     f'get_absolute_cc_time:{schedule.get_absolute_cc_time()[fob]}')
+
+    def reset(self):
+        if hasattr(self, 'r_cc_time'):
+            del self.r_cc_time
+        if hasattr(self, 'tot_comm_units'):
+            del self.tot_comm_units
+        if hasattr(self, 'ub_cc_time'):
+            del self.ub_cc_time
+        if hasattr(self, 'e2e_time'):
+            del self.e2e_time
+        if hasattr(self, 'ub_cc_units_constrain'):
+            del self.ub_cc_units_constrain
 
 class Search_Engine():
     def __init__(self, exp_config: Evaluation_Configs, da_config: Dist_Attn_Config, m_config: Machine_Config, init_schedule_list: list):
@@ -487,14 +513,16 @@ class Search_Engine():
         self.da_config = da_config
         self.m_config = m_config
         self.tot_sp = reduce(lambda x,y:x*y, self.da_config.SP)
+        self.hierarchy_sp = da_config.SP[da_config.hierarchy]
         self.init_schedule_list = init_schedule_list
+        self.fob = exp_config.fob
         for schedule in self.init_schedule_list:
             schedule.get_ub_cc_units_constrain()
         self.ub = np.empty((2, 2), dtype=np.float32)    # [fwd/bwd][Comp/Comm]
         self.ub = self.ub.fill(np.inf)
-        # [TODO]: need to modify tot_sp !!!
-        # Now only support split_degrees = [tot_sp, tot_sp, 1, 1], S_map = np.arange(tot_sp)
-        self.split_degrees = [self.tot_sp, self.tot_sp, 1, 1]
+        # [TODO]: need to modify hierarchy_sp !!!
+        # Now only support split_degrees = [hierarchy_sp, hierarchy_sp, 1, 1], S_map = np.arange(hierarchy_sp)
+        self.split_degrees = [self.hierarchy_sp, self.hierarchy_sp, 1, 1]
         
         # comp/comm ub
         self.ub_cc_units = np.max(np.array([schedule.ub_cc_units_constrain for schedule in self.init_schedule_list]), axis=0)   # [fwd/bwd][Comp/Comm(units)]
@@ -514,19 +542,33 @@ class Search_Engine():
         self.schedule_queues = [None, None]  # [fwd/bwd]  
         
         # extra comp ub (not a real ub in some case !!!)
-        self.ub_comp = int(math.ceil((self.tot_sp - 1) / 2))
+        if self.fob == 0:
+            self.ub_comp = np.empty(self.hierarchy_sp, dtype=np.int32)  # ub_comp without causal block
+            self.ub_comp.fill(int(math.floor((self.hierarchy_sp - 1) / 2)))
+            if self.hierarchy_sp % 2 == 0:
+                self.ub_comp[: self.hierarchy_sp // 2] += 1
+        else:
+            raise NotImplementedError
+        
+        # for comp workload locality 2
+        if self.fob == 0:
+            self.ub_rc_num = np.empty(self.hierarchy_sp, dtype=np.int32)
+            if self.hierarchy_sp == 8:  # [3, 3, 3, 3, 2, 2, 2, 2]
+                self.ub_rc_num = np.array([3, 3, 3, 3, 2, 2, 2, 2], dtype=np.int32)
+            else:
+                self.ub_rc_num = self.ub_comp
+        else:
+            raise NotImplementedError
         print(f'ub_comp: {self.ub_comp}')
+        print(f'ub_rc_num: {self.ub_rc_num}', flush=True)
     
     def reset_before_search(self):
         # Constrain: x = unpack_func(pack_func(x))
-        def pack_func(schedule):
+        def pack_func(schedule: Dist_Attn_Schedule):
             SCHEDULE_UNIQUE_ID = get_global_var('SCHEDULE_UNIQUE_ID')
             SCHEDULE_UNIQUE_ID += 1
             set_global_var('SCHEDULE_UNIQUE_ID', SCHEDULE_UNIQUE_ID)
-            fob = self.fob
-            # print(f'SCHEDULE_UNIQUE_ID: {SCHEDULE_UNIQUE_ID}')
-            # print(f'schedule:\n{schedule.schedule_table}', flush=True)
-            # print(f'fob: {fob}, get_e2e_time(): {schedule.get_e2e_time()[fob]:.3e}, get_absolute_cc_time:{schedule.get_absolute_cc_time()[fob]}')
+            schedule.print_schedule(self.fob)
             return (- schedule.get_e2e_time()[self.fob], SCHEDULE_UNIQUE_ID, schedule)
         def unpack_func(q_item):
             return q_item[2]
@@ -538,15 +580,21 @@ class Search_Engine():
         self.schedule_queues[self.fob] = schedule_queue
         
         S_map = np.empty((self.split_degrees[2], min(self.split_degrees[0], self.split_degrees[1])), dtype=np.int32)
-        S_map[:] = np.arange(self.tot_sp)
+        S_map[:] = np.arange(self.hierarchy_sp)
 
         self.cur_schedule = Dist_Attn_Schedule(self.da_config, self.m_config, self.split_degrees, S_map)
-        self.cur_cc_units = np.zeros((2, 3, self.tot_sp), dtype=np.float32) # [fwd/bwd][Comp/Comm_in/Comm_out][SP]
+        self.cur_cc_units = np.zeros((2, 3, self.hierarchy_sp), dtype=np.float32) # [fwd/bwd][Comp/Comm_in/Comm_out][SP]
         
         # For initialized diagonal elements' comp workload
-        for g in range(self.tot_sp):
+        for g in range(self.hierarchy_sp):
             self.cur_cc_units[:, 0, g] = np.sum(self.cur_schedule.schedule_table == g)
         assert np.prod(self.cur_cc_units[:, 0, :] == 1) == 1
+        # rid or cid collections of each gpu_id
+        self.rc_num = np.zeros((self.hierarchy_sp, 2, self.hierarchy_sp), dtype=np.int32)    # [SP][r/c][rid/cid]
+        for g in range(self.hierarchy_sp):
+            self.rc_num[g, :, g] += 1   # for diagonal elements in causal
+        # print(f'self.rc_num: {self.rc_num}')
+        # print(f'self.cur_cc_units: {self.cur_cc_units}')
     
     def get_next_pos(self, cur_pos: tuple) -> tuple:
         """_summary_
@@ -576,23 +624,53 @@ class Search_Engine():
             next_pos = self.get_next_pos(next_pos)
         return next_pos
     
-    def apply_pruning_passed(self, cur_pos: tuple, g: int):
-        # pruning strategy 1: comp
-        if self.cur_cc_units[self.fob, 0, g] + 1 >= self.ub_cc_units[self.fob, 0]:
-            return False
+    def apply_pruning_passed(self, cur_pos: tuple, next_pos: tuple, g: int):
+        # # pruning strategy 1: comp
+        # if self.cur_cc_units[self.fob, 0, g] + 1 >= self.ub_cc_units[self.fob, 0]:
+        #     return False
         # pruning strategy 2: comp
-        if self.cur_cc_units[self.fob, 0, g] > self.ub_comp:
+        # if self.cur_cc_units[self.fob, 0, g] - 1 + 1 > self.ub_comp[g]:
+        if self.cur_cc_units[self.fob, 0, g] > self.ub_comp[g]:
             return False
+        
+        # pruning strategy 3: comp workload locality 1
+        cur_r_num = np.count_nonzero(self.rc_num[g, 0]) + (self.rc_num[g, 0, cur_pos[2]] == 0)
+        cur_c_num = np.count_nonzero(self.rc_num[g, 1]) + (self.rc_num[g, 1, cur_pos[3]] == 0)
+        if cur_r_num + cur_c_num - 2 > self.ub_comp[g]:
+            return False
+        
+        # pruning strategy 4: comp workload locality 2
+        # part1
+        if max(cur_r_num, cur_c_num) > self.ub_rc_num[g]:
+            return False
+        
+        # part2: new line pruning:
+        if next_pos[- 1] == 0:
+            for gid in range(self.hierarchy_sp):
+                cur_r_num_gid = cur_r_num if gid == g else np.count_nonzero(self.rc_num[gid, 0])
+                left = (self.ub_comp[g] + 1) - (self.cur_cc_units[self.fob, 0, g] + (gid == g))
+                assert left >= 0
+                # if gid == 0:
+                    # print(f'cur_pos: {cur_pos}, left: {left}, cur_r_num_gid: {cur_r_num_gid}')
+                if cur_r_num_gid == self.ub_rc_num[gid] and left > 0:
+                    return False
+        
         return True
           
     def update_cur_status(self, cur_pos: tuple, g: int):
         self.cur_schedule.schedule_table[cur_pos] = g
         self.cur_cc_units[self.fob, 0, g] += 1
+        # update rc_num
+        self.rc_num[g, 0, cur_pos[2]] += 1
+        self.rc_num[g, 1, cur_pos[3]] += 1
         pass
     
     def restore_cur_status(self, cur_pos: tuple, g: int):
         self.cur_schedule.schedule_table[cur_pos] = TASK_STATUS.UNSETTLED.value
         self.cur_cc_units[self.fob, 0, g] -= 1
+        # restore rc_num
+        self.rc_num[g, 0, cur_pos[2]] -= 1
+        self.rc_num[g, 1, cur_pos[3]] -= 1
         pass
     
     def brute_force_search(self, cur_pos: tuple):
@@ -602,18 +680,25 @@ class Search_Engine():
             cur_pos (list): current position, [split_degree[2], split_degree[3], split_degree[0], split_degree[1]]
         """
         if self.is_end(cur_pos):
-            new_schedule = copy.deepcopy(self.cur_schedule)
-            self.schedule_queues[self.fob].push(new_schedule)
+            SCHEDULE_UNIQUE_ID = get_global_var('SCHEDULE_UNIQUE_ID')
+            SCHEDULE_UNIQUE_ID += 1
+            set_global_var('SCHEDULE_UNIQUE_ID', SCHEDULE_UNIQUE_ID)
+            print(f'SCHEDULE_UNIQUE_ID: {SCHEDULE_UNIQUE_ID}')
+            self.cur_schedule.reset()
+            self.cur_schedule.print_schedule(self.fob)
+            # new_schedule = copy.deepcopy(self.cur_schedule)
+            # new_schedule.print_schedule(self.fob)
+            # self.schedule_queues[self.fob].push(new_schedule)
             # raise Exception()
             # exit(0)
             return
-        # if cur_pos == (0, 0, 7, 0):
-        #     print(f'cur_pos: {cur_pos}', flush=True)
         assert self.cur_schedule.schedule_table[cur_pos] == TASK_STATUS.UNSETTLED.value
         next_pos = self.get_next_unsettled_pos(cur_pos)
         
-        for g in range(self.tot_sp):    # fill in gpu_id
-            if not self.apply_pruning_passed(cur_pos, g):
+        if cur_pos == (0, 0, 3, 1):
+            print(f'{self.cur_schedule.schedule_table}', flush=True)
+        for g in range(self.hierarchy_sp):    # fill in gpu_id
+            if not self.apply_pruning_passed(cur_pos, next_pos, g):
                 continue
             self.update_cur_status(cur_pos, g)
             self.brute_force_search(next_pos)
@@ -624,19 +709,12 @@ class Search_Engine():
     #     assert self.split_degrees[0] == self.split_degrees[1]   # Sq_split == Skv_split
     #     assert self.split_degrees[2] == self.split_degrees[3] == 1  # [NOTE]: now only support bs_split == Nh_split == 1
         # [TODO]: support bs_split == 2
-        # search for fwd
-        self.fob = 0    # fwd
         self.reset_before_search()
+        # return
         try:
             self.brute_force_search(self.get_next_unsettled_pos((0, 0, 0, 0)))
         except Exception as e:
             pass
-        
-        # search for bwd
-        self.fob = 1    # bwd
-        self.reset_before_search()
-        # self.brute_force_search(self.get_next_unsettled_pos((0, 0, 0, 0)))
-
 
 def get_profile_data(SP: tuple):
     BW = (12.5, 215)   # Inter-Machine, Intra-Machine, GB/s, bidirectional
@@ -684,34 +762,41 @@ def get_init_schedule_list(da_config, m_config):
     # 4. Support cc overlap
     # 5. Support profiling for comm time
     # 6. differentiate causal block and noncausal block
-    tot_sp = reduce(lambda x,y:x*y, da_config.SP)
-    if not da_config.causal:        # optimal
-        split_degrees = [tot_sp, tot_sp, 1, 1]
+    hierarchy_sp = da_config.SP[da_config.hierarchy]
+    if not da_config.causal:        # optimal # [NOTE]: not optimal: blocking is optimal !!!
+        split_degrees = [hierarchy_sp, hierarchy_sp, 1, 1]
         S_map = np.empty((split_degrees[2], min(split_degrees[0], split_degrees[1])), dtype=np.int32)
-        S_map[:] = np.arange(tot_sp)
+        S_map[:] = np.arange(hierarchy_sp)
         qo_schedule = create_schedule(da_config, m_config, split_degrees, S_map, get_qo_schedule_table)
         kv_schedule = create_schedule(da_config, m_config, split_degrees, S_map, get_kv_schedule_table)
-        return [qo_schedule, kv_schedule]
+        cc_optimal_schedules = create_schedule(da_config, m_config, split_degrees, S_map, get_cc_optimal_schedule_table)
+        if isinstance(cc_optimal_schedules, Dist_Attn_Schedule):
+            cc_optimal_schedules = [cc_optimal_schedules]
+        return [qo_schedule, kv_schedule] + cc_optimal_schedules
     else:
-        if da_config.bs % 2 == 0:   # optimal
-            split_degrees = [tot_sp, tot_sp, 2, 1]
+        if da_config.bs % 2 == 0:   # optimal # [NOTE]: not optimal: blocking is optimal !!!
+            split_degrees = [hierarchy_sp, hierarchy_sp, 2, 1]
             S_map = np.empty((split_degrees[2], min(split_degrees[0], split_degrees[1])), dtype=np.int32)
-            S_map[0] = np.arange(tot_sp)
-            S_map[1] = np.arange(tot_sp - 1, - 1, - 1)
+            S_map[0] = np.arange(hierarchy_sp)
+            S_map[1] = np.arange(hierarchy_sp - 1, - 1, - 1)
             qo_schedule = create_schedule(da_config, m_config, split_degrees, S_map, get_qo_schedule_table)
             kv_schedule = create_schedule(da_config, m_config, split_degrees, S_map, get_kv_schedule_table)
             return [qo_schedule, kv_schedule]
         else:   # not optimal
-            split_degrees = [tot_sp, tot_sp, 1, 1]
+            split_degrees = [hierarchy_sp, hierarchy_sp, 1, 1]
             S_map = np.empty((split_degrees[2], min(split_degrees[0], split_degrees[1])), dtype=np.int32)
-            S_map[:] = np.arange(tot_sp)
+            S_map[:] = np.arange(hierarchy_sp)
             qo_schedule = create_schedule(da_config, m_config, split_degrees, S_map, get_qo_schedule_table)
             kv_schedule = create_schedule(da_config, m_config, split_degrees, S_map, get_kv_schedule_table)
-            
-            split_degrees = [tot_sp * 2, tot_sp * 2, 1, 1]
+            cc_optimal_schedules = create_schedule(da_config, m_config, split_degrees, S_map, get_cc_optimal_schedule_table)
+            if isinstance(cc_optimal_schedules, Dist_Attn_Schedule):
+                cc_optimal_schedules = [cc_optimal_schedules]
+
+            split_degrees = [hierarchy_sp * 2, hierarchy_sp * 2, 1, 1]
             S_map = np.empty((split_degrees[2], min(split_degrees[0], split_degrees[1])), dtype=np.int32)
-            S_map[:] = np.concatenate((np.arange(tot_sp), np.arange(tot_sp - 1, - 1, - 1)))
+            S_map[:] = np.concatenate((np.arange(hierarchy_sp), np.arange(hierarchy_sp - 1, - 1, - 1)))
             zigzag_kv_schedule = create_schedule(da_config, m_config, split_degrees, S_map, get_kv_schedule_table)
             
+            # return cc_optimal_schedules
             # return [qo_schedule, kv_schedule]
-            return [qo_schedule, kv_schedule, zigzag_kv_schedule]
+            return [qo_schedule, kv_schedule, zigzag_kv_schedule] + cc_optimal_schedules

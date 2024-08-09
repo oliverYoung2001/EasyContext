@@ -27,6 +27,9 @@ def get_configs():
     # Sq = Skv = 8 * 1024   # 8k
     
     SP0, SP1 = 4, 8
+    SP0, SP1 = 6, 8
+    SP0, SP1 = 8, 8
+    # SP0, SP1 = 16, 8
 
     Sq = Skv = 256   # S per GPU
     Sq = Skv = 512   # S per GPU
@@ -35,9 +38,10 @@ def get_configs():
     # Sq = Skv = 4 * 1024   # S per GPU
     Sq = Skv = 8 * 1024   # S per GPU
     Ss = [256, 512, 1024, 2048, 4096, 8192, 16 * 1024, 32 * 1024]    # S per GPU
+    Ss = [1024]    # S per GPU
 
     Nhq = Ng = 32
-    # Nhq = Ng = 1
+    Nhq = Ng = 1
     bs = 1
     D = 128
     causal = False
@@ -57,7 +61,7 @@ def show_schedule(schedule: Dist_Attn_Schedule, fob, name):
     if schedule.split_degrees[0] != schedule.da_config.SP[1] or schedule.split_degrees[1] != schedule.da_config.SP[1]:
         return
     
-def run_exp(exp_config: Evaluation_Configs, da_config: Dist_Attn_Config):
+def run_cc_optimal_exp(exp_config: Evaluation_Configs, da_config: Dist_Attn_Config):
     fob = exp_config.fob
     hierarchy = da_config.hierarchy
     print(f'plan_name: {da_config.get_plan_name(fob=0)}', flush=True)
@@ -89,9 +93,45 @@ def run_exp(exp_config: Evaluation_Configs, da_config: Dist_Attn_Config):
         gt_engine.transform(d_graph)
     # return
     return
+
+def run_exp(exp_config: Evaluation_Configs, da_config: Dist_Attn_Config):
+    fob = exp_config.fob
+    hierarchy = da_config.hierarchy
+    print(f'plan_name: {da_config.get_plan_name(fob=0)}', flush=True)
+    m_config = get_profile_data(da_config.SP)
+    
+    # # for debugging Parallel Graph Transformation Engine
+    # schedules = get_cc_optimal_schedule(da_config, m_config)
+    # if isinstance(schedules, Dist_Attn_Schedule):
+    #     schedules = [schedules]
+    # for schedule in schedules:
+    #     print(f'schedule:\n{schedule.schedule_table}', flush=True)
+    #     # print(f'fob: {fob}, get_e2e_time(): {schedule.get_e2e_time()[fob]:.3e}, get_absolute_cc_time:{schedule.get_absolute_cc_time()[fob]}')
+    #     # print(f'fob: {fob}, get_relative_cc_time:{schedule.get_relative_cc_time()[fob]}')
+    #     print(f'fob: {fob}, get_tot_comm_units: {schedule.get_tot_comm_units()[fob][0]}')
+    #     schedule.get_relative_cc_time()
+    #     balanced_r_cc_time = schedule.balanced_r_cc_time[fob]
+    #     r_cc_time = schedule.r_cc_time[fob]
+    #     print(f'get_relative_cc_time:\n{r_cc_time}')
+    #     print(f'get_balanced_relative_cc_time: {np.max(balanced_r_cc_time[1:])}, '
+    #         f'{np.max(balanced_r_cc_time[0])}\n{balanced_r_cc_time}')
+    #     print(f'fob: {fob}, get_e2e_time(): {schedule.get_e2e_time()[fob]:.3e}, '
+    #         f'get_absolute_cc_time:{schedule.get_absolute_cc_time()[fob]}')
+
+    #     d_graph = Dependent_Graph(schedule, exp_config.fob)
+    #     execute_plan = Execution_Plan(d_graph, exp_config.fob, plan_type=exp_config.plan_type)
+    #     execute_plan.print_lp_result()
+        
+    #     gt_engine = Graph_Transformation_Engine(exp_config, da_config, m_config)
+    #     gt_engine.transform(d_graph)
+    # # return
+    # return
+    
+    # Step1: Searching comp workloads scheduling
     init_schedule_list = get_init_schedule_list(da_config, m_config)
     search_engine = Search_Engine(exp_config, da_config, m_config, init_schedule_list)
     search_engine.search_optimal_schedules()
+    return
     SCHEDULE_UNIQUE_ID = get_global_var('SCHEDULE_UNIQUE_ID')
     # print(f'tot schedules: {SCHEDULE_UNIQUE_ID}')
     # fwd
@@ -106,6 +146,8 @@ def run_exp(exp_config: Evaluation_Configs, da_config: Dist_Attn_Config):
     # for schedule in init_schedule_list:
     #     show_schedule(schedule, fob, 'init')
 
+    # Step2: DAG Transformation
+    # Step3: Execution Plan Generation
     QUEUE_LEN = len(search_engine.schedule_queues[fob])
     for _ in range(len(search_engine.schedule_queues[fob])):
         schedule = search_engine.schedule_queues[fob].pop()
@@ -147,6 +189,7 @@ def main():
         exp_configs = [exp_configs]
     for exp_config in exp_configs:
         for da_config in da_configs:
+            # run_cc_optimal_exp(exp_config, da_config)
             run_exp(exp_config, da_config)
          
 if __name__ == '__main__':
