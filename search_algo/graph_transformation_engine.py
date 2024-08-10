@@ -9,6 +9,8 @@ from search_algo.execute_plan import Execution_Plan
 import numpy as np
 import copy
 import itertools
+from typing import Optional
+import math
 
 class Comm_Rebuild_Engine():   # (Broadcast/reduce, row/col)
     def __init__(self):
@@ -164,20 +166,20 @@ class Graph_Transformation_Engine():    # batch engine
                 if x != y:
                     self.comp_fusion_shapes.append((y, x))
         self.comp_fusion_shapes.sort(key=lambda x: (x[0] * x[1], x[1]), reverse=True)
-        print(f'comp_fusion_shapes: {self.comp_fusion_shapes}')
+        # print(f'comp_fusion_shapes: {self.comp_fusion_shapes}')
         self.comp_fusion_subs = [Comp_Fusion_Substitution(shape) for shape in self.comp_fusion_shapes]
-        
+                
         # type2: comm fusion substitutions [TODO]
         self.comm_fusion_subs = []
         
+        # sort all substitutions by performance
+        self.comp_fusion_subs.sort(key=lambda x: (math.prod(x.shape), x.shape), reverse=True)
+
         # substitutions dictionary
         self.subs_dict = {
             'comp_fusion': self.comp_fusion_subs,
             'comm_fusion': self.comm_fusion_subs,
         }
-        
-    def apply_transformation(self):
-        pass
     
     def print_trans(self):
         print(f'All transformations:', flush=True)
@@ -198,28 +200,34 @@ class Graph_Transformation_Engine():    # batch engine
         for sub in self.subs_dict['comp_fusion']:
             sub_trans = sub.findall_trans_in_d_graph(d_graph, self.hierarchy_sp)
             for sp_id in range(self.hierarchy_sp):
-                self.trans_sp[sp_id] += sub_trans[sp_id]
+                self.trans_sp[sp_id] += sub_trans[sp_id]    # (sub0, tran0), (sub0, tran1), (sub1, tran0), (sub1, tran1), ...
         self.trans_all = []
         for trans in self.trans_sp:
             self.trans_all += trans
-        self.print_trans()
+        # self.print_trans()
     
+    def apply_transformations(self, selected_trans: list):
+        new_d_graph = copy.deepcopy(self.d_graph)   # apply transformations on new_d_graph
+        # # Print trans
+        # print(f'Selected Transformations: ', end='', flush=True)
+        # for tran in selected_trans:
+        #     print(f'{tuple(tran.ids_tuple)} ', end='', flush=True)
+        # print(flush=True)
+
+        # Apply transformations on d_graph
+        for tran in selected_trans:
+            tran.apply_on_d_graph(new_d_graph)
+        
+        # Assess performance of new d_graph
+        execute_plan = Execution_Plan(new_d_graph, self.exp_config.fob, plan_type=self.plan_type)
+        execute_plan.print_lp_result()
+        return execute_plan
+            
     def dfs_trans(self, trans_all_id: int, selected_trans: list, fused_pos: set):
         if trans_all_id >= len(self.trans_all):
             if len(selected_trans) == 0:
                 return
-            # Apply transformations on d_graph and assess the performance
-            new_d_graph = copy.deepcopy(self.d_graph)   # apply transformations on new_d_graph
-            # print(f'd_graph: {self.d_graph}, new_d_graph: {new_d_graph}')
-            for tran in selected_trans:
-                tran.apply_on_d_graph(new_d_graph)
-            # print trans
-            print(f'Selected Transformations: ', end='', flush=True)
-            for tran in selected_trans:
-                print(f'{tuple(tran.ids_tuple)} ', end='', flush=True)
-            print(flush=True)
-            execute_plan = Execution_Plan(new_d_graph, self.exp_config.fob, plan_type=self.exp_config.plan_type)
-            execute_plan.print_lp_result()
+            self.apply_transformations(selected_trans)
             return
         # not select
         self.dfs_trans(trans_all_id + 1, selected_trans, fused_pos)
@@ -232,8 +240,25 @@ class Graph_Transformation_Engine():    # batch engine
             selected_trans.pop()
         
         
-    def transform(self, d_graph: Dependent_Graph):
+    def transform(self, d_graph: Dependent_Graph, mode: str = 'bf', plan_type: str = 'automatic'):
         self.d_graph = d_graph
+        self.plan_type = plan_type
         self.get_all_transformations()
-        
-        self.dfs_trans(0, [], set())
+        if mode == 'bf':
+            self.dfs_trans(0, [], set())
+        elif mode == 'greedy':
+            # Select transformations greedly
+            fused_pos = set()
+            selected_trans = []
+            for tran in self.trans_all:
+                if len(fused_pos & tran.ids_set) == 0: # select this trans
+                    fused_pos |= tran.ids_set
+                    selected_trans.append(tran)
+            # print selected trans
+            if len(selected_trans) == 0:
+                print(f'No Transformations Selected !!!', flush=True)
+                return
+            execute_plan = self.apply_transformations(selected_trans)
+            return execute_plan
+        else:
+            raise Exception(f'Error: mode {mode} not supported !!!')

@@ -18,7 +18,9 @@ def get_exp_config():
     MAX_QUEUE_SIZE = 100
     fob = 0
     hierarchy = 0  # 0: intra-machine, 1: inter-machine
-    return Evaluation_Configs(plan_type, MAX_QUEUE_SIZE, fob, hierarchy=hierarchy)
+    transform_mode = 'bf'       # Enumerate all possible transformations
+    transform_mode = 'greedy'   # Apply transformations greedily
+    return Evaluation_Configs(plan_type, MAX_QUEUE_SIZE, fob, hierarchy=hierarchy, transform_mode=transform_mode)
 
 def get_configs():
     # SP0, SP1 = 1, 4
@@ -37,8 +39,17 @@ def get_configs():
     # Sq = Skv = 2 * 1024   # S per GPU
     # Sq = Skv = 4 * 1024   # S per GPU
     Sq = Skv = 8 * 1024   # S per GPU
-    Ss = [256, 512, 1024, 2048, 4096, 8192, 16 * 1024, 32 * 1024]    # S per GPU
-    Ss = [1024]    # S per GPU
+    Ss = [
+        # 256, 
+        # 512, 
+        # 1024, 
+        # 2 * 1024, 
+        # 4 * 1024, 
+        # 8 * 1024, 
+        16 * 1024, 
+        # 32 * 1024,    # fused failed !!!
+    ]    # S per GPU
+    # Ss = [16 * 1024]    # S per GPU
 
     Nhq = Ng = 32
     Nhq = Ng = 1
@@ -187,12 +198,37 @@ def generate_inter_execution_plans(exp_config: Evaluation_Configs, da_config: Di
         assert isinstance(cc_optimal_schedule, list)
         cc_optimal_schedule = cc_optimal_schedule[0]
     d_graph = Dependent_Graph(cc_optimal_schedule, exp_config.fob)
-    exp_config.plan_type = 'ablation1'
-    execute_plan = Execution_Plan(d_graph, exp_config.fob, plan_type=exp_config.plan_type)
-    execute_plan.print_lp_result()
-    
-    # gt_engine = Graph_Transformation_Engine(exp_config, da_config, m_config)
-    # gt_engine.transform(d_graph)
+    par_dir = f'{os.path.dirname(__file__)}/execution_plans/inter_SP{da_config.hierarchy_sp}_fob={exp_config.fob}'
+    os.makedirs(par_dir, exist_ok=True)
+    plan_types = ['automatic', 'ablation1'] # ILP, Flexflow
+    for plan_type in plan_types:
+        # Raw Execution_Plan:
+        print(f'Raw, {"ILP" if plan_type == "automatic" else "Flexflow"}:')
+        # if not plan_type == 'automatic':
+        if True:
+            execute_plan = Execution_Plan(d_graph, exp_config.fob, plan_type=plan_type)
+            execute_plan.print_lp_result()
+            plan_name = execute_plan.get_plan_name()
+            if plan_type == 'ablation1':
+                plan_name = f'{plan_name}_{plan_type}'
+            # Dump Execution_Plan:
+            plan_file = f'{par_dir}/{plan_name}.pkl'
+            with open(plan_file, 'wb') as f:
+                pickle.dump(execute_plan, f)
+        
+        # Transformed Execution_Plans:
+        print(f'Fused, {"ILP" if plan_type == "automatic" else "Flexflow"}:')
+        gt_engine = Graph_Transformation_Engine(exp_config, da_config, m_config)
+        execute_plan = gt_engine.transform(d_graph, exp_config.transform_mode, plan_type=plan_type)
+        assert isinstance(execute_plan, Execution_Plan)
+        plan_name = f'{execute_plan.get_plan_name()}_fused'
+        if plan_type == 'ablation1':
+            plan_name = f'{plan_name}_{plan_type}'
+        # Dump Execution_Plan:
+        plan_file = f'{par_dir}/{plan_name}.pkl'
+        with open(plan_file, 'wb') as f:
+            pickle.dump(execute_plan, f)
+
     
 def main():
     da_configs = get_configs()
@@ -202,7 +238,9 @@ def main():
     if isinstance(exp_configs, Evaluation_Configs):
         exp_configs = [exp_configs]
     for exp_config in exp_configs:
+        print(f'exp_config: {exp_config}', flush=True)
         for da_config in da_configs:
+            print(f'da_config: {da_config}', flush=True)
             # run_cc_optimal_exp(exp_config, da_config)
             # run_exp(exp_config, da_config)
             generate_inter_execution_plans(exp_config, da_config)

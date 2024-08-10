@@ -15,13 +15,18 @@ import math
 from typing import Optional
 
 class Evaluation_Configs():
-    def __init__(self, plan_type: str, MAX_QUEUE_SIZE: int, fob: bool, plan_path: str = None, hierarchy: bool = 1):
+    def __init__(self, plan_type: str, MAX_QUEUE_SIZE: int, fob: bool, plan_path: str = None, hierarchy: bool = 1, transform_mode: str = 'bf'):
         self.plan_type = plan_type  # 'automatic', 'maunal', 'ablation1'
         self.MAX_QUEUE_SIZE = MAX_QUEUE_SIZE
         self.fob = fob
         self.plan_path = plan_path
         self.hierarchy = hierarchy
-
+        self.transform_mode = transform_mode
+        
+    def __str__(self):
+        ret = f'fob={self.fob}, plan_type={self.plan_type}, hierarchy={self.hierarchy}, transform_mode={self.transform_mode}'
+        ret = ret.replace(' ', '')
+        return ret
 class Dist_Attn_Config():
     def __init__(self, SP, S, Nh, bs, D, causal, hierarchy=1):
         self.SP = SP    # (inter, intra)
@@ -47,7 +52,7 @@ class Dist_Attn_Config():
         return f'S={self.S}_SP={self.SP}_causal={self.causal}_fob={fob}_b={self.bs}_Nh={self.Nh}_D={self.D}'
     
     def __str__(self):
-        ret = f'SP={self.SP}, S={self.S}, Nh={self.Nh}, bs={self.bs}, D={self.D}, causal={self.causal}'
+        ret = f'SP={self.SP}, Sg={self.S_per_gpu}, S={self.S}, Nh={self.Nh}, bs={self.bs}, D={self.D}, causal={self.causal}, hierarchy={self.hierarchy}'
         ret = ret.replace(' ', '')
         return ret
 
