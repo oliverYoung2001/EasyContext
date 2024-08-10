@@ -831,12 +831,13 @@ def run_all_intra_attn(args, ncclcomm_global, gloo_global_group):
     bs = 1
     D = 128
     causal = False
+    causal = True
     SPs = (node_num, local_size)
     
     # variable configs:
     fobs = [
-        # 0, 
-        1,
+        0, 
+        # 1,
     ]
     Nhs = [
         # 1,
@@ -915,23 +916,23 @@ def run_all_intra_attn(args, ncclcomm_global, gloo_global_group):
                         for f in baseline_funcs:
                             benchmark(args, f, da_config, tensor_buf, forward_only=True, log=True)
                     
-                    # 2 orchestrated_attn_func:
-                    # 2.1 normal comp&comm
-                    benchmark_op = partial(benchmark_orchestrate,
-                        args, orchestrated_attn_func, da_config, tensor_buf, log=True, exp_configs=exp_configs, 
-                        global_group=gloo_global_group, ncclcomm_global=ncclcomm_global,
-                        warmup=WARMUP, num_iter=NUM_ITER,
-                    )
-                    benchmark_op(use_cudagraph=False)
+                    # # 2 orchestrated_attn_func:
+                    # # 2.1 normal comp&comm
+                    # benchmark_op = partial(benchmark_orchestrate,
+                    #     args, orchestrated_attn_func, da_config, tensor_buf, log=True, exp_configs=exp_configs, 
+                    #     global_group=gloo_global_group, ncclcomm_global=ncclcomm_global,
+                    #     warmup=WARMUP, num_iter=NUM_ITER,
+                    # )
+                    # benchmark_op(use_cudagraph=False)
                     
-                    # 2.2 fused comp&comm
-                    if Nh == 1:
-                        benchmark_op = partial(benchmark_fused,
-                            args, orchestrated_attn_func, da_config, tensor_buf, log=True, plan_paths=plan_paths, 
-                            global_group=gloo_global_group, ncclcomm_global=ncclcomm_global,
-                            warmup=WARMUP, num_iter=NUM_ITER,
-                        )
-                        benchmark_op(use_cudagraph=False)
+                    # # 2.2 fused comp&comm
+                    # if Nh == 1:
+                    #     benchmark_op = partial(benchmark_fused,
+                    #         args, orchestrated_attn_func, da_config, tensor_buf, log=True, plan_paths=plan_paths, 
+                    #         global_group=gloo_global_group, ncclcomm_global=ncclcomm_global,
+                    #         warmup=WARMUP, num_iter=NUM_ITER,
+                    #     )
+                    #     benchmark_op(use_cudagraph=False)
     
     
 def main(args):

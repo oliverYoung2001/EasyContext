@@ -25,9 +25,9 @@ HOST="g3029"
 # HOST="g3010"
 # HOST="g3021"
 # HOST="g3015"
-# PARTITION=hit
+PARTITION=hit
 # HOST="g4008"
-# HOST="g4006"
+HOST="g4004"
 
 
 # HOST=None
