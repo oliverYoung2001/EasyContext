@@ -30,7 +30,7 @@ class Execution_Plan(): # input: kernel streams of gpus
             self.TIME_BUDGET = 5 * 60   # 5mins
             self.threshold = 1.3
             self.generate_execution_plan()
-        elif plan_type == 'ablation1':
+        elif plan_type == 'ablation1':  # Flexflow
             self.generate_execution_plan_through_start_time()
     
     def get_plan_name(self):
@@ -112,7 +112,7 @@ class Execution_Plan(): # input: kernel streams of gpus
         # print(f'before solve !!!', flush=True)
         t0 = time.time()
         MSG = 1
-        MSG = 0 # disable msg
+        # MSG = 0 # disable msg
         mylp.solve(pulp.PULP_CBC_CMD(msg=MSG, timeLimit=self.TIME_BUDGET))
         # print(f'after solve !!!', flush=True)
         t1 = time.time()
@@ -147,21 +147,22 @@ class Execution_Plan(): # input: kernel streams of gpus
         hierarchy_sp = self.hierarchy_sp
         OJB = 'node' if hierarchy == 0 else 'gpu'
         
-        # print(f'schedule:\n{d_graph.schedule.schedule_table}', flush=True)
-        # print(f'fob: {fob}, get_e2e_time(): {d_graph.schedule.get_e2e_time()[fob]:.3e}, get_absolute_cc_time:{d_graph.schedule.get_absolute_cc_time()[fob]}', flush=True)
-        # for v in d_graph.kernel_dict.values():
-        #     if not v.is_empty(fob):
-        #         print(f'{v.key}: {v._start_time:.3e}, {v.time[fob]:.3e}, {(v._start_time + v.time[fob]):.3e}')
+        print(f'schedule:\n{d_graph.schedule.schedule_table}', flush=True)
+        print(f'fob: {fob}, get_e2e_time(): {d_graph.schedule.get_e2e_time()[fob]:.3e}, get_absolute_cc_time:{d_graph.schedule.get_absolute_cc_time()[fob]}', flush=True)
+        for v in d_graph.kernel_dict.values():
+            if not v.is_empty(fob):
+                print(f'{v.key}: {v._start_time:.3e}, {v.time[fob]:.3e}, {(v._start_time + v.time[fob]):.3e}')
         
-        # print(f'Streams:')
-        # for g in range(hierarchy_sp):
-        #     for s in range(3):
-        #         print(f"{OJB}{g}, {['comp', 'send', 'recv'][s]}: {len(self.stream_kernel_lists[(g, s)])}")
-        #         for v in self.stream_kernel_lists[(g, s)]:
-        #             print(f'{v.key}: {v._start_time:.3e}, {v.time[fob]:.3e}, {(v._start_time + v.time[fob]):.3e}')
+        print(f'Streams:')
+        for g in range(hierarchy_sp):
+            for s in range(3):
+                print(f"{OJB}{g}, {['comp', 'send', 'recv'][s]}: {len(self.stream_kernel_lists[(g, s)])}")
+                for v in self.stream_kernel_lists[(g, s)]:
+                    print(f'{v.key}: {v._start_time:.3e}, {v.time[fob]:.3e}, {(v._start_time + v.time[fob]):.3e}')
         if self.plan_type == 'automatic':
             print(f'objective={pulp.value(self.mylp.objective):.3e}', flush=True)
-        elif self.plan_type == 'manual':
+        # elif self.plan_type == 'manual':
+        else:
             print(f'end_time={self.end_time:.3e}', flush=True)
     
     def determine_kernel_order(self):
@@ -290,7 +291,6 @@ class Execution_Plan(): # input: kernel streams of gpus
             for s in range(self.stream_num):
                 stream_kernel_lists[(g, s)] = []
                 # [TODO]:
-        
     
     def generate_execution_plan_through_start_time(self):
         d_graph = self.d_graph
@@ -305,6 +305,29 @@ class Execution_Plan(): # input: kernel streams of gpus
                     self.valid_kernels.append(v)
                     v.id = v_id
                     v_id += 1
+        
+        # self.stream_num
+        if not hasattr(self, 'stream_num'):
+            self.stream_num = 3
+        # self.stream_kernel_lists  # (hierarchy_sp, 3) -> list, 3 stands for comp, send, recv
+        if not hasattr(self, 'stream_kernel_lists'):
+            # initialize stream_kernel_lists
+            stream_kernel_lists = {}
+            for g in range(self.hierarchy_sp):
+                for s in range(self.stream_num):
+                    stream_kernel_lists[(g, s)] = []
+            # insert valid kernels into stream_kernel_lists
+            for v in self.valid_kernels:
+                if v.type == 'comp':
+                    stream_kernel_lists[(v.key[-1], 0)].append(v)
+                    v.stream_keys = ((v.key[-1], 0),)
+                elif v.type == 'comm':
+                    stream_kernel_lists[(v.key[3], 1)].append(v)
+                    stream_kernel_lists[(v.key[4], 2)].append(v)
+                    v.stream_keys = ((v.key[3], 1), (v.key[4], 2))
+            self.stream_kernel_lists = stream_kernel_lists
+        
+        
         # bfs to calc start_time of kernels
         def pack_func(v: Cuda_Kernel) -> tuple:
             return (v._start_time, v.id, v)
@@ -314,10 +337,17 @@ class Execution_Plan(): # input: kernel streams of gpus
         for v in self.valid_kernels:
             v.left_precursors = len(v.precursors)
             v._start_time = 0
+            v.selected = False
             if v.left_precursors == 0:
                 heappush(pq, pack_func(v))
         while len(pq) > 0:
-            v = unpack_func(heappop(pq))
+            v = unpack_func(heappop(pq))    # select a kernel
+            v.selected = True
+            # update start_times of kernels in the same streams with v
+            for stream_key in v.stream_keys:
+                for u in self.stream_kernel_lists[stream_key]:
+                    if not u.selected:
+                        u._start_time = max(u._start_time, v._start_time + v.time[fob])
             for u in v.successors:
                 u.left_precursors -= 1
                 u._start_time = max(u._start_time, v._start_time + v.time[fob])
@@ -328,25 +358,11 @@ class Execution_Plan(): # input: kernel streams of gpus
         for v in self.valid_kernels:
             self.end_time = max(self.end_time, v._start_time + v.time[fob])
         
-        # self.stream_kernel_lists  # (hierarchy_sp, 3) -> list, 3 stands for comp, send, recv
-        if not hasattr(self, 'stream_kernel_lists'):
-            self.stream_num = 3
-            # initialize stream_kernel_lists
-            stream_kernel_lists = {}
-            for g in range(self.hierarchy_sp):
-                for s in range(self.stream_num):
-                    stream_kernel_lists[(g, s)] = []
-            # insert valid kernels into stream_kernel_lists
-            for v in self.valid_kernels:
-                if v.type == 'comp':
-                    stream_kernel_lists[(v.key[-1], 0)].append(v)
-                elif v.type == 'comm':
-                    stream_kernel_lists[(v.key[3], 1)].append(v)
-                    stream_kernel_lists[(v.key[4], 2)].append(v)
-            self.stream_kernel_lists = stream_kernel_lists
-            for g in range(self.hierarchy_sp):
-                for s in range(self.stream_num):
-                    self.stream_kernel_lists[(g, s)].sort(key=lambda x: x._start_time)
+        # sort all kernels in each stream according to start_time
+        assert hasattr(self, 'stream_kernel_lists')
+        for g in range(self.hierarchy_sp):
+            for s in range(self.stream_num):
+                self.stream_kernel_lists[(g, s)].sort(key=lambda x: x._start_time)
             
         # self.gpu_kernel_lists
         self.gpu_kernel_lists = []
@@ -356,6 +372,10 @@ class Execution_Plan(): # input: kernel streams of gpus
                 kernel_list += self.stream_kernel_lists[(g, s)]
             kernel_list.sort(key=lambda x: (x._start_time, x.id))
             self.gpu_kernel_lists.append(kernel_list)
+        # calc end_time
+        self.end_time = 0
+        for v in self.valid_kernels:
+            self.end_time = max(self.end_time, v._start_time + v.time[fob])
                 
     def generate_manual_plan(self, hierarchy_sp: int, X: int, first_dim: int = 0):
         self.plan_type = 'manual'

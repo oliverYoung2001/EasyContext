@@ -554,7 +554,8 @@ class Search_Engine():
         if self.fob == 0:
             self.ub_rc_num = np.empty(self.hierarchy_sp, dtype=np.int32)
             if self.hierarchy_sp == 8:  # [3, 3, 3, 3, 2, 2, 2, 2]
-                self.ub_rc_num = np.array([3, 3, 3, 3, 2, 2, 2, 2], dtype=np.int32)
+                self.ub_rc_num = np.array([3, 3, 3, 3, 2, 2, 2, 3], dtype=np.int32) # no feasible solution !!!
+                # self.ub_rc_num = np.array([3, 4, 3, 3, 3, 3, 3, 3], dtype=np.int32)
             else:
                 self.ub_rc_num = self.ub_comp
         else:
@@ -637,22 +638,28 @@ class Search_Engine():
         cur_r_num = np.count_nonzero(self.rc_num[g, 0]) + (self.rc_num[g, 0, cur_pos[2]] == 0)
         cur_c_num = np.count_nonzero(self.rc_num[g, 1]) + (self.rc_num[g, 1, cur_pos[3]] == 0)
         if cur_r_num + cur_c_num - 2 > self.ub_comp[g]:
+            # print(f'pruning1: g: {g}, cur_r_num: {cur_r_num}, cur_c_num: {cur_c_num}')
+            # print(f'{self.cur_schedule.schedule_table}')
             return False
         
         # pruning strategy 4: comp workload locality 2
         # part1
         if max(cur_r_num, cur_c_num) > self.ub_rc_num[g]:
+            # print(f'pruning2: g: {g}, cur_r_num: {cur_r_num}, cur_c_num: {cur_c_num}')
+            # print(f'{self.cur_schedule.schedule_table}')
             return False
         
         # part2: new line pruning:
-        if next_pos[- 1] == 0:
+        if next_pos and next_pos[- 1] == 0:
             for gid in range(self.hierarchy_sp):
                 cur_r_num_gid = cur_r_num if gid == g else np.count_nonzero(self.rc_num[gid, 0])
-                left = (self.ub_comp[g] + 1) - (self.cur_cc_units[self.fob, 0, g] + (gid == g))
+                left = (self.ub_comp[gid] + 1) - (self.cur_cc_units[self.fob, 0, gid] + (gid == g))
                 assert left >= 0
                 # if gid == 0:
                     # print(f'cur_pos: {cur_pos}, left: {left}, cur_r_num_gid: {cur_r_num_gid}')
                 if cur_r_num_gid == self.ub_rc_num[gid] and left > 0:
+                    # print(f'pruning3: g: {g}, gid: {gid}, cur_r_num_gid: {cur_r_num_gid}, left: {left}')
+                    # print(f'{self.cur_schedule.schedule_table}')
                     return False
         
         return True
@@ -683,7 +690,7 @@ class Search_Engine():
             SCHEDULE_UNIQUE_ID = get_global_var('SCHEDULE_UNIQUE_ID')
             SCHEDULE_UNIQUE_ID += 1
             set_global_var('SCHEDULE_UNIQUE_ID', SCHEDULE_UNIQUE_ID)
-            print(f'SCHEDULE_UNIQUE_ID: {SCHEDULE_UNIQUE_ID}')
+            print(f'SCHEDULE_UNIQUE_ID: {SCHEDULE_UNIQUE_ID}', flush=True)
             self.cur_schedule.reset()
             self.cur_schedule.print_schedule(self.fob)
             # new_schedule = copy.deepcopy(self.cur_schedule)
@@ -695,10 +702,14 @@ class Search_Engine():
         assert self.cur_schedule.schedule_table[cur_pos] == TASK_STATUS.UNSETTLED.value
         next_pos = self.get_next_unsettled_pos(cur_pos)
         
-        if cur_pos == (0, 0, 3, 1):
-            print(f'{self.cur_schedule.schedule_table}', flush=True)
+        # if cur_pos == (0, 0, 3, 0):
+        #     print(f'{self.cur_schedule.schedule_table}', flush=True)
         for g in range(self.hierarchy_sp):    # fill in gpu_id
+            # print(f'cur_pos: {cur_pos}, next_pos: {next_pos}, g: {g}', flush=True)
             if not self.apply_pruning_passed(cur_pos, next_pos, g):
+                # self.update_cur_status(cur_pos, g)
+                # print(f'{self.cur_schedule.schedule_table}', flush=True)
+                # self.restore_cur_status(cur_pos, g)
                 continue
             self.update_cur_status(cur_pos, g)
             self.brute_force_search(next_pos)
@@ -711,10 +722,11 @@ class Search_Engine():
         # [TODO]: support bs_split == 2
         self.reset_before_search()
         # return
-        try:
-            self.brute_force_search(self.get_next_unsettled_pos((0, 0, 0, 0)))
-        except Exception as e:
-            pass
+        self.brute_force_search(self.get_next_unsettled_pos((0, 0, 0, 0)))
+        # try:
+        #     self.brute_force_search(self.get_next_unsettled_pos((0, 0, 0, 0)))
+        # except Exception as e:
+        #     pass
 
 def get_profile_data(SP: tuple):
     BW = (12.5, 215)   # Inter-Machine, Intra-Machine, GB/s, bidirectional

@@ -180,6 +180,20 @@ def run_exp(exp_config: Evaluation_Configs, da_config: Dist_Attn_Config):
         execute_plan_loaded = pickle.load(f)
     execute_plan_loaded.print_lp_result()
 
+def generate_inter_execution_plans(exp_config: Evaluation_Configs, da_config: Dist_Attn_Config):
+    m_config = get_profile_data(da_config.SP)
+    cc_optimal_schedule = get_cc_optimal_schedule(da_config, m_config)
+    if not isinstance(cc_optimal_schedule, Dist_Attn_Schedule):
+        assert isinstance(cc_optimal_schedule, list)
+        cc_optimal_schedule = cc_optimal_schedule[0]
+    d_graph = Dependent_Graph(cc_optimal_schedule, exp_config.fob)
+    exp_config.plan_type = 'ablation1'
+    execute_plan = Execution_Plan(d_graph, exp_config.fob, plan_type=exp_config.plan_type)
+    execute_plan.print_lp_result()
+    
+    # gt_engine = Graph_Transformation_Engine(exp_config, da_config, m_config)
+    # gt_engine.transform(d_graph)
+    
 def main():
     da_configs = get_configs()
     exp_configs = get_exp_config()
@@ -190,7 +204,8 @@ def main():
     for exp_config in exp_configs:
         for da_config in da_configs:
             # run_cc_optimal_exp(exp_config, da_config)
-            run_exp(exp_config, da_config)
-         
+            # run_exp(exp_config, da_config)
+            generate_inter_execution_plans(exp_config, da_config)
+
 if __name__ == '__main__':
     main()

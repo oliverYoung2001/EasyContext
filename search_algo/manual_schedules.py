@@ -83,7 +83,20 @@ def get_cc_optimal_schedule_table(split_degrees: list, S_map: np.ndarray, causal
                 for j in range(split_degrees[1]):
                     if i < j:
                         cc_schedule_table[0, 0, i, j] = - 1
-            return cc_schedule_table
+            # return cc_schedule_table
+            cc_schedule_tables = []
+            cc_schedule_table = np.array([[[
+                [ 0, -1, -1, -1, -1, -1, -1, -1],
+                [ 0,  1, -1, -1, -1, -1, -1, -1],
+                [ 1,  1,  2, -1, -1, -1, -1, -1],
+                [ 1,  1,  3,  3, -1, -1, -1, -1],
+                [ 0,  4,  0,  0,  4, -1, -1, -1],
+                [ 2,  4,  2,  5,  4,  5, -1, -1],
+                [ 2,  6,  2,  5,  7,  5,  6, -1],
+                [ 7,  6,  3,  3,  7,  3,  6,  7],
+            ]]], dtype=np.int32)
+            cc_schedule_tables.append(cc_schedule_table)
+            return cc_schedule_tables
         else:
             return cc_schedule_table
     if split_degrees[0] == 6:
