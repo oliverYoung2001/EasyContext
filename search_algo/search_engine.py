@@ -15,16 +15,17 @@ import math
 from typing import Optional
 
 class Evaluation_Configs():
-    def __init__(self, plan_type: str, MAX_QUEUE_SIZE: int, fob: bool, plan_path: str = None, hierarchy: bool = 1, transform_mode: str = 'bf'):
+    def __init__(self, plan_type: str, MAX_QUEUE_SIZE: int, fob: bool, plan_path: str = None, hierarchy: bool = 1, transform_mode: str = 'bf', inter_comp_profile_map=None):
         self.plan_type = plan_type  # 'automatic', 'maunal', 'ablation1'
         self.MAX_QUEUE_SIZE = MAX_QUEUE_SIZE
         self.fob = fob
         self.plan_path = plan_path
         self.hierarchy = hierarchy
         self.transform_mode = transform_mode
+        self.inter_comp_profile_map = inter_comp_profile_map
         
     def __str__(self):
-        ret = f'fob={self.fob}, plan_type={self.plan_type}, hierarchy={self.hierarchy}, transform_mode={self.transform_mode}'
+        ret = f'fob={self.fob}, plan_type={self.plan_type}, hierarchy={self.hierarchy}, transform_mode={self.transform_mode}, plan_path={self.plan_path}'
         ret = ret.replace(' ', '')
         return ret
 class Dist_Attn_Config():
@@ -63,6 +64,9 @@ class Comp_Profile_Map():
     def get_comp_time_from_map_key(self, map_key: tuple) -> np.ndarray:
         assert map_key in self.profile_map.keys(), f"Key {map_key} not found in profile_map"
         return self.profile_map[map_key]    # [fwd/bwd], (s)
+    
+    def get_value_from_map_key(self, map_key: tuple):
+        return self.get_comp_time_from_map_key(map_key)
     
     def get_comp_time(self, da_config: Dist_Attn_Config, batch_degrees: list, split_degrees: list) -> np.ndarray:
         map_key = self.get_comp_map_key(da_config, batch_degrees, split_degrees)

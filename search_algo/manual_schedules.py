@@ -38,7 +38,7 @@ def get_cc_optimal_schedule_table(split_degrees: list, S_map: np.ndarray, causal
     assert S_map.shape == (split_degrees[2], min(split_degrees[0], split_degrees[1]))
     assert split_degrees[0] == split_degrees[1]
     assert split_degrees[2] == split_degrees[3] == 1
-    print(f'split_degrees: {split_degrees}, causal: {split_degrees}', flush=True)
+    # print(f'split_degrees: {split_degrees}, causal: {split_degrees}', flush=True)
     cc_schedule_table = None
     if split_degrees[0] == 16:
         cc_schedule_table = np.array([[[
@@ -126,13 +126,13 @@ def get_cc_optimal_schedule_table(split_degrees: list, S_map: np.ndarray, causal
     if split_degrees[0] == 4:
         if causal:
             cc_schedule_tables = []
-            cc_schedule_table = np.array([[[
-                [0, -1, -1, -1],
-                [1,  1, -1, -1],
-                [0,  0,  2, -1],
-                [1,  3,  2,  3],
-            ]]], dtype=np.int32)
-            cc_schedule_tables.append(cc_schedule_table)
+            # cc_schedule_table = np.array([[[
+            #     [0, -1, -1, -1],
+            #     [1,  1, -1, -1],
+            #     [0,  0,  2, -1],
+            #     [1,  3,  2,  3],
+            # ]]], dtype=np.int32)
+            # cc_schedule_tables.append(cc_schedule_table)
             cc_schedule_table = np.array([[[
                 [0, -1, -1, -1],
                 [1,  1, -1, -1],
@@ -140,13 +140,13 @@ def get_cc_optimal_schedule_table(split_degrees: list, S_map: np.ndarray, causal
                 [3,  1,  2,  3],
             ]]], dtype=np.int32)
             cc_schedule_tables.append(cc_schedule_table)
-            cc_schedule_table = np.array([[[
-                [0, -1, -1, -1],
-                [1,  1, -1, -1],
-                [1,  2,  2, -1],
-                [0,  3,  0,  3],
-            ]]], dtype=np.int32)
-            cc_schedule_tables.append(cc_schedule_table)
+            # cc_schedule_table = np.array([[[
+            #     [0, -1, -1, -1],
+            #     [1,  1, -1, -1],
+            #     [1,  2,  2, -1],
+            #     [0,  3,  0,  3],
+            # ]]], dtype=np.int32)
+            # cc_schedule_tables.append(cc_schedule_table)
             return cc_schedule_tables
         else:
             cc_schedule_table = np.array([[[
@@ -172,6 +172,14 @@ def get_cc_optimal_schedule_table(split_degrees: list, S_map: np.ndarray, causal
                 [ 0, -1, -1],
                 [ 0,  1, -1],
                 [ 0,  1,  2],
+            ]]], dtype=np.int32)
+        else:
+            raise NotImplementedError()
+    elif split_degrees[0] == 2:
+        if causal:
+            cc_schedule_table = np.array([[[
+                [ 0, -1],
+                [ 1,  1],
             ]]], dtype=np.int32)
         else:
             raise NotImplementedError()

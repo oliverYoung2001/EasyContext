@@ -28,8 +28,10 @@ def get_configs():
     # Sq = Skv = 16 * 1024   # 16k
     # Sq = Skv = 8 * 1024   # 8k
     
+    SP0, SP1 = 2, 8
+    SP0, SP1 = 3, 8
     SP0, SP1 = 4, 8
-    SP0, SP1 = 6, 8
+    # SP0, SP1 = 6, 8
     SP0, SP1 = 8, 8
     # SP0, SP1 = 16, 8
 
@@ -40,19 +42,23 @@ def get_configs():
     # Sq = Skv = 4 * 1024   # S per GPU
     Sq = Skv = 8 * 1024   # S per GPU
     Ss = [
-        # 256, 
-        # 512, 
-        # 1024, 
-        # 2 * 1024, 
-        # 4 * 1024, 
-        # 8 * 1024, 
+        256, 
+        512, 
+        1024, 
+        2 * 1024, 
+        4 * 1024, 
+        8 * 1024, 
         16 * 1024, 
         # 32 * 1024,    # fused failed !!!
     ]    # S per GPU
     # Ss = [16 * 1024]    # S per GPU
 
-    Nhq = Ng = 32
-    Nhq = Ng = 1
+    # Nhq = Ng = 32
+    # # Nhq = Ng = 1
+    Nhs = [
+        1,
+        32,
+    ]
     bs = 1
     D = 128
     causal = False
@@ -61,9 +67,11 @@ def get_configs():
     tot_sp = SP0 * SP1
     hierarchy = 0
     da_configs = []
-    for S in Ss:
-        Sq = Skv = S
-        da_configs.append(Dist_Attn_Config((SP0, SP1), (Sq * tot_sp, Skv * tot_sp), (Nhq, Ng), bs, D, causal, hierarchy))
+    for Nh in Nhs:
+        Nhq = Ng = Nh
+        for S in Ss:
+            Sq = Skv = S
+            da_configs.append(Dist_Attn_Config((SP0, SP1), (Sq * tot_sp, Skv * tot_sp), (Nhq, Ng), bs, D, causal, hierarchy))
     return da_configs
 
 def show_schedule(schedule: Dist_Attn_Schedule, fob, name):
@@ -220,6 +228,8 @@ def generate_inter_execution_plans(exp_config: Evaluation_Configs, da_config: Di
         print(f'Fused, {"ILP" if plan_type == "automatic" else "Flexflow"}:')
         gt_engine = Graph_Transformation_Engine(exp_config, da_config, m_config)
         execute_plan = gt_engine.transform(d_graph, exp_config.transform_mode, plan_type=plan_type)
+        if execute_plan is None:    # No feasible transformations
+            continue
         assert isinstance(execute_plan, Execution_Plan)
         plan_name = f'{execute_plan.get_plan_name()}_fused'
         if plan_type == 'ablation1':

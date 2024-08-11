@@ -154,7 +154,7 @@ class Graph_Transformation_Engine():    # batch engine
         self.hierarchy_sp = da_config.SP[self.hierarchy]
         
         # type1: comp fusion substitutions
-        self.comp_unit_ub = self.hierarchy_sp // 2  # 4 -> 2, 5 -> 2, 8 -> 4
+        self.comp_unit_ub = self.hierarchy_sp // 2 + (self.hierarchy_sp == 3)  # 4 -> 2, 5 -> 2, 8 -> 4, special !!! 3 -> 2
         # self.ub_factors = get_factors(self.comp_unit_ub)
         self.comp_fusion_shapes = []
         for x in range(1, int(self.comp_unit_ub ** 0.5) + 1):
@@ -180,6 +180,8 @@ class Graph_Transformation_Engine():    # batch engine
             'comp_fusion': self.comp_fusion_subs,
             'comm_fusion': self.comm_fusion_subs,
         }
+        # for sub in self.subs_dict['comp_fusion']:
+        #     print(f'sub.shape: {sub.shape}', flush=True)
     
     def print_trans(self):
         print(f'All transformations:', flush=True)
@@ -257,7 +259,7 @@ class Graph_Transformation_Engine():    # batch engine
             # print selected trans
             if len(selected_trans) == 0:
                 print(f'No Transformations Selected !!!', flush=True)
-                return
+                return None
             execute_plan = self.apply_transformations(selected_trans)
             return execute_plan
         else:

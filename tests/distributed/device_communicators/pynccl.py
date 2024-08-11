@@ -16,7 +16,7 @@ from tests.distributed.device_communicators.pynccl_wrapper import (
 
 class PyNcclCommunicator:
 
-    def __init__(
+    def __init__old_need_group(
         self,
         group: ProcessGroup,
         device: Union[int, str, torch.device],
@@ -74,6 +74,105 @@ class PyNcclCommunicator:
         ranks = dist.get_process_group_ranks(group)
         # arg `src` in `broadcast` is the global rank
         dist.broadcast(tensor, src=ranks[0], group=group)
+        byte_list = tensor.tolist()
+        for i, byte in enumerate(byte_list):
+            self.unique_id.internal[i] = byte
+        # print(f'rank{torch.distributed.get_rank()}, ranks: {torch.distributed.get_process_group_ranks(group)}, group_rank: {self.rank}, device: {device}', flush=True)
+        if isinstance(device, int):
+            device = torch.device(f"cuda:{device}")
+        elif isinstance(device, str):
+            device = torch.device(device)
+        # now `device` is a `torch.device` object
+        assert isinstance(device, torch.device)
+        self.device = device
+        # nccl communicator and stream will use this device
+        # `torch.cuda.device` is a context manager that changes the
+        # current cuda device to the specified one
+        with torch.cuda.device(device):
+            self.comm: ncclComm_t = self.nccl.ncclCommInitRank(
+                self.world_size, self.unique_id, self.rank)
+            self.stream = torch.cuda.Stream()
+
+            # A small all_reduce for warmup.
+            data = torch.zeros(1, device=device)
+            self.all_reduce(data)
+            self.stream.synchronize()
+            del data
+
+        # by default it is disabled, e.g. in profiling models and prefill phase.
+        # to use it, use under `with obj.change_state(enable=True)`, usually
+        # when we are using CUDA graph.
+        # self.disabled = True
+
+    def __init__(
+        self,
+        gloo_global_group: ProcessGroup,
+        ranks: Union[list, tuple],  # no need for ascending order !!!
+        device: Union[int, str, torch.device],
+        library_path: Optional[str] = None,
+    ):
+        """
+        Args:
+            group: the process group to work on. If None, it will use the
+                default process group.
+            device: the device to bind the PyNcclCommunicator to. If None,
+                it will be bind to f"cuda:{local_rank}".
+            library_path: the path to the NCCL library. If None, it will
+                use the default library path.
+        It is the caller's responsibility to make sure each communicator
+        is bind to a unique device.
+        """
+        assert dist.is_initialized()
+        # print(f'dist.get_backend(group): {dist.get_backend(group)}')
+        assert dist.get_backend(gloo_global_group) != dist.Backend.NCCL, (
+            "PyNcclCommunicator should be attached to a non-NCCL group.")
+        self.gloo_global_group = gloo_global_group
+        
+        self.global_rank = dist.get_rank(gloo_global_group)    # global_rank
+        # note: this rank is the rank in the group
+        self.rank = sum(1 for rank in ranks if rank < self.global_rank)
+        # print(f'global_rank{self.global_rank}, sub_rank: {self.rank}')
+
+        self.world_size = len(ranks)    # subgroup size
+
+        # if world_size == 1, no need to create communicator
+        if self.world_size == 1:
+            self.available = False
+            self.disabled = True
+            self.stream = None
+            return
+        try:
+            self.nccl = NCCLLibrary(library_path)
+        except Exception:
+            # disable because of missing NCCL library
+            # e.g. in a non-GPU environment
+            self.available = False
+            self.disabled = True
+            self.stream = None
+            return
+
+        self.available = True
+        self.disabled = False
+
+        # logger.info("vLLM is using nccl==%s", self.nccl.ncclGetVersion())
+        # print("[INFO]: vLLM is using nccl==%s", self.nccl.ncclGetVersion())
+
+        if self.global_rank == ranks[0]:   # root rank
+            # get the unique id from NCCL
+            self.unique_id = self.nccl.ncclGetUniqueId()
+        else:
+            # construct an empty unique id
+            self.unique_id = ncclUniqueId()
+        tensor = torch.ByteTensor(list(self.unique_id.internal))
+        # ranks = dist.get_process_group_ranks(group)
+        # arg `src` in `broadcast` is the global rank
+        # dist.broadcast(tensor, src=ranks[0], group=group)
+        # Partial broadcast
+        if self.global_rank == ranks[0]:    # source
+            for rank in ranks[1: ]:
+                dist.send(tensor, dst=rank, group=gloo_global_group)
+        else:   # distination
+            dist.recv(tensor, src=ranks[0], group=gloo_global_group)
         byte_list = tensor.tolist()
         for i, byte in enumerate(byte_list):
             self.unique_id.internal[i] = byte

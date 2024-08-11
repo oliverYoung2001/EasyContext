@@ -22,14 +22,14 @@ def print_rank_0(message):
     else:
         print(message, flush=True)
 
-def get_Q_shape_from_da_config(da_config: Dist_Attn_Config) -> Tuple:
-    return (da_config.bs, da_config.S_per_gpu[0], da_config.Nh[0], da_config.D)
+def get_Q_shape_from_da_config(da_config: Dist_Attn_Config, batch_degree: int) -> Tuple:
+    return (da_config.bs, da_config.S_per_gpu[0] * batch_degree, da_config.Nh[0], da_config.D)
 
-def get_K_shape_from_da_config(da_config: Dist_Attn_Config) -> Tuple:
-    return (da_config.bs, da_config.S_per_gpu[1], da_config.Nh[0], da_config.D)
+def get_K_shape_from_da_config(da_config: Dist_Attn_Config, batch_degree: int) -> Tuple:
+    return (da_config.bs, da_config.S_per_gpu[1] * batch_degree, da_config.Nh[0], da_config.D)
 
-def get_lse_shape_from_da_config(da_config: Dist_Attn_Config) -> Tuple:
-    return (da_config.bs, da_config.Nh[0], da_config.S_per_gpu[0])
+def get_lse_shape_from_da_config(da_config: Dist_Attn_Config, batch_degree: int) -> Tuple:
+    return (da_config.bs, da_config.Nh[0], da_config.S_per_gpu[0] * batch_degree)
 
 class Integrated_Data():
     def __init__(self):
@@ -40,15 +40,15 @@ class Input_Row_Fwd(Integrated_Data):
         self.data = Q
         self.Q = self.data
     
-    @classmethod
-    def from_idata(cls, other):
-        data = torch.empty_like(other.data)
-        Q = data.view_as(other.Q)
-        return cls(Q)
+    # @classmethod
+    # def from_idata(cls, other):
+    #     data = torch.empty_like(other.data)
+    #     Q = data.view_as(other.Q)
+    #     return cls(Q)
 
     @classmethod
-    def from_da_config_with_buf(cls, da_config: Dist_Attn_Config, buf: torch.Tensor):
-        Q_shape = get_Q_shape_from_da_config(da_config)
+    def from_da_config_with_buf(cls, da_config: Dist_Attn_Config, buf: torch.Tensor, batch_degree: int = 1):
+        Q_shape = get_Q_shape_from_da_config(da_config, batch_degree)
         Q_numel = math.prod(Q_shape)
         Q = buf[: Q_numel].view(Q_shape)
         return cls(Q)
@@ -64,16 +64,16 @@ class Input_Col_Fwd(Integrated_Data):
         self.K = self.data[: K.numel()].view_as(K)
         self.V = self.data[K.numel() :].view_as(V)
     
-    @classmethod
-    def from_idata(cls, other):
-        data = torch.empty_like(other.data)
-        K = data[: other.K.numel()].view_as(other.K)
-        V = data[other.K.numel():].view_as(other.V)
-        return cls(K, V, data)
+    # @classmethod
+    # def from_idata(cls, other):
+    #     data = torch.empty_like(other.data)
+    #     K = data[: other.K.numel()].view_as(other.K)
+    #     V = data[other.K.numel():].view_as(other.V)
+    #     return cls(K, V, data)
     
     @classmethod
-    def from_da_config_with_buf(cls, da_config: Dist_Attn_Config, buf: torch.Tensor):
-        K_shape = get_K_shape_from_da_config(da_config)
+    def from_da_config_with_buf(cls, da_config: Dist_Attn_Config, buf: torch.Tensor, batch_degree: int = 1):
+        K_shape = get_K_shape_from_da_config(da_config, batch_degree)
         K_numel = math.prod(K_shape)
         tot_numel = K_numel * 2
         data = buf[: tot_numel]   # assert data.numel() == tot_numel
@@ -91,26 +91,26 @@ class Output_Row_Fwd(Integrated_Data):
         self.O = self.data
         self.lse = None
     
-    @classmethod
-    def from_execution_plan(cls, execution_plan: Execution_Plan, x: torch.Tensor):
-        da_config = execution_plan.da_config
-        split_degrees = execution_plan.split_degrees    # (Sq, Skv, bs, Nh)
-        O_shape = get_Q_shape_from_da_config(da_config)
-        # O_shape = (da_config.bs // split_degrees[2], da_config.S[0] // split_degrees[0], da_config.Nh[0] // split_degrees[3], da_config.D)  # b, Sq, Nhq, D
-        # lse_shape = (da_config.bs // split_degrees[2], da_config.S[0] // split_degrees[0], da_config.Nh[0] // split_degrees[3], 1)
-        # O_numel, lse_numel = math.prod(O_shape), math.prod(lse_shape)
-        # data = torch.empty(O_numel + lse_numel, dtype=x.dtype, device=x.device)
-        # O = data[: O_numel].view(O_shape)
-        # lse = data[O_numel:].view(lse_shape)
-        # return cls(O, lse)
-        O_numel = math.prod(O_shape)
-        data = torch.empty(O_numel, dtype=x.dtype, device=x.device)
-        O = data.view(O_shape)
-        return cls(O)
+    # @classmethod
+    # def from_execution_plan(cls, execution_plan: Execution_Plan, x: torch.Tensor):
+    #     da_config = execution_plan.da_config
+    #     split_degrees = execution_plan.split_degrees    # (Sq, Skv, bs, Nh)
+    #     O_shape = get_Q_shape_from_da_config(da_config)
+    #     # O_shape = (da_config.bs // split_degrees[2], da_config.S[0] // split_degrees[0], da_config.Nh[0] // split_degrees[3], da_config.D)  # b, Sq, Nhq, D
+    #     # lse_shape = (da_config.bs // split_degrees[2], da_config.S[0] // split_degrees[0], da_config.Nh[0] // split_degrees[3], 1)
+    #     # O_numel, lse_numel = math.prod(O_shape), math.prod(lse_shape)
+    #     # data = torch.empty(O_numel + lse_numel, dtype=x.dtype, device=x.device)
+    #     # O = data[: O_numel].view(O_shape)
+    #     # lse = data[O_numel:].view(lse_shape)
+    #     # return cls(O, lse)
+    #     O_numel = math.prod(O_shape)
+    #     data = torch.empty(O_numel, dtype=x.dtype, device=x.device)
+    #     O = data.view(O_shape)
+    #     return cls(O)
     
     @classmethod
-    def from_da_config_with_buf(cls, da_config: Dist_Attn_Config, buf: torch.Tensor):
-        Q_shape = get_Q_shape_from_da_config(da_config)
+    def from_da_config_with_buf(cls, da_config: Dist_Attn_Config, buf: torch.Tensor, batch_degree: int = 1):
+        Q_shape = get_Q_shape_from_da_config(da_config, batch_degree)
         Q_numel = math.prod(Q_shape)
         O = buf[: Q_numel].view(Q_shape)
         return cls(O)
@@ -156,19 +156,19 @@ class Input_Row_Bwd(Integrated_Data):
         self.D = self.data[Q.numel() + dO.numel(): - lse.numel()].view(D.dtype).view_as(D)
         self.lse = self.data[- lse.numel():].view_as(lse)
     
-    @classmethod
-    def from_idata(cls, other):
-        data = torch.empty_like(other.data)
-        Q = data[: other.Q.numel()].view_as(other.Q)
-        dO = data[other.Q.numel(): other.Q.numel() + other.dO.numel()].view_as(other.dO)
-        D = data[other.Q.numel() + other.dO.numel(): - other.lse.numel()].view(other.D.dtype).view_as(other.D)
-        lse = data[- other.lse.numel():].view_as(other.lse)
-        return cls(Q, dO, D, lse, data)
+    # @classmethod
+    # def from_idata(cls, other):
+    #     data = torch.empty_like(other.data)
+    #     Q = data[: other.Q.numel()].view_as(other.Q)
+    #     dO = data[other.Q.numel(): other.Q.numel() + other.dO.numel()].view_as(other.dO)
+    #     D = data[other.Q.numel() + other.dO.numel(): - other.lse.numel()].view(other.D.dtype).view_as(other.D)
+    #     lse = data[- other.lse.numel():].view_as(other.lse)
+    #     return cls(Q, dO, D, lse, data)
     
     @classmethod
-    def from_da_config_with_buf(cls, da_config: Dist_Attn_Config, buf: torch.Tensor):
-        Q_shape = get_Q_shape_from_da_config(da_config)
-        lse_shape = get_lse_shape_from_da_config(da_config)
+    def from_da_config_with_buf(cls, da_config: Dist_Attn_Config, buf: torch.Tensor, batch_degree: int = 1):
+        Q_shape = get_Q_shape_from_da_config(da_config, batch_degree)
+        lse_shape = get_lse_shape_from_da_config(da_config, batch_degree)
         Q_numel = math.prod(Q_shape)
         lse_numel = math.prod(lse_shape)
         tot_numel = Q_numel * 2 + lse_numel * (2 + 1)
@@ -209,16 +209,16 @@ class Input_Col_Bwd(Integrated_Data):
         self.K = self.data[: K.numel()].view_as(K)
         self.V = self.data[K.numel() :].view_as(V)
     
-    @classmethod
-    def from_idata(cls, other):
-        data = torch.empty_like(other.data)
-        K = data[: other.K.numel()].view_as(other.K)
-        V = data[other.K.numel():].view_as(other.V)
-        return cls(K, V, data)
+    # @classmethod
+    # def from_idata(cls, other):
+    #     data = torch.empty_like(other.data)
+    #     K = data[: other.K.numel()].view_as(other.K)
+    #     V = data[other.K.numel():].view_as(other.V)
+    #     return cls(K, V, data)
     
     @classmethod
-    def from_da_config_with_buf(cls, da_config: Dist_Attn_Config, buf: torch.Tensor):
-        K_shape = get_K_shape_from_da_config(da_config)
+    def from_da_config_with_buf(cls, da_config: Dist_Attn_Config, buf: torch.Tensor, batch_degree: int = 1):
+        K_shape = get_K_shape_from_da_config(da_config, batch_degree)
         K_numel = math.prod(K_shape)
         tot_numel = K_numel * 2
         data = buf[: tot_numel]   # assert data.numel() == tot_numel
@@ -231,20 +231,20 @@ class Output_Row_Bwd(Integrated_Data):
         self.data = dQ
         self.dQ = self.data
     
-    @classmethod
-    def from_execution_plan(cls, execution_plan: Execution_Plan, x: torch.Tensor):
-        da_config = execution_plan.da_config
-        split_degrees = execution_plan.split_degrees    # (Sq, Skv, bs, Nh)
-        dQ_shape = get_Q_shape_from_da_config(da_config)
-        # dQ_shape = (da_config.bs // split_degrees[2], da_config.S[0] // split_degrees[0], da_config.Nh[0] // split_degrees[3], da_config.D)  # b, Sq, Nhq, D
-        dQ_numel = math.prod(dQ_shape)
-        data = torch.empty(dQ_numel, dtype=x.dtype, device=x.device)
-        dQ = data.view(dQ_shape)
-        return cls(dQ)
+    # @classmethod
+    # def from_execution_plan(cls, execution_plan: Execution_Plan, x: torch.Tensor):
+    #     da_config = execution_plan.da_config
+    #     split_degrees = execution_plan.split_degrees    # (Sq, Skv, bs, Nh)
+    #     dQ_shape = get_Q_shape_from_da_config(da_config)
+    #     # dQ_shape = (da_config.bs // split_degrees[2], da_config.S[0] // split_degrees[0], da_config.Nh[0] // split_degrees[3], da_config.D)  # b, Sq, Nhq, D
+    #     dQ_numel = math.prod(dQ_shape)
+    #     data = torch.empty(dQ_numel, dtype=x.dtype, device=x.device)
+    #     dQ = data.view(dQ_shape)
+    #     return cls(dQ)
     
     @classmethod
-    def from_da_config_with_buf(cls, da_config: Dist_Attn_Config, buf: torch.Tensor):
-        Q_shape = get_Q_shape_from_da_config(da_config)
+    def from_da_config_with_buf(cls, da_config: Dist_Attn_Config, buf: torch.Tensor, batch_degree: int = 1):
+        Q_shape = get_Q_shape_from_da_config(da_config, batch_degree)
         Q_numel = math.prod(Q_shape)
         dQ = buf[: Q_numel].view(Q_shape)
         return cls(dQ)
@@ -263,21 +263,21 @@ class Output_Col_Bwd(Integrated_Data):
         self.dK = self.data[: dK.numel()].view_as(dK)
         self.dV = self.data[dK.numel() :].view_as(dV)
     
-    @classmethod
-    def from_execution_plan(cls, execution_plan: Execution_Plan, x: torch.Tensor):
-        da_config = execution_plan.da_config
-        split_degrees = execution_plan.split_degrees    # (Sq, Skv, bs, Nh)
-        dK_shape = dV_shape = (da_config.bs // split_degrees[2], da_config.S[0] // split_degrees[0], da_config.Nh[0] // split_degrees[3], da_config.D)  # b, Sq, Nhq, D
-        dK_numel = math.prod(dK_shape)
-        dV_numel = math.prod(dV_shape)
-        data = torch.empty(dK_numel + dV_numel, dtype=x.dtype, device=x.device)
-        dK = data[: dK_numel].view(dK_shape)
-        dV = data[dK_numel: ].view(dV_shape)
-        return cls(dK, dV, data)
+    # @classmethod
+    # def from_execution_plan(cls, execution_plan: Execution_Plan, x: torch.Tensor):
+    #     da_config = execution_plan.da_config
+    #     split_degrees = execution_plan.split_degrees    # (Sq, Skv, bs, Nh)
+    #     dK_shape = dV_shape = (da_config.bs // split_degrees[2], da_config.S[0] // split_degrees[0], da_config.Nh[0] // split_degrees[3], da_config.D)  # b, Sq, Nhq, D
+    #     dK_numel = math.prod(dK_shape)
+    #     dV_numel = math.prod(dV_shape)
+    #     data = torch.empty(dK_numel + dV_numel, dtype=x.dtype, device=x.device)
+    #     dK = data[: dK_numel].view(dK_shape)
+    #     dV = data[dK_numel: ].view(dV_shape)
+    #     return cls(dK, dV, data)
     
     @classmethod
-    def from_da_config_with_buf(cls, da_config: Dist_Attn_Config, buf: torch.Tensor):
-        K_shape = get_K_shape_from_da_config(da_config)
+    def from_da_config_with_buf(cls, da_config: Dist_Attn_Config, buf: torch.Tensor, batch_degree: int = 1):
+        K_shape = get_K_shape_from_da_config(da_config, batch_degree)
         K_numel = math.prod(K_shape)
         tot_numel = K_numel * 2
         data = buf[: tot_numel]   # assert data.numel() == tot_numel
@@ -289,6 +289,22 @@ class Output_Col_Bwd(Integrated_Data):
         pass
         # self.data.add_(other.data)
 
+class InterComm:
+    def __init__(self, PROC_INFO: dict = None):
+        self.rank = PROC_INFO['rank']
+        self.world_size = PROC_INFO['world_size']
+        self.local_rank = PROC_INFO['local_rank']
+        self.local_size = PROC_INFO['tasks_per_node']
+        self.node_id = PROC_INFO['nodeid']
+        
+    def send(self, dst: int, idata: Integrated_Data, stream: torch.cuda.Stream, ncclcomm: PyNcclCommunicator) -> None:
+        global_dst = dst * self.local_size + self.local_rank
+        ncclcomm.send(idata.data, self.rank < global_dst, stream)
+
+    def recv(self, src: int, idata: Integrated_Data, stream: torch.cuda.Stream, ncclcomm: PyNcclCommunicator) -> Integrated_Data:
+        global_src = src * self.local_size + self.local_rank
+        ncclcomm.recv(idata.data, self.rank < global_src, stream)
+        return idata
 
 class IntraComm:
     def __init__(self, PROC_INFO: dict = None):
@@ -299,28 +315,12 @@ class IntraComm:
         self.node_id = PROC_INFO['nodeid']
         
     def send(self, dst: int, idata: Integrated_Data, stream: torch.cuda.Stream, ncclcomm: PyNcclCommunicator) -> None:
-        # cur_stream = torch.cuda.current_stream()
-        # print_rank_0(f'send, stream: {stream.cuda_stream}, cur_stream: {cur_stream.cuda_stream}')
-        # with torch.cuda.stream(stream):
-        # print(f'rank{self.rank}, peer{self.node_id * self.local_size + dst}, send In, {idata.data.numel()} !!!', flush=True)
-        
         global_dst = self.node_id * self.local_size + dst
         ncclcomm.send(idata.data, self.rank < global_dst, stream)
-        
-        # dist.send(idata.data, self.node_id * self.local_size + dst, group=self.process_groups['intra'])
-        # print(f'rank{self.rank}, send Out !!!', flush=True)
     
     def recv(self, src: int, idata: Integrated_Data, stream: torch.cuda.Stream, ncclcomm: PyNcclCommunicator) -> Integrated_Data:
-        # cur_stream = torch.cuda.current_stream()
-        # print_rank_0(f'recv, stream: {stream.cuda_stream}, cur_stream: {cur_stream.cuda_stream}')
-        # with torch.cuda.stream(stream):
-        # print(f'rank{self.rank}, peer{self.node_id * self.local_size + src}, recv In, {idata.data.numel()} !!!', flush=True)
-        
         global_src = self.node_id * self.local_size + src
         ncclcomm.recv(idata.data, self.rank < global_src, stream)
-        
-        # dist.recv(idata.data, self.node_id * self.local_size + src, group=self.process_groups['intra'])
-        # print(f'rank{self.rank}, recv Out !!!', flush=True)
         return idata
 
 class IntraComm_fused:

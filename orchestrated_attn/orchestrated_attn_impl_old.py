@@ -6,7 +6,7 @@ import torch
 import torch.distributed as dist
 from flash_attn.flash_attn_interface import _flash_attn_forward, _flash_attn_backward
 # from flash_attn_burst.flash_attn_burst_interface import _flash_attn_burst_forward, _flash_attn_burst_backward
-from search_algo.execute_plan import Execution_Plan, Fused_Execution_Plan
+from search_algo.execute_plan import Execution_Plan
 from .utils import *
 from .global_vars import *
 from search_algo.dependent_graph import Cuda_Kernel, Comp_Kernel, Comm_Kernel
@@ -22,7 +22,7 @@ def execute_kernel(kernel: Cuda_Kernel, data_dict: dict, PROC_INFO, comp_func, c
         # if True:
             # step1: wait for precursors
             for precursor in kernel.precursors:
-                if hasattr(precursor, 'in_ranks') and rank in precursor.in_ranks:
+                if hasattr(precursor, 'in_ranks') and local_rank in precursor.in_ranks:
                     kernel.stream.wait_event(precursor.event)
                     pass
             
@@ -47,7 +47,7 @@ def execute_kernel(kernel: Cuda_Kernel, data_dict: dict, PROC_INFO, comp_func, c
                     assert d_key in data_dict.keys()
                     comm.send(kernel.key[4], data_dict[d_key], kernel.stream, kernel.ncclcomm)
                 else:                           # Recv
-                    idata_tmp = idata_buf[kernel.key[-2:]]  # ('i'/'o', 'r'/'c')
+                    idata_tmp = idata_buf[kernel.key[-2:]]
                     comm.recv(kernel.key[3], idata_tmp, kernel.stream, kernel.ncclcomm)
                     if d_key in data_dict.keys():
                         data_dict[d_key].reduce(idata_tmp)
@@ -57,88 +57,6 @@ def execute_kernel(kernel: Cuda_Kernel, data_dict: dict, PROC_INFO, comp_func, c
             # step3: record event after kernel execution for successors
             kernel.event = torch.cuda.Event()
             kernel.event.record(kernel.stream)
-
-def execute_inter_kernel(kernel: Cuda_Kernel, data_dict: dict, PROC_INFO, comp_func, comm: InterComm, idata_buf: dict, causal):
-    rank = PROC_INFO['rank']
-    # local_rank = PROC_INFO['local_rank']
-    node_id = PROC_INFO['nodeid']
-    # print(f'rank{local_rank}, execute_kernel: {kernel.key}', flush=True)
-    # get cuda stream on which kernel is executed
-    # with torch.cuda.stream(kernel.stream):
-    if True:
-        with torch.cuda.nvtx.range(f'{kernel.key}'):
-        # if True:
-            # step1: wait for precursors
-            for precursor in kernel.precursors:
-                if hasattr(precursor, 'in_ranks') and rank in precursor.in_ranks:
-                    if hasattr(precursor, 'sub_streams'):       # precursor is a comp kernel !!!
-                        assert isinstance(kernel, Comm_Kernel)  # Current is a comm kernel !!!
-                        assert hasattr(precursor, 'events')
-                        assert not hasattr(precursor, 'event')
-                        kernel.stream.wait_event(precursor.events[0])   # wait Comp Stream
-                        kernel.stream.wait_event(precursor.events[2])   # wait Recv Stream
-                    else:                                       # precursor is a comm kernel !!!
-                        if hasattr(kernel, 'sub_streams'):      # Current is a comp kernel !!!
-                            assert isinstance(kernel, Comp_Kernel)
-                            kernel.sub_streams[0].wait_event(precursor.event)   # Comp Stream waits ...
-                            kernel.sub_streams[1].wait_event(precursor.event)   # Send Stream waits ...
-                        else:                                   # Current is a comm kernel !!!
-                            kernel.stream.wait_event(precursor.event)   # [NOTE]: hardcode !!!
-            
-            # step2: execute kernel
-            # comp: (b_id, h_id, r_id, c_id, gpuid) or (b_id, h_id, (r_ids, ), (c_ids, ), gpuid) -> Cuda_Kernel
-            # comm: (b_id, h_id, r/c_id, send, recv, i/o, r/c) -> Cuda_Kernel
-            if isinstance(kernel, Comp_Kernel):
-                # [TODO]: 
-                assert hasattr(kernel, 'execution_plan')
-                intra_execution_plan = kernel.execution_plan
-                # bid, hid, rid, cid = 0, 0, local_rank, local_rank
-                bid, hid, rid, cid = kernel.key[0: 4]
-                kernel_causal = causal and isinstance(rid, int) and rid == cid  # inter causal, both are int, seuql
-                # print(f'rank{local_rank}, causal: {kernel_causal}, rid: {rid}, cid: {cid}', flush=True)
-                out = comp_func(
-                    # data_dict[(bid, hid, rid, 'i', 'r')], data_dict[(bid, hid, cid, 'i', 'c')], 
-                    inp_row=intra_execution_plan.buf_dict['inp_row'],
-                    inp_col=intra_execution_plan.buf_dict['inp_col'],
-                    causal=kernel_causal,
-                    execution_plan=intra_execution_plan,
-                )
-                # o_keys = (bid, hid, rid, 'o', 'r'), (bid, hid, cid, 'o', 'c')   # (or, oc)
-                # for t in range(2):  # 0 -> r, 1 -> c
-                #     if o_keys[t] in data_dict.keys():
-                #         data_dict[o_keys[t]].reduce(out[t])
-                #     else:
-                #         data_dict[o_keys[t]] = out[t]
-            else:
-                # d_key = kernel.key[: 3] + kernel.key[5:]
-                if kernel.key[3] == node_id: # Send
-                    # assert d_key in data_dict.keys()
-                    # comm.send(kernel.key[4], data_dict[d_key], kernel.stream, kernel.ncclcomm)
-
-                    idata_tmp = idata_buf[kernel.key[-2:]]
-                    comm.send(kernel.key[4], idata_tmp, kernel.stream, kernel.ncclcomm)
-                else:                           # Recv
-                    idata_tmp = idata_buf[kernel.key[-2:]]
-                    comm.recv(kernel.key[3], idata_tmp, kernel.stream, kernel.ncclcomm)
-                    # if d_key in data_dict.keys():
-                    #     data_dict[d_key].reduce(idata_tmp)
-                    # else:
-                    #     data_dict[d_key] = idata_tmp
-            
-            # step3: record event after kernel execution for successors
-            if hasattr(kernel, 'sub_streams'):  # Current is a comp kernel !!!
-                assert isinstance(kernel, Comp_Kernel)
-                kernel.events = [
-                    torch.cuda.Event(), # Comp Stream
-                    None,               # Send Stream
-                    torch.cuda.Event(), # Recv Stream
-                ]
-                kernel.events[0].record(kernel.sub_streams[0])
-                kernel.events[2].record(kernel.sub_streams[2])
-            else:                               # Current is a comm kernel !!!
-                kernel.event = torch.cuda.Event()
-                kernel.event.record(kernel.stream)
-
 
 def intra_attn_forward(
     inp_row: Input_Row_Fwd,
@@ -150,20 +68,18 @@ def intra_attn_forward(
     alibi_slopes,
     deterministic,
     PROC_INFO,
-    execution_plan: Union[Execution_Plan, Fused_Execution_Plan],
-    # buf_dict: Union[dict, None],
+    execution_plan: Execution_Plan,
+    buf_dict: Union[dict, None],
 ) -> Integrated_Data:
-    # rank = PROC_INFO['rank']
-    # world_size = PROC_INFO['world_size']
+    rank = PROC_INFO['rank']
+    world_size = PROC_INFO['world_size']
     local_rank = PROC_INFO['local_rank']
-    # local_size = PROC_INFO['tasks_per_node']
-    # nodeid = PROC_INFO['nodeid']
-    # assert world_size % local_size == 0
-    # node_num = world_size // local_size
-    assert PROC_INFO['tasks_per_node'] == execution_plan.Y * execution_plan.X if hasattr(execution_plan, 'X') else execution_plan.hierarchy_sp
-    intra_streams = get_global_var('streams')['intra']
-    # Parse buf_dict
-    buf_dict = execution_plan.buf_dict
+    local_size = PROC_INFO['tasks_per_node']
+    nodeid = PROC_INFO['nodeid']
+    assert world_size % local_size == 0
+    node_num = world_size // local_size
+    assert local_size == execution_plan.tot_sp
+    streams = get_global_var('streams')
     
     # Comp Func
     def fwd_comp_func(inp_row: Input_Row_Fwd, inp_col: Input_Col_Fwd, 
@@ -186,10 +102,6 @@ def intra_attn_forward(
         return (out_row, out_col)
         lse = lse.transpose(-2, -1).contiguous().unsqueeze(dim=-1) # block_out, block_lse # [mbs, S, Nh, D], [mbs, S, Nh, 1]
         return (Output_Row_Fwd(O, lse), Output_Col_Fwd())
-    
-    if causal:
-        return None
-        raise NotImplementedError
     
     if buf_dict['graph_type'] == 'general':    # general cases
         data_dict = {}  # (b_id, h_id, r/c_id, i/o, r/c) -> Integrated_Data
@@ -233,49 +145,48 @@ def intra_attn_forward(
         event_ic = torch.cuda.Event()
         event_comp = torch.cuda.Event()
         # Allgather rc
-        comm.all_gather('c', inp_col, buf_dict['ic'], intra_streams[1])
-        event_ic.record(intra_streams[1])
-        comm.all_gather('r', inp_row, buf_dict['ir'], intra_streams[1])
-        event_ir.record(intra_streams[1])
+        comm.all_gather('c', inp_col, buf_dict['ic'], streams[1])
+        event_ic.record(streams[1])
+        comm.all_gather('r', inp_row, buf_dict['ir'], streams[1])
+        event_ir.record(streams[1])
         
         # Comp
-        with torch.cuda.stream(intra_streams[0]):
+        with torch.cuda.stream(streams[0]):
             # step1: input data layout transform
-            # if execution_plan.da_config.bs != 1:    # always bs == 1 !!!
-            if inp_row.Q.shape[0] != 1:     # bs == 1
-                raise NotImplementedError
-            Q_shape = list(inp_row.Q.shape)
-            assert len(Q_shape) == 4    # (bs, Sq, Nh, D)
-            Q_shape_row = copy.deepcopy(Q_shape)
-            Q_shape_row[1] *= X         # (bs, X * Sq, Nh, D)
-            inp_row_tot = Input_Row_Fwd(buf_dict['ir'].view(Q_shape_row))
-            
-            K_shape = list(inp_col.K.shape) # (bs, Skv, Nh, D)
-            K_shape_col = copy.deepcopy(K_shape)
-            K_shape_col[1] *= Y             # (bs, Y * Skv, Nh, D)
-            K_shape_col_tot = copy.deepcopy(K_shape)
-            K_shape_col_tot = [Y, 2] + K_shape_col_tot  # (Y, 2, bs, Skv, Nh, D)
-            intra_streams[0].wait_event(event_ic)
-            inp_col_tot_data = buf_dict['ic'].view(K_shape_col_tot).transpose(0, 1).transpose(1, 2).flatten(2, 3).contiguous()    # [2, bs, Y * Skv, Nh, D]
-            K_tot = inp_col_tot_data[0]  # [bs, Y * Skv, Nh, D]
-            V_tot = inp_col_tot_data[1]  # [bs, Y * Skv, Nh, D]
-            inp_col_tot = Input_Col_Fwd(K_tot, V_tot, inp_col_tot_data.flatten())
-            
-            out_row_tot = Output_Row_Fwd(buf_dict['or'].view(Q_shape_row))
-            out_col_tot = None
-            
+            if execution_plan.da_config.bs == 1:    # always true !!!
+                Q_shape = list(inp_row.Q.shape)
+                assert len(Q_shape) == 4    # (bs, Sq, Nh, D)
+                Q_shape_row = copy.deepcopy(Q_shape)
+                Q_shape_row[1] *= X         # (bs, X * Sq, Nh, D)
+                inp_row_tot = Input_Row_Fwd(buf_dict['ir'].view(Q_shape_row))
+                
+                K_shape = list(inp_col.K.shape) # (bs, Skv, Nh, D)
+                K_shape_col = copy.deepcopy(K_shape)
+                K_shape_col[1] *= Y             # (bs, Y * Skv, Nh, D)
+                K_shape_col_tot = copy.deepcopy(K_shape)
+                K_shape_col_tot = [Y, 2] + K_shape_col_tot
+                streams[0].wait_event(event_ic)
+                inp_col_tot_data = buf_dict['ic'].view(K_shape_col_tot).transpose(0, 1).transpose(1, 2).flatten(2, 3).contiguous()    # [2, bs, Y * Skv, Nh, D]
+                K_tot = inp_col_tot_data[0]  # [bs, Y * Skv, Nh, D]
+                V_tot = inp_col_tot_data[1]  # [bs, Y * Skv, Nh, D]
+                inp_col_tot = Input_Col_Fwd(K_tot, V_tot, inp_col_tot_data.flatten())
+                
+                out_row_tot = Output_Row_Fwd(buf_dict['or'].view(Q_shape_row))
+                out_col_tot = None
+            else:
+                raise NotImplementedError()
             # step2: execute flashattn kernel
-            intra_streams[0].wait_event(event_ir)
+            streams[0].wait_event(event_ir)
             fwd_comp_func(inp_row_tot, inp_col_tot, out_row_tot, out_col_tot, causal)
             
             # step3: output data layout transform
             pass
         
-            event_comp.record(intra_streams[0])
+            event_comp.record(streams[0])
         
         # ReduceScatter rc
-        intra_streams[1].wait_event(event_comp)
-        comm.reduce_scatter('r', buf_dict['or'], out_row, intra_streams[1])
+        streams[1].wait_event(event_comp)
+        comm.reduce_scatter('r', buf_dict['or'], out_row, streams[1])
         # comm.all_gather('c', buf_dict['oc'], out_col, streams[1])
         return out_row
     else:
@@ -293,7 +204,7 @@ def orchestrated_attn_forward(
     deterministic=False,
     PROC_INFO=None,
     execution_plan_dict: dict = None,
-    # buf_dict: Union[dict, None] = None,     # 'tensor_buf'
+    buf_dict: Union[dict, None] = None,     # 'tensor_buf'
     extra_dict: Union[dict, None] = None,   # 'da_config', 'exp_config
 ) -> Output_Row_Fwd:
     # [NOTE]: Now not support batch mechanism and only support tot_sp = world_size
@@ -303,13 +214,8 @@ def orchestrated_attn_forward(
     # local_rank = PROC_INFO['local_rank']
     # local_size = PROC_INFO['tasks_per_node']
     inter_execution_plan: Execution_Plan = execution_plan_dict['inter']
-    
-    # Parse buf_dict
-    buf_dict = inter_execution_plan.buf_dict
-        
     da_config = inter_execution_plan.da_config
-    assert inter_execution_plan.hierarchy_sp == PROC_INFO['node_num']
-    # assert inter_execution_plan.tot_sp == PROC_INFO['world_size']
+    assert inter_execution_plan.tot_sp == PROC_INFO['world_size']
     # assert inter_execution_plan.da_config.SP == (node_num, local_size)
     assert inter_execution_plan.split_degrees[2] == 1 and inter_execution_plan.split_degrees[3] == 1
     
@@ -333,6 +239,7 @@ def orchestrated_attn_forward(
         deterministic=deterministic,
         PROC_INFO=PROC_INFO,
         # execution_plan,
+        # buf_dict,
         
     )    # [NOTE]: fuse of not fuse !!!
     # for kernel in execution_plan.gpu_kernel_lists[local_rank]:
@@ -348,11 +255,10 @@ def orchestrated_attn_forward(
             # torch.profiler.itt.range_push(f'{kernel.key}')
             # print_rank_0(f'kernel.key: {kernel.key}')
             # print(f'rank{rank}, kernel.key: {kernel.key}', flush=True)
-            execute_inter_kernel(kernel, data_dict, PROC_INFO, p_fwd_inter_comp_func, comm, buf_dict, causal)
+            execute_inter_kernel(kernel, data_dict, PROC_INFO, p_fwd_comp_func, comm, buf_dict, causal)
             # torch.profiler.itt.range_pop()
     # print(f'rank{rank}, Out !!!', flush=True)
     # return None
-    return inter_execution_plan.buf_dict['out_row'], inter_execution_plan.buf_dict['out_col']
     return data_dict[(0, 0, node_id, 'o', 'r')]
     
     if execution_plan.da_config.SP[0] == 1:
@@ -595,7 +501,7 @@ class OrchestratedAttnFunc(torch.autograd.Function):
         return_softmax,
         PROC_INFO,
         execution_plan_dict: dict,
-        # buf_dict: Union[dict, None],
+        buf_dict: Union[dict, None],
         extra_dict: Union[dict, None],
     ):
         if softmax_scale is None:
@@ -616,7 +522,7 @@ class OrchestratedAttnFunc(torch.autograd.Function):
             deterministic=False,
             PROC_INFO=PROC_INFO,
             execution_plan_dict=execution_plan_dict,
-            # buf_dict=buf_dict,
+            buf_dict=buf_dict,
             extra_dict=extra_dict,
         )
         return
@@ -666,7 +572,7 @@ def orchestrated_attn_func(
     return_attn_probs=False,
     PROC_INFO=None,
     execution_plan_dict: dict = None,
-    # buf_dict: Union[dict, None] = None,
+    buf_dict: Union[dict, None] = None,
     extra_dict: Union[dict, None] = None,
 ):
     return OrchestratedAttnFunc.apply(
@@ -681,6 +587,6 @@ def orchestrated_attn_func(
         return_attn_probs,
         PROC_INFO,
         execution_plan_dict,
-        # buf_dict,
+        buf_dict,
         extra_dict,
     )
