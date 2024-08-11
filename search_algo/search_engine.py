@@ -310,7 +310,12 @@ class Dist_Attn_Schedule():
             tot_comm_units += comm_units
         # print(f'tot_comm_units:\n{tot_comm_units}')
         # input and output comm units need to be the same
-        assert (np.absolute(tot_comm_units[:, 0] - tot_comm_units[:, 1]) / tot_comm_units[:, 0]).sum() < 2e-6
+        # print(f'{tot_comm_units[:, 0]}, {tot_comm_units[:, 1]}, {np.any(tot_comm_units[:, 0])}', flush=True)
+        
+        if np.any(tot_comm_units[:, 0]):
+            assert (np.absolute(tot_comm_units[:, 0] - tot_comm_units[:, 1]) / tot_comm_units[:, 0]).sum() < 2e-6
+        else:   # all 0 !!!
+            assert not np.any(tot_comm_units[:, 1])
         self.tot_comm_units = tot_comm_units
         
         self.ave_comm_units = np.max(tot_comm_units, axis=-1) / self.hierarchy_sp    # [fwd/bwd]

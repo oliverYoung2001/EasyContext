@@ -183,4 +183,8 @@ def get_cc_optimal_schedule_table(split_degrees: list, S_map: np.ndarray, causal
             ]]], dtype=np.int32)
         else:
             raise NotImplementedError()
+    elif split_degrees[0] == 1:
+        cc_schedule_table = np.array([[[
+            [ 0 ],
+        ]]], dtype=np.int32)
     return cc_schedule_table

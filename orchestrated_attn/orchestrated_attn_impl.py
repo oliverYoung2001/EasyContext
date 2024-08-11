@@ -274,9 +274,9 @@ def intra_attn_forward(
             event_comp.record(intra_streams[0])
         
         # ReduceScatter rc
-        intra_streams[1].wait_event(event_comp)
-        comm.reduce_scatter('r', buf_dict['or'], out_row, intra_streams[1])
-        # comm.all_gather('c', buf_dict['oc'], out_col, streams[1])
+        intra_streams[2].wait_event(event_comp)
+        comm.reduce_scatter('r', buf_dict['or'], out_row, intra_streams[2])
+        # comm.all_gather('c', buf_dict['oc'], out_col, streams[2])
         return out_row
     else:
         raise Exception(f"graph_type {buf_dict['graph_type']} not supported !!!")
@@ -533,14 +533,14 @@ def intra_attn_backward(
             event_comp.record(streams[0])
         
         # ReduceScatter rc
-        streams[1].wait_event(event_comp)
-        comm.reduce_scatter('r', buf_dict['or'], out_row, streams[1])
+        streams[2].wait_event(event_comp)
+        comm.reduce_scatter('r', buf_dict['or'], out_row, streams[2])
         with torch.cuda.stream(streams[0]):
             # step3: output  layout transform
             out_col_tot_data = buf_dict['oc'].view((2, Y, K_nelem)).transpose(0, 1).contiguous()    # [Y, 2, bs, Skv, Nh, D]
             event_oc.record(streams[0])
-        streams[1].wait_event(event_oc)
-        comm.reduce_scatter('c', out_col_tot_data, out_col, streams[1])
+        streams[2].wait_event(event_oc)
+        comm.reduce_scatter('c', out_col_tot_data, out_col, streams[2])
         return (out_row, out_col)
     else:
         raise Exception(f"graph_type {buf_dict['graph_type']} not supported !!!")

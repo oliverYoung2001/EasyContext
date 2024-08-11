@@ -28,11 +28,12 @@ def get_configs():
     # Sq = Skv = 16 * 1024   # 16k
     # Sq = Skv = 8 * 1024   # 8k
     
-    SP0, SP1 = 2, 8
-    SP0, SP1 = 3, 8
-    SP0, SP1 = 4, 8
-    # SP0, SP1 = 6, 8
-    SP0, SP1 = 8, 8
+    SP0, SP1 = 1, 8
+    # SP0, SP1 = 2, 8
+    # SP0, SP1 = 3, 8
+    # SP0, SP1 = 4, 8
+    # # SP0, SP1 = 6, 8
+    # SP0, SP1 = 8, 8
     # SP0, SP1 = 16, 8
 
     Sq = Skv = 256   # S per GPU
@@ -49,7 +50,8 @@ def get_configs():
         4 * 1024, 
         8 * 1024, 
         16 * 1024, 
-        # 32 * 1024,    # fused failed !!!
+        32 * 1024,    # fused failed !!!
+        64 * 1024,    # fused failed !!!
     ]    # S per GPU
     # Ss = [16 * 1024]    # S per GPU
 
@@ -62,7 +64,7 @@ def get_configs():
     bs = 1
     D = 128
     causal = False
-    causal = True
+    # causal = True
     
     tot_sp = SP0 * SP1
     hierarchy = 0
@@ -211,7 +213,7 @@ def generate_inter_execution_plans(exp_config: Evaluation_Configs, da_config: Di
     plan_types = ['automatic', 'ablation1'] # ILP, Flexflow
     for plan_type in plan_types:
         # Raw Execution_Plan:
-        print(f'Raw, {"ILP" if plan_type == "automatic" else "Flexflow"}:')
+        print(f'Raw, {"ILP" if plan_type == "automatic" else "Flexflow"}:', flush=True)
         # if not plan_type == 'automatic':
         if True:
             execute_plan = Execution_Plan(d_graph, exp_config.fob, plan_type=plan_type)
@@ -225,7 +227,7 @@ def generate_inter_execution_plans(exp_config: Evaluation_Configs, da_config: Di
                 pickle.dump(execute_plan, f)
         
         # Transformed Execution_Plans:
-        print(f'Fused, {"ILP" if plan_type == "automatic" else "Flexflow"}:')
+        print(f'Fused, {"ILP" if plan_type == "automatic" else "Flexflow"}:', flush=True)
         gt_engine = Graph_Transformation_Engine(exp_config, da_config, m_config)
         execute_plan = gt_engine.transform(d_graph, exp_config.transform_mode, plan_type=plan_type)
         if execute_plan is None:    # No feasible transformations

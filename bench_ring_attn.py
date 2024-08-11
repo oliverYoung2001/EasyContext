@@ -378,7 +378,7 @@ def benchmark_ops(streams, global_group, device, f, inputs, \
     
     t2 = time.time()
     td = - 1
-    assert args.profiler_with_tensorboard == False, "Not support profiler_with_tensorboard in this version !!!"
+    # assert args.profiler_with_tensorboard == False, "Not support profiler_with_tensorboard in this version !!!"
     # if args.profiler_with_tensorboard and not hasattr(args, "tb_profiled"):
     if args.profiler_with_tensorboard:
         args.tb_profiled = True
@@ -404,15 +404,13 @@ def benchmark_ops(streams, global_group, device, f, inputs, \
                     g.replay()
                 else:
                     if iter % BARRIER_FREQ == 0:
-                        placeholder_op(stream=streams[0]) # [NOTE]: aim to eliminate cpu overhead
+                        placeholder_op(stream=main_stream) # [NOTE]: aim to eliminate cpu overhead
                     # preprocess
-                    for stream in streams[1:]:
-                        stream.wait_stream(streams[0])
+                    all_wait_main_stream(stream_list, main_stream)
                     with torch.no_grad():
                         _ = f(**inputs)
                     # postprocess
-                    for stream in streams[1:]:
-                        streams[0].wait_stream(stream)
+                    main_stream_wait_all(stream_list, main_stream)
                 if (iter + 1) % BARRIER_FREQ == 0:
                     torch.cuda.synchronize()
                     torch.distributed.barrier(group=global_group)
@@ -636,6 +634,9 @@ def benchmark_orchestrate(args, raw_f, da_config: Dist_Attn_Config, tensor_buf: 
         # load inter plan
         with open(plan_path, 'rb') as fin:
             inter_execution_plan = pickle.load(fin)
+        print_rank_0(f'inter_execution_plan:')
+        if rank == 0:
+            inter_execution_plan.print_lp_result()
         # load intra plans and form a dict:
         split_degrees = (da_config.SP[1], da_config.SP[1], 1, 1)
         inter_comp_plans = {}   # batch_degrees -> plan, ranks with the same node_id have the same inter_comp_plans
@@ -652,7 +653,9 @@ def benchmark_orchestrate(args, raw_f, da_config: Dist_Attn_Config, tensor_buf: 
                         map_key = inter_comp_profile_map.get_comp_map_key(da_config, batch_degrees, split_degrees)
                         intra_full_attn_config = inter_comp_profile_map.get_value_from_map_key(map_key)[fob] # (Y, X, fused, Time)
                     else:
-                        intra_full_attn_config = (da_config.SP[1], 1, da_config.Nh[0] == 1, - 0.0)
+                        intra_full_attn_config = (da_config.SP[1], 1, da_config.Nh[0] == 1, - 0.0)  # kv
+                        # intra_full_attn_config = (1, da_config.SP[1], da_config.Nh[0] == 1, - 0.0)  # qo
+
                     inter_comp_configs[batch_degrees] = intra_full_attn_config
                     if intra_full_attn_config[2] == 0:  # not fused, to load intra execution plan
                         plan_path = f'{par_dir}/SP{local_size}_fob={fob}_Y={batch_degrees[0]}_X={batch_degrees[1]}_dim=0.pkl'
@@ -662,7 +665,7 @@ def benchmark_orchestrate(args, raw_f, da_config: Dist_Attn_Config, tensor_buf: 
                         inter_comp_plans[batch_degrees] = Fused_Execution_Plan(intra_full_attn_config[0], intra_full_attn_config[1], intra_full_attn_config[3], fob=fob)
                 kernel.execution_plan = inter_comp_plans[batch_degrees]
                     
-        print(f'rank{rank}, node_id: {node_id}, inter_comp_configs: {inter_comp_configs}', flush=True)
+        # print(f'rank{rank}, node_id: {node_id}, inter_comp_configs: {inter_comp_configs}', flush=True)
         # continue  # above OK !!!
         causal = da_config.causal
         # fob = inter_execution_plan.fob
@@ -801,7 +804,7 @@ def benchmark_orchestrate(args, raw_f, da_config: Dist_Attn_Config, tensor_buf: 
                 # Create Row&Col PyNcclCommunicator
                 Y = intra_execution_plan.Y
                 X = intra_execution_plan.X
-                print(f'rank{rank}, batch_degrees: {batch_degrees}, intra_execution_plan: {intra_execution_plan}', flush=True)
+                # print(f'rank{rank}, batch_degrees: {batch_degrees}, intra_execution_plan: {intra_execution_plan}', flush=True)
                 cur_x_id = local_rank % X
                 cur_y_id = local_rank // X
                 r_key = tuple(range(node_id * local_size + cur_y_id * X, node_id * local_size + (cur_y_id + 1) * X))
@@ -838,7 +841,8 @@ def benchmark_orchestrate(args, raw_f, da_config: Dist_Attn_Config, tensor_buf: 
         torch.cuda.synchronize()
         torch.distributed.barrier(group=global_group)
         # continue
-        TRACE_NAME = f'{os.environ["TRACE_NAME"]}_w{world_size}_r{rank}_S({Sq},{Skv})_bs{batch_size}_Nh{nheads}_D{nheads}_{f.__name__}'
+        TRACE_NAME = f'{os.environ["TRACE_NAME"]}_SP({node_num},{local_size})_w{world_size}_r{rank}_S({Sq},{Skv})_bs{batch_size}_Nh{nheads}_D{nheads}_' \
+                     f'{"causal" if causal else "noncausal"}_{f.__name__}'
         t1, t2, t3, td = benchmark_ops(streams, global_group, torch.cuda.current_device(), f, inputs, warmup, warmup_cudagraph, num_iter, use_cudagraph, TRACE_NAME, args)
 
         if rank == 0 and log:
@@ -976,14 +980,14 @@ def run_all_intra_attn(args, ncclcomm_global, gloo_global_group):
 def run_all_inter_attn(args, ncclcomm_global, gloo_global_group):
     global PROC_INFO
     baseline_funcs = [
-        ring_flash_attn_func,
-        zigzag_ring_flash_attn_func,      # baseline
-        # zigzag_ring_flash_attn_func_opt,  # sol1
-        stripe_flash_attn_func,
-        # lightseq_attn_func,
-        # flash_attn_func,
-        # hierarchy_attn_func,                # one case
-        # overlapped_hierarchy_attn_func,     # another case
+        # ring_flash_attn_func,
+        # zigzag_ring_flash_attn_func,      # baseline
+        # # zigzag_ring_flash_attn_func_opt,  # sol1
+        # stripe_flash_attn_func,
+        # # lightseq_attn_func,
+        # # flash_attn_func,
+        # # hierarchy_attn_func,                # one case
+        # # overlapped_hierarchy_attn_func,     # another case
     ]
     
     # # modified PROC_INFO for debug, version1: 
@@ -993,25 +997,25 @@ def run_all_inter_attn(args, ncclcomm_global, gloo_global_group):
     # PROC_INFO['world_size'] = PROC_INFO['node_num'] * PROC_INFO['tasks_per_node']
     # # modify finished
     
-    # modified PROC_INFO for debug, version2: 
-    assert PROC_INFO['node_num'] == 1 and PROC_INFO['tasks_per_node'] == 8
-    PROC_INFO['node_num'] = 4
-    PROC_INFO['tasks_per_node'] = 2
-    PROC_INFO['nodeid'] = PROC_INFO['rank'] // PROC_INFO['tasks_per_node']
-    PROC_INFO['local_rank'] = PROC_INFO['rank'] % PROC_INFO['tasks_per_node']
-    # modify finished
+    # # modified PROC_INFO for debug, version2: 
+    # assert PROC_INFO['node_num'] == 1 and PROC_INFO['tasks_per_node'] == 8
+    # PROC_INFO['node_num'] = 4
+    # PROC_INFO['tasks_per_node'] = 2
+    # PROC_INFO['nodeid'] = PROC_INFO['rank'] // PROC_INFO['tasks_per_node']
+    # PROC_INFO['local_rank'] = PROC_INFO['rank'] % PROC_INFO['tasks_per_node']
+    # # modify finished
     
     world_size = PROC_INFO['world_size']
     local_size = PROC_INFO['tasks_per_node']
     node_num = PROC_INFO['node_num']
     rank = PROC_INFO['rank']
-    assert node_num > 1 # and local_size == 8
+    assert node_num >= 1 # and local_size == 8
     
     # fix configs:
     bs = 1
     D = 128
     causal = False
-    causal = True
+    # causal = True
     SPs = (node_num, local_size)
     
     # variable configs:
@@ -1039,6 +1043,7 @@ def run_all_inter_attn(args, ncclcomm_global, gloo_global_group):
     Sqkvs = sorted(list(set(Sqkvs)))    # Sq per GPU
     # Sqs = [327680 // world_size]
     Sqkvs = [1 * 1024]
+    Sqkvs = [64 * 1024]
     print_rank_0(f'Sqkvs: {Sqkvs}')
     
     # pre-allocated buffer:
@@ -1078,6 +1083,8 @@ def run_all_inter_attn(args, ncclcomm_global, gloo_global_group):
                 
                 # exp_configs: 4 = 2 * 2 (w/wo fuse, ILP vs Flexflow)
                 ablation_suffixes = ['', '_fused', '_ablation1', '_fused_ablation1']
+                ablation_suffixes = ['_fused']      # for torch.profiler
+                ablation_suffixes = ['']            # for SP0 = 1
                 
                 plan_types = ['automatic', 'ablation0']  # [NOTE]: useful !!!
                 plan_types = ['automatic']
@@ -1086,6 +1093,7 @@ def run_all_inter_attn(args, ncclcomm_global, gloo_global_group):
                 plan_paths = []
                 
                 # HACK
+                # if da_config.SP[1] != 8:
                 old_SP = da_config.SP
                 da_config.SP = (old_SP[0], 8)
                 plan_name_prefix = da_config.get_plan_name(fob=fob)
@@ -1113,7 +1121,6 @@ def run_all_inter_attn(args, ncclcomm_global, gloo_global_group):
                         benchmark(args, f, da_config, tensor_buf, forward_only=True, log=True)
                 
                 # 2 orchestrated_attn_func:
-                # 2.1 normal comp&comm
                 benchmark_op = partial(benchmark_orchestrate,
                     args, orchestrated_attn_func, da_config, tensor_buf, log=True, exp_configs=exp_configs, 
                     global_group=gloo_global_group, ncclcomm_global=ncclcomm_global,
@@ -1121,15 +1128,7 @@ def run_all_inter_attn(args, ncclcomm_global, gloo_global_group):
                 )
                 benchmark_op(use_cudagraph=False)
                 
-                # # 2.2 fused comp&comm # [TODO]
-                # if Nh == 1:
-                #     benchmark_op = partial(benchmark_fused,
-                #         args, orchestrated_attn_func, da_config, tensor_buf, log=True, plan_paths=plan_paths, 
-                #         global_group=gloo_global_group, ncclcomm_global=ncclcomm_global,
-                #         warmup=WARMUP, num_iter=NUM_ITER,
-                #     )
-                #     benchmark_op(use_cudagraph=False)
-    
+
 
 def main(args):
     global PROC_INFO
