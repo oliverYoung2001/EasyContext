@@ -140,6 +140,10 @@ class Output_Col_Fwd(Integrated_Data):
     
     def reduce(self, other):
         pass
+    
+    @classmethod
+    def from_da_config_with_buf(cls, da_config: Dist_Attn_Config, buf: torch.Tensor, batch_degree: int = 1):
+        return cls()
 
 class Input_Row_Bwd(Integrated_Data):
     def __init__(self, Q, dO, D, lse, data: Optional[torch.Tensor] = None):    # [NOTE]: optimized version of Backward for distributed senario

@@ -136,7 +136,185 @@ def get_XY_from_plan_path(plan_path: str):
     res = pat.match(plan_path)
     assert res is not None, f'Invalid plan_path: {plan_path}'
     return (int(res.group(2)), int(res.group(1)))   # (X, Y)
-     
+
+def benchmark(args, f, da_config: Dist_Attn_Config, tensor_buf, global_group, warmup=11, num_iter=20, forward_only=True, log=True):
+    warmup = 2
+    num_iter = 4
+    main_stream = torch.cuda.current_stream()
+    torch.cuda.synchronize()
+    torch.distributed.barrier()
+    t0 = time.time()
+    global PROC_INFO
+    rank = PROC_INFO['rank']
+    local_rank = PROC_INFO['local_rank']
+    local_size = PROC_INFO['tasks_per_node']
+    if rank == 0:
+        print(f'# {f.__name__}, {"fwd" if forward_only else "fwd + bwd"}', flush=True)
+    world_size = dist.get_world_size()
+    device = torch.device(f"cuda:{PROC_INFO['deviceid']}")
+    # torch.cuda.set_device(device)
+
+    batch_size = da_config.bs
+    Sq, Skv = da_config.S_per_gpu   # Sq, Skv per gpu !!!
+    nheads = da_config.Nh[0]    # Nh, Ng
+    d = da_config.D
+    if f == flash_attn_func:
+        Sq *= world_size
+        Skv *= world_size
+        world_size = 1
+    dropout_p = 0
+    causal = da_config.causal
+    deterministic = False
+
+    # assert seqlen % (2 * world_size) == 0
+    assert d % 8 == 0
+
+    Q_shape = (batch_size, Sq, nheads, d)
+    K_shape = (batch_size, Skv, nheads, d)
+    Q_numel = math.prod(Q_shape)
+    K_numel = math.prod(K_shape)
+    q = tensor_buf[: Q_numel].view(Q_shape)
+    k = tensor_buf[Q_numel: Q_numel + K_numel].view(K_shape)
+    v = tensor_buf[Q_numel + K_numel: Q_numel + K_numel * 2].view(K_shape)
+    dout = tensor_buf[Q_numel + K_numel * 2: Q_numel * 2 + K_numel * 2].view(Q_shape)
+    qkv = tensor_buf[: Q_numel + K_numel * 2]
+    qkv.requires_grad = True
+    # bsz, nh, seq_len, hdim
+    if f == lightseq_attn_func:
+        q = q.permute(0, 2, 1, 3)
+        k = k.permute(0, 2, 1, 3)
+        v = v.permute(0, 2, 1, 3)
+        dout = dout.permute(0, 2, 1, 3)
+    
+    inputs = {
+        "q": q,
+        "k": k,
+        "v": v,
+        "dropout_p": dropout_p,
+        "causal": causal,
+        "deterministic": deterministic,
+        "sm_scale": q.shape[-1] ** (-0.5),
+        "PROC_INFO": PROC_INFO,
+        "groups": {},
+    }
+    inputs = filter_kwargs(f, inputs)
+    
+    # warmup
+    # global placeholder_op
+    placeholder_op = dummy_placeholder_op
+    placeholder_op(stream=main_stream) # [NOTE]: aim to eliminate cpu overhead
+    if forward_only:
+        with torch.no_grad():
+            for _ in range(warmup):
+                _ = f(**inputs)
+    else:
+        for _ in range(warmup):
+            qkv.grad = None
+            out = f(**inputs)
+            out.backward(dout)
+    torch.cuda.synchronize()
+    torch.distributed.barrier(group=global_group)   
+    # print_rank_0(f'Warmup done !!!')
+    
+    use_cudagraph = False
+    
+    is_runned = False
+    t1 = time.time()
+    
+    # warmup cudagraph
+    if use_cudagraph:
+        for _ in range(warmup):
+            g.replay()
+            torch.cuda.synchronize()
+            torch.distributed.barrier(group=global_group)  
+        # print_rank_0(f'Warmup cudagraph done !!!')
+
+                
+    torch.cuda.synchronize()
+    torch.distributed.barrier(group=global_group) 
+    t2 = time.time()
+    
+    td = - 1
+    # if args.profiler_with_tensorboard and not hasattr(args, "tb_profiled"):
+    if args.profiler_with_tensorboard:
+        args.tb_profiled = True
+        is_runned = True
+        BARRIER_FREQ = 4
+        WAIT, WARMUP, ACTIVE, REPEAT = BARRIER_FREQ * 1, BARRIER_FREQ * 1, BARRIER_FREQ * 3, 1
+        # WAIT, WARMUP, ACTIVE, REPEAT = BARRIER_FREQ * 0, BARRIER_FREQ * 0, BARRIER_FREQ * 1, 1
+        TOTAL_TURNS = (WAIT + WARMUP + ACTIVE) * (REPEAT)
+        TRACE_NAME = f'{os.environ["TRACE_NAME"]}_w{world_size}_r{rank}_S({Sq},{Skv})_bs{batch_size}_Nh{nheads}_D{nheads}_{f.__name__}_{"f" if forward_only else "f+b"}'
+        with torch.profiler.profile(
+            activities=[torch.profiler.ProfilerActivity.CPU, torch.profiler.ProfilerActivity.CUDA],
+            schedule=torch.profiler.schedule(wait=WAIT, warmup=WARMUP, active=ACTIVE, repeat=REPEAT),
+            on_trace_ready=torch.profiler.tensorboard_trace_handler(
+                dir_name=f'{args.tb_dir}', 
+                worker_name=TRACE_NAME,
+            ),
+            record_shapes=True,
+            profile_memory=True,
+            with_stack=True,
+        ) as prof:
+            for iter in range(TOTAL_TURNS):
+                # torch.distributed.all_reduce(sync_tensor, async_op=False)    # for sync and alignment
+                if use_cudagraph:
+                    g.replay()
+                else:
+                    if iter % BARRIER_FREQ == 0:
+                        placeholder_op(stream=main_stream) # [NOTE]: aim to eliminate cpu overhead
+                    if forward_only:
+                        with torch.no_grad():
+                            _ = f(**inputs)
+                    else:
+                        qkv.grad = None
+                        out = f(**inputs)
+                        out.backward(dout)
+                if (iter + 1) % BARRIER_FREQ == 0:
+                    torch.cuda.synchronize()
+                    torch.distributed.barrier(group=global_group)
+                prof.step()
+        
+        num_iter = TOTAL_TURNS
+        
+    if not is_runned: 
+        # run
+        if use_cudagraph:
+            for _ in range(num_iter):
+                g.replay()
+        else:
+            event_start = torch.cuda.Event(enable_timing=True)
+            event_end = torch.cuda.Event(enable_timing=True)
+            placeholder_op(stream=main_stream) # [NOTE]: aim to eliminate cpu overhead
+            event_start.record(stream=main_stream)
+            if forward_only:
+                with torch.no_grad():
+                    for _ in range(num_iter):
+                        _ = f(**inputs)
+            else:
+                for _ in range(num_iter):
+                    qkv.grad = None
+                    out = f(**inputs)
+                    out.backward(dout)
+            event_end.record(stream=main_stream)
+            torch.cuda.synchronize()
+            td = event_start.elapsed_time(event_end) / 1000 # s
+    
+    torch.cuda.synchronize()
+    torch.distributed.barrier(group=global_group)
+    t3 = time.time()
+    if td < 0:
+        td = t3 - t2
+    else:
+        td = torch.tensor(td, device=device)
+        torch.distributed.all_reduce(td, op=torch.distributed.ReduceOp.MAX, async_op=False)
+        torch.cuda.synchronize()
+        td = td.cpu().item()
+
+    if rank == 0 and log:
+        m_flops, h_flops = calc_flops(batch_size, (Sq * world_size, Skv * world_size), nheads, d, causal, fob = 0 if forward_only else 2)
+        mfu, hfu = (round(flops / pow(1000, 4) / (td / num_iter * world_size), 3) for flops in (m_flops, h_flops))
+        print(f"mfu: {mfu} Tflops/s, hfu: {hfu} Tflops/s, {num_iter / td:.3f} iter/s, {td / num_iter:.3e} s/iter, ({(t1 - t0):.3f}, {(t2 - t1):.3f}, {td:.3f}) sec", flush=True)
+ 
 def benchmark(args, f, da_config: Dist_Attn_Config, tensor_buf, warmup=11, num_iter=20, forward_only=True, log=True):
     # warmup = 0
     # num_iter = 20
@@ -1218,7 +1396,7 @@ def run_all_intra_attn(args, ncclcomm_global, gloo_global_group):
                     # 1 baselines
                     if fob == 0:
                         for f in baseline_funcs:
-                            benchmark(args, f, da_config, tensor_buf, forward_only=True, log=True)
+                            benchmark(args, f, da_config, tensor_buf, warmup=WARMUP, num_iter=NUM_ITER, forward_only=True, log=True)
                     
                     # # 2 orchestrated_attn_func:
                     # # 2.1 normal comp&comm

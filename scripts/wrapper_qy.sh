@@ -28,7 +28,7 @@ PARTITION=rag
 HOST="g3015"
 PARTITION=hit
 # HOST="g4008"
-HOST="g4007"
+HOST="g4005"
 
 
 # HOST=None

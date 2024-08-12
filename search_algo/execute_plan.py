@@ -11,14 +11,16 @@ import time
 from heapq import heappush, heappop, heappushpop
 
 class Fused_Execution_Plan():
-    def __init__(self, Y: int, X: int, time: float, fob: bool, ):
+    def __init__(self, Y: int, X: int, time: float, causal: bool, fob: bool, ):
         self.Y = Y
         self.X = X
         self.time = time
+        assert causal == False, "[Error]: causal attention is supported in Fused_Execution_Plan"
+        self.causal = causal
         self.fob = fob
         
     def __str__(self):
-        ret = f'Y={self.Y}, X={self.X}, fused={True}, time={self.time}, fob={self.fob}'
+        ret = f'Y={self.Y}, X={self.X}, fused={True}, causal={self.causal}, time={self.time}, fob={self.fob}'
         ret = ret.replace(' ', '')
         return ret
         

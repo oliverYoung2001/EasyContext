@@ -12,7 +12,7 @@ from .global_vars import *
 from search_algo.dependent_graph import Cuda_Kernel, Comp_Kernel, Comm_Kernel
 import copy
 
-def execute_kernel(kernel: Cuda_Kernel, data_dict: dict, PROC_INFO, comp_func, comm: IntraComm, idata_buf: dict, causal):
+def execute_kernel_old(kernel: Cuda_Kernel, data_dict: dict, PROC_INFO, comp_func, comm: IntraComm, idata_buf: dict, causal):
     rank = PROC_INFO['rank']
     local_rank = PROC_INFO['local_rank']
     # print(f'rank{local_rank}, execute_kernel: {kernel.key}', flush=True)
@@ -32,7 +32,7 @@ def execute_kernel(kernel: Cuda_Kernel, data_dict: dict, PROC_INFO, comp_func, c
             if isinstance(kernel, Comp_Kernel):
                 # bid, hid, rid, cid = 0, 0, local_rank, local_rank
                 bid, hid, rid, cid = kernel.key[0: 4]
-                kernel_causal = causal and rid == cid
+                kernel_causal = causal and isinstance(rid, int) and rid == cid
                 # print(f'rank{local_rank}, causal: {kernel_causal}, rid: {rid}, cid: {cid}', flush=True)
                 out = comp_func(data_dict[(bid, hid, rid, 'i', 'r')], data_dict[(bid, hid, cid, 'i', 'c')], causal=kernel_causal)
                 o_keys = (bid, hid, rid, 'o', 'r'), (bid, hid, cid, 'o', 'c')   # (or, oc)
@@ -53,6 +53,65 @@ def execute_kernel(kernel: Cuda_Kernel, data_dict: dict, PROC_INFO, comp_func, c
                         data_dict[d_key].reduce(idata_tmp)
                     else:
                         data_dict[d_key] = idata_tmp
+            
+            # step3: record event after kernel execution for successors
+            kernel.event = torch.cuda.Event()
+            kernel.event.record(kernel.stream)
+
+def execute_kernel(kernel: Cuda_Kernel, data_dict: dict, PROC_INFO, comp_func, comm: IntraComm, buf_dict: dict, causal):
+    rank = PROC_INFO['rank']
+    local_rank = PROC_INFO['local_rank']
+    # print(f'rank{local_rank}, execute_kernel: {kernel.key}', flush=True)
+    # get cuda stream on which kernel is executed
+    with torch.cuda.stream(kernel.stream):
+        with torch.cuda.nvtx.range(f'{kernel.key}'):
+        # if True:
+            # step1: wait for precursors
+            for precursor in kernel.precursors:
+                if hasattr(precursor, 'in_ranks') and rank in precursor.in_ranks:
+                    kernel.stream.wait_event(precursor.event)
+                    pass
+            
+            # step2: execute kernel
+            # comp: (b_id, h_id, r_id, c_id, gpuid) -> Cuda_Kernel
+            # comm: (b_id, h_id, r/c_id, send, recv, i/o, r/c) -> Cuda_Kernel
+            if isinstance(kernel, Comp_Kernel):
+                # bid, hid, rid, cid = 0, 0, local_rank, local_rank
+                bid, hid, rid, cid = kernel.key[0: 4]
+                kernel_causal = causal and isinstance(rid, int) and rid == cid
+                rcs = kernel.key[2: 4]
+                low_bds = (
+                    len(rcs[0]) if isinstance(rcs[0], tuple) else 1,
+                    len(rcs[1]) if isinstance(rcs[1], tuple) else 1, 
+                )
+                # print(f'rank{local_rank}, causal: {kernel_causal}, rid: {rid}, cid: {cid}', flush=True)
+                # out = comp_func(data_dict[(bid, hid, rid, 'i', 'r')], data_dict[(bid, hid, cid, 'i', 'c')], causal=kernel_causal)
+                out = comp_func(
+                    buf_dict[(('i', 'r'), low_bds[0])], buf_dict[(('i', 'c'), low_bds[1])],
+                    buf_dict[(('o', 'r'), low_bds[0])], buf_dict[(('o', 'c'), low_bds[1])],
+                    kernel_causal
+                )
+                # o_keys = (bid, hid, rid, 'o', 'r'), (bid, hid, cid, 'o', 'c')   # (or, oc)
+                # for t in range(2):  # 0 -> r, 1 -> c
+                #     if o_keys[t] in data_dict.keys():
+                #         data_dict[o_keys[t]].reduce(out[t])
+                #     else:
+                #         data_dict[o_keys[t]] = out[t]
+            else:
+                # d_key = kernel.key[: 3] + kernel.key[5:]
+                buf_key = (kernel.key[-2:], 1)  # (('i'/'o', 'r'/'c'), 1)
+                if kernel.key[3] == local_rank: # Send
+                    # assert d_key in data_dict.keys()
+                    # comm.send(kernel.key[4], data_dict[d_key], kernel.stream, kernel.ncclcomm)
+                    comm.send(kernel.key[4], buf_dict[buf_key], kernel.stream, kernel.ncclcomm)
+                else:                           # Recv
+                    # idata_tmp = idata_buf[kernel.key[-2:]]  # ('i'/'o', 'r'/'c')
+                    # comm.recv(kernel.key[3], idata_tmp, kernel.stream, kernel.ncclcomm)
+                    # if d_key in data_dict.keys():
+                    #     data_dict[d_key].reduce(idata_tmp)
+                    # else:
+                    #     data_dict[d_key] = idata_tmp
+                    comm.recv(kernel.key[3], buf_dict[buf_key], kernel.stream, kernel.ncclcomm)
             
             # step3: record event after kernel execution for successors
             kernel.event = torch.cuda.Event()
@@ -89,12 +148,11 @@ def execute_inter_kernel(kernel: Cuda_Kernel, data_dict: dict, PROC_INFO, comp_f
             # comp: (b_id, h_id, r_id, c_id, gpuid) or (b_id, h_id, (r_ids, ), (c_ids, ), gpuid) -> Cuda_Kernel
             # comm: (b_id, h_id, r/c_id, send, recv, i/o, r/c) -> Cuda_Kernel
             if isinstance(kernel, Comp_Kernel):
-                # [TODO]: 
                 assert hasattr(kernel, 'execution_plan')
                 intra_execution_plan = kernel.execution_plan
                 # bid, hid, rid, cid = 0, 0, local_rank, local_rank
                 bid, hid, rid, cid = kernel.key[0: 4]
-                kernel_causal = causal and isinstance(rid, int) and rid == cid  # inter causal, both are int, seuql
+                kernel_causal = causal and isinstance(rid, int) and rid == cid  # inter causal, both are int, equal
                 # print(f'rank{local_rank}, causal: {kernel_causal}, rid: {rid}, cid: {cid}', flush=True)
                 out = comp_func(
                     # data_dict[(bid, hid, rid, 'i', 'r')], data_dict[(bid, hid, cid, 'i', 'c')], 
@@ -153,13 +211,7 @@ def intra_attn_forward(
     execution_plan: Union[Execution_Plan, Fused_Execution_Plan],
     # buf_dict: Union[dict, None],
 ) -> Integrated_Data:
-    # rank = PROC_INFO['rank']
-    # world_size = PROC_INFO['world_size']
     local_rank = PROC_INFO['local_rank']
-    # local_size = PROC_INFO['tasks_per_node']
-    # nodeid = PROC_INFO['nodeid']
-    # assert world_size % local_size == 0
-    # node_num = world_size // local_size
     assert PROC_INFO['tasks_per_node'] == execution_plan.Y * execution_plan.X if hasattr(execution_plan, 'X') else execution_plan.hierarchy_sp
     intra_streams = get_global_var('streams')['intra']
     # Parse buf_dict
@@ -187,39 +239,13 @@ def intra_attn_forward(
         lse = lse.transpose(-2, -1).contiguous().unsqueeze(dim=-1) # block_out, block_lse # [mbs, S, Nh, D], [mbs, S, Nh, 1]
         return (Output_Row_Fwd(O, lse), Output_Col_Fwd())
     
-    if causal:
-        return None
-        raise NotImplementedError
-    
-    if buf_dict['graph_type'] == 'general':    # general cases
-        data_dict = {}  # (b_id, h_id, r/c_id, i/o, r/c) -> Integrated_Data
-        
+    if buf_dict['graph_type'] == 'general':    # general cases        
         # initialize Comm
         comm = IntraComm(PROC_INFO)
-        
-        # initial data:
-        # ir_idata, ic_idata = Input_Row_Fwd(q), Input_Col_Fwd(k, v)
-        data_dict[(0, 0, local_rank, 'i', 'r')] = inp_row
-        data_dict[(0, 0, local_rank, 'i', 'c')] = inp_col
-        p_fwd_comp_func = partial(fwd_comp_func, out_row=buf_dict[('o', 'r')], out_col=buf_dict[('o', 'c')])
-        # for kernel in execution_plan.gpu_kernel_lists[local_rank]:
-        #     print(f'rank{rank}: {kernel.key}, {(kernel._start_time, kernel.id)}', flush=True)
-        # print(f'rank{rank}: print kernels done !!!', flush=True)
+        p_fwd_comp_func = fwd_comp_func
         for kernel in execution_plan.gpu_kernel_lists[local_rank]:
-            # if kernel.key[- 2] == 'i':  # only input comm, cudagraph OK !!!
-            # if isinstance(kernel, Comp_Kernel) or kernel.key[- 2] == 'i':   # input comm + comp
-            # if isinstance(kernel, Comp_Kernel):   # only comp
-            # if isinstance(kernel, Comp_Kernel) and kernel.key[2: 4] == (local_rank, local_rank):   # only comp on diagnal, cudagraph failed
-            # if False:
-            if True:
-                # torch.profiler.itt.range_push(f'{kernel.key}')
-                # print_rank_0(f'kernel.key: {kernel.key}')
-                # print(f'rank{rank}, kernel.key: {kernel.key}', flush=True)
-                execute_kernel(kernel, data_dict, PROC_INFO, p_fwd_comp_func, comm, buf_dict, causal)
-                # torch.profiler.itt.range_pop()
-        # print(f'rank{rank}, Out !!!', flush=True)
-        # return None
-        return data_dict[(0, 0, local_rank, 'o', 'r')]
+            execute_kernel(kernel, None, PROC_INFO, p_fwd_comp_func, comm, buf_dict, causal)
+        return buf_dict['out_row'], buf_dict['out_col']
     elif buf_dict['graph_type'] == 'fused':   # (X, Y) cases
         assert causal == False, 'Intra attn XY not support causal == True'
         X, Y = execution_plan.X, execution_plan.Y
@@ -300,8 +326,6 @@ def orchestrated_attn_forward(
     # [NOTE]: Now only support bs_split == 1, Nh_split == 1
     node_id = PROC_INFO['nodeid']
     node_num = PROC_INFO['node_num']
-    # local_rank = PROC_INFO['local_rank']
-    # local_size = PROC_INFO['tasks_per_node']
     inter_execution_plan: Execution_Plan = execution_plan_dict['inter']
     
     # Parse buf_dict
@@ -309,20 +333,13 @@ def orchestrated_attn_forward(
         
     da_config = inter_execution_plan.da_config
     assert inter_execution_plan.hierarchy_sp == PROC_INFO['node_num']
-    # assert inter_execution_plan.tot_sp == PROC_INFO['world_size']
-    # assert inter_execution_plan.da_config.SP == (node_num, local_size)
     assert inter_execution_plan.split_degrees[2] == 1 and inter_execution_plan.split_degrees[3] == 1
     
-    # Inter-level
-    data_dict = {}  # (b_id, h_id, r/c_id, i/o, r/c) -> Integrated_Data
+    # # Inter-level
+    # data_dict = {}  # (b_id, h_id, r/c_id, i/o, r/c) -> Integrated_Data
     # initialize Comm
     comm = InterComm(PROC_INFO)
     
-    # initial data:
-    # ir_idata, ic_idata = Input_Row_Fwd(q), Input_Col_Fwd(k, v)
-    data_dict[(0, 0, node_id, 'i', 'r')] = inp_row
-    data_dict[(0, 0, node_id, 'i', 'c')] = inp_col
-    # p_fwd_inter_comp_func = partial(fwd_comp_func, out_row=buf_dict[('o', 'r')], out_col=buf_dict[('o', 'c')])    # [NOTE]: fuse of not fuse !!!
     p_fwd_inter_comp_func = partial(
         intra_attn_forward, 
         softmax_scale=softmax_scale,
@@ -332,44 +349,11 @@ def orchestrated_attn_forward(
         alibi_slopes=alibi_slopes,
         deterministic=deterministic,
         PROC_INFO=PROC_INFO,
-        # execution_plan,
         
     )    # [NOTE]: fuse of not fuse !!!
-    # for kernel in execution_plan.gpu_kernel_lists[local_rank]:
-    #     print(f'rank{rank}: {kernel.key}, {(kernel._start_time, kernel.id)}', flush=True)
-    # print(f'rank{rank}: print kernels done !!!', flush=True)
     for kernel in inter_execution_plan.gpu_kernel_lists[node_id]:
-        # if kernel.key[- 2] == 'i':  # only input comm, cudagraph OK !!!
-        # if isinstance(kernel, Comp_Kernel) or kernel.key[- 2] == 'i':   # input comm + comp
-        # if isinstance(kernel, Comp_Kernel):   # only comp
-        # if isinstance(kernel, Comp_Kernel) and kernel.key[2: 4] == (local_rank, local_rank):   # only comp on diagnal, cudagraph failed
-        # if False:
-        if True:
-            # torch.profiler.itt.range_push(f'{kernel.key}')
-            # print_rank_0(f'kernel.key: {kernel.key}')
-            # print(f'rank{rank}, kernel.key: {kernel.key}', flush=True)
-            execute_inter_kernel(kernel, data_dict, PROC_INFO, p_fwd_inter_comp_func, comm, buf_dict, causal)
-            # torch.profiler.itt.range_pop()
-    # print(f'rank{rank}, Out !!!', flush=True)
-    # return None
+        execute_inter_kernel(kernel, None, PROC_INFO, p_fwd_inter_comp_func, comm, buf_dict, causal)
     return inter_execution_plan.buf_dict['out_row'], inter_execution_plan.buf_dict['out_col']
-    return data_dict[(0, 0, node_id, 'o', 'r')]
-    
-    if execution_plan.da_config.SP[0] == 1:
-        return intra_attn_forward(
-            inp_row, 
-            inp_col,
-            softmax_scale,
-            dropout_p,
-            execution_plan.da_config.causal,
-            window_size,
-            alibi_slopes,
-            deterministic,
-            PROC_INFO,
-            execution_plan,
-            buf_dict,
-        )
-    raise NotImplementedError
 
 def intra_attn_backward(
     inp_row: Input_Row_Bwd,
@@ -381,18 +365,14 @@ def intra_attn_backward(
     alibi_slopes,
     deterministic,
     PROC_INFO,
-    execution_plan: Execution_Plan,
-    buf_dict: Union[dict, None],
+    execution_plan: Union[Execution_Plan, Fused_Execution_Plan],
+    # buf_dict: Union[dict, None],
 ) -> Integrated_Data:
-    rank = PROC_INFO['rank']
-    world_size = PROC_INFO['world_size']
     local_rank = PROC_INFO['local_rank']
-    local_size = PROC_INFO['tasks_per_node']
-    node_id = PROC_INFO['nodeid']
-    assert world_size % local_size == 0
-    node_num = world_size // local_size
-    assert local_size == execution_plan.tot_sp
-    streams = get_global_var('streams')
+    assert PROC_INFO['tasks_per_node'] == execution_plan.Y * execution_plan.X if hasattr(execution_plan, 'X') else execution_plan.hierarchy_sp
+    intra_streams = get_global_var('streams')['intra']
+    # Parse buf_dict
+    buf_dict = execution_plan.buf_dict
     
     # Comp Func
     def bwd_comp_func(inp_row: Input_Row_Bwd, inp_col: Input_Col_Bwd, 
@@ -420,28 +400,12 @@ def intra_attn_backward(
         return (out_row, out_col)
     
     if buf_dict['graph_type'] == 'general':    # general cases
-        data_dict = {}  # (b_id, h_id, r/c_id, i/o, r/c) -> Integrated_Data
-        
         # initialize Comm
         comm = IntraComm(PROC_INFO)
-            
-        
-        # initial data:
-        # ir_idata, ic_idata = Input_Row_Fwd(q), Input_Col_Fwd(k, v)
-        data_dict[(0, 0, local_rank, 'i', 'r')] = inp_row
-        data_dict[(0, 0, local_rank, 'i', 'c')] = inp_col
-        p_bwd_comp_func = partial(bwd_comp_func, out_row=buf_dict[('o', 'r')], out_col=buf_dict[('o', 'c')])
+        p_bwd_comp_func = bwd_comp_func
         for kernel in execution_plan.gpu_kernel_lists[local_rank]:
-            # if kernel.key[- 2] == 'i':  # only input comm, cudagraph OK !!!
-            # if isinstance(kernel, Comp_Kernel) or kernel.key[- 2] == 'i':   # input comm + comp
-            # if isinstance(kernel, Comp_Kernel):   # only comp
-            # if isinstance(kernel, Comp_Kernel) and kernel.key[2: 4] == (local_rank, local_rank):   # only comp on diagnal, cudagraph failed
-            # if False:
-            if True:
-                # print(f'rank{rank}: {kernel.key}', flush=True)
-                execute_kernel(kernel, data_dict, PROC_INFO, p_bwd_comp_func, comm, buf_dict, causal)
-        # return None
-        return (data_dict[(0, 0, local_rank, 'o', 'r')], data_dict[(0, 0, local_rank, 'o', 'c')])
+            execute_kernel(kernel, None, PROC_INFO, p_bwd_comp_func, comm, buf_dict, causal)
+        return buf_dict['out_row'], buf_dict['out_col']
     elif buf_dict['graph_type'] == 'fused':   # (X, Y) cases
         assert causal == False, 'Intra attn XY not support causal == True'
         X, Y = execution_plan.X, execution_plan.Y
@@ -459,13 +423,13 @@ def intra_attn_backward(
         event_oc = torch.cuda.Event()
         event_comp = torch.cuda.Event()
         # # Allgather rc
-        comm.all_gather('r', inp_row, buf_dict['ir'], streams[1])
-        event_ir.record(streams[1])
-        comm.all_gather('c', inp_col, buf_dict['ic'], streams[1])
-        event_ic.record(streams[1])
+        comm.all_gather('r', inp_row, buf_dict['ir'], intra_streams[1])
+        event_ir.record(intra_streams[1])
+        comm.all_gather('c', inp_col, buf_dict['ic'], intra_streams[1])
+        event_ic.record(intra_streams[1])
         
         # Comp
-        with torch.cuda.stream(streams[0]):
+        with torch.cuda.stream(intra_streams[0]):
             # step1: input data layout transform
             if execution_plan.da_config.bs == 1:    # always true !!!
                 Q_shape = list(inp_row.Q.shape)     # (bs, Sq, Nh, D)
@@ -479,7 +443,7 @@ def intra_attn_backward(
                 assert len(lse_shape) == 3      # (bs, Nh, Sq)
 
                 # ir_tot
-                streams[0].wait_event(event_ir)
+                intra_streams[0].wait_event(event_ir)
                 Q_shape_row = copy.deepcopy(Q_shape)
                 Q_shape_row[1] *= X         # (bs, X * Sq, Nh, D)
                 Q_nelem_row = math.prod(Q_shape_row)
@@ -509,7 +473,7 @@ def intra_attn_backward(
                 K_nelem_col = math.prod(K_shape_col)
                 K_shape_col_tot = copy.deepcopy(K_shape)
                 K_shape_col_tot = [Y, 2] + K_shape_col_tot  # (Y, 2, bs, Skv, Nh, D)
-                streams[0].wait_event(event_ic)
+                intra_streams[0].wait_event(event_ic)
                 inp_col_tot_data = buf_dict['ic'].view(K_shape_col_tot).transpose(0, 1).transpose(1, 2).flatten(2, 3).contiguous() # [2, bs, Y * Skv, Nh, D]
                 K_tot = inp_col_tot_data[0]  # [bs, Y * Skv, Nh, D]
                 V_tot = inp_col_tot_data[1]  # [bs, Y * Skv, Nh, D]
@@ -530,17 +494,17 @@ def intra_attn_backward(
             # print_rank_0(f'inp_row_tot: {inp_row_tot.data.data_ptr()}, inp_col_tot: {inp_col_tot.data.data_ptr()}, '
             #              f'out_row_tot: {out_row_tot.data.data_ptr()}, out_col_tot: {out_col_tot.data.data_ptr()}')
             bwd_comp_func(inp_row_tot, inp_col_tot, out_row_tot, out_col_tot, causal)
-            event_comp.record(streams[0])
+            event_comp.record(intra_streams[0])
         
         # ReduceScatter rc
-        streams[2].wait_event(event_comp)
-        comm.reduce_scatter('r', buf_dict['or'], out_row, streams[2])
-        with torch.cuda.stream(streams[0]):
+        intra_streams[2].wait_event(event_comp)
+        comm.reduce_scatter('r', buf_dict['or'], out_row, intra_streams[2])
+        with torch.cuda.stream(intra_streams[0]):
             # step3: output  layout transform
             out_col_tot_data = buf_dict['oc'].view((2, Y, K_nelem)).transpose(0, 1).contiguous()    # [Y, 2, bs, Skv, Nh, D]
-            event_oc.record(streams[0])
-        streams[2].wait_event(event_oc)
-        comm.reduce_scatter('c', out_col_tot_data, out_col, streams[2])
+            event_oc.record(intra_streams[0])
+        intra_streams[2].wait_event(event_oc)
+        comm.reduce_scatter('c', out_col_tot_data, out_col, intra_streams[2])
         return (out_row, out_col)
     else:
         raise Exception(f"graph_type {buf_dict['graph_type']} not supported !!!")
@@ -556,29 +520,40 @@ def orchestrated_attn_backward(
     alibi_slopes=None,
     deterministic=False,
     PROC_INFO=None,
-    execution_plan: Execution_Plan = None,
-    buf_dict: Union[dict, None] = None,
+    execution_plan_dict: dict = None,    
+    # buf_dict: Union[dict, None] = None,     # 'tensor_buf'
+    extra_dict: Union[dict, None] = None,   # 'da_config', 'exp_config
 ) -> tuple: # (Output_Row_Bwd, Output_Col_Bwd)
-    # [NOTE]: Now not support batch mechanism and only support tot_sp = world_size
+        # [NOTE]: Now not support batch mechanism and only support tot_sp = world_size
     # [NOTE]: Now only support bs_split == 1, Nh_split == 1
-    da_config = execution_plan.da_config
-    assert execution_plan.tot_sp == PROC_INFO['world_size']
-    assert execution_plan.split_degrees[2] == 1 and execution_plan.split_degrees[3] == 1
-    if execution_plan.da_config.SP[0] == 1:
-        return intra_attn_backward(
-            inp_row, 
-            inp_col,
-            softmax_scale,
-            dropout_p,
-            execution_plan.da_config.causal,
-            window_size,
-            alibi_slopes,
-            deterministic,
-            PROC_INFO,
-            execution_plan,
-            buf_dict,
-        )
-    raise NotImplementedError
+    node_id = PROC_INFO['nodeid']
+    node_num = PROC_INFO['node_num']
+    inter_execution_plan: Execution_Plan = execution_plan_dict['inter']
+    
+    # Parse buf_dict
+    buf_dict = inter_execution_plan.buf_dict
+        
+    da_config = inter_execution_plan.da_config
+    assert inter_execution_plan.hierarchy_sp == PROC_INFO['node_num']
+    assert inter_execution_plan.split_degrees[2] == 1 and inter_execution_plan.split_degrees[3] == 1
+    
+    # # Inter-level
+    # data_dict = {}  # (b_id, h_id, r/c_id, i/o, r/c) -> Integrated_Data
+    # initialize Comm
+    comm = InterComm(PROC_INFO)
+    
+    p_bwd_inter_comp_func = partial(
+        intra_attn_backward,
+        softmax_scale=softmax_scale,
+        dropout_p=dropout_p,
+        window_size=window_size,
+        alibi_slopes=alibi_slopes,
+        deterministic=deterministic,
+        PROC_INFO=PROC_INFO,
+    )
+    for kernel in inter_execution_plan.gpu_kernel_lists[node_id]:
+        execute_inter_kernel(kernel, None, PROC_INFO, p_bwd_inter_comp_func, comm, buf_dict, causal)
+    return inter_execution_plan.buf_dict['out_row'], inter_execution_plan.buf_dict['out_col']
 
 class OrchestratedAttnFunc(torch.autograd.Function):
     @staticmethod

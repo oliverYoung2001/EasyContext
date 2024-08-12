@@ -37,9 +37,13 @@ class Dist_Attn_Config():
         self.D = D
         self.causal = causal
         self.hierarchy = hierarchy
-        self.hierarchy_sp = SP[hierarchy]
+        # self.hierarchy_sp = SP[hierarchy]
         # self.tot_sp = reduce(lambda x,y:x*y, SP)
         # self.S_per_gpu = (S[0] // self.tot_sp, S[1] // self.tot_sp)
+    
+    @property
+    def hierarchy_sp(self):
+        return self.SP[self.hierarchy]
     
     @property
     def tot_sp(self):
@@ -101,7 +105,7 @@ class FlashAttn_Profile_Map(Comp_Profile_Map):
             map_key_merged[merge_dim - 1] += map_key1[merge_dim - 1]
             return tuple(map_key_merged)
                 
-    def get_comp_map_key(self, da_config: Dist_Attn_Config, batch_degrees: list, split_degrees: list) -> tuple:
+    def get_comp_map_key(self, da_config: Dist_Attn_Config, batch_degrees: list, split_degrees: list, causal: bool = False) -> tuple:
         assert len(batch_degrees) == 2  # Q, KV
         assert len(split_degrees) == 4  # Sq, Skv, bs, Nh
         # Example for key:
@@ -118,12 +122,16 @@ class FlashAttn_Profile_Map(Comp_Profile_Map):
         Skv_split = da_config.S[1] * batch_degrees[1] // split_degrees[1]
         bs_split = da_config.bs // split_degrees[2]
         Nh_split = da_config.Nh[0] // split_degrees[3]
-        assert Sq_split / Skv_split in [0.25, 0.5, 1, 2, 4], \
-            f"Current profile data doesn't contain this Q/K Sequence ratio: {Sq_split / Skv_split}"
+        QK_RATIO = Sq_split / Skv_split
+        if QK_RATIO not in [0.25, 0.5, 1, 2, 4]:
+            S_gcd = math.gcd(Sq_split, Skv_split)
+            QK_RATIO = f'{Sq_split // S_gcd}/{Skv_split // S_gcd}'
+        assert QK_RATIO in [0.25, 0.5, 1, 2, 4, '3/1', '1/3'], \
+            f"Current profile data doesn't contain this Q/K Sequence ratio: {QK_RATIO}"
         assert da_config.Nh[0] == da_config.Nh[1], \
             f"Current profile data doesn't contain this GQA: (Nh={da_config.Nh[0]}, Ng={da_config.Nh[1]})"
         # [TODO]: differentiate causal and noncausal
-        map_key = (min(Sq_split, Skv_split), bs_split, Nh_split, da_config.D, Sq_split / Skv_split, False)
+        map_key = (min(Sq_split, Skv_split), bs_split, Nh_split, da_config.D, QK_RATIO, causal)
         return map_key
     
 class Inter_Comp_Profile_Map(Comp_Profile_Map):
@@ -157,7 +165,10 @@ class Inter_Comp_Profile_Map(Comp_Profile_Map):
             map_key_merged[merge_dim - 1] += map_key1[merge_dim - 1]
             return tuple(map_key_merged)
                 
-    def get_comp_map_key(self, da_config: Dist_Attn_Config, batch_degrees: list, split_degrees: list) -> tuple:
+    def get_comp_map_key(self, da_config: Dist_Attn_Config, batch_degrees: list, split_degrees: list, causal: bool = False) -> tuple:
+        """
+        split_degrees means what degree we split the original data in 'hierarchy' dimension !!! hierarchy == 0 here !!!
+        """
         # Example for key:
         # SP=(1,8),S=(24576,524288),Nh=(1,1),bs=1,D=128,causal=False:
         # cur_map_key = (SP, S, Nh, bs, D, causal)  # S per GPU !!!
@@ -194,8 +205,17 @@ class Comm_Profile_Map():
     def get_comm_time_from_map_key(self, map_key: tuple) -> float:
         if map_key[0] <= 0:
             return 0
-        assert map_key in self.profile_map.keys(), f"Key {map_key[0]} not found in comm_profile_map"
-        return map_key[0] / pow(BYTE_MULTPLE_DOWN, 3) / self.profile_map[map_key]    # s
+        
+        if map_key not in self.profile_map.keys():
+            max_key = max(key[0] for key in self.profile_map.keys())
+            # print(f'map_key: {map_key[0]}, max_key: {max_key}', flush=True)
+            assert map_key[0] > max_key, f"Key {map_key} not found in comm_profile_map and bigger than the largest key: {max_key}"
+            matched_key = (max_key,)
+        else:
+            matched_key = map_key
+        comm_time = map_key[0] / pow(BYTE_MULTPLE_DOWN, 3) / self.profile_map[matched_key]    # s
+        # print(f'map_key: {map_key[0]}, comm_time: {comm_time}', flush=True)
+        return comm_time
     
     def get_comm_time(self, da_config: Dist_Attn_Config, batch_degrees: list, split_degrees: list) -> float:
         comm_map_key = self.get_comm_map_key(da_config, batch_degrees, split_degrees)

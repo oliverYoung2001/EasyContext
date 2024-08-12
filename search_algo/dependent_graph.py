@@ -91,8 +91,10 @@ class Dependent_Graph():
         schedule = self.schedule
         hierarchy = self.hierarchy
         fob = self.fob
+        da_config = self.da_config
         # step1: Build Comp Kernel
         comp_map_key = schedule.m_config.comp_profile_maps[hierarchy].get_comp_map_key(schedule.da_config, [1, 1], schedule.split_degrees)
+        causal_comp_map_key = schedule.m_config.comp_profile_maps[hierarchy].get_comp_map_key(schedule.da_config, [1, 1], schedule.split_degrees, causal=True)
         for i in range(schedule.split_degrees[2]):   # split_bs
             for j in range(schedule.split_degrees[3]):   # split_Nh
                 for k in range(schedule.split_degrees[0]):   # split_Sq
@@ -100,7 +102,10 @@ class Dependent_Graph():
                         if schedule.schedule_table[i, j, k, l] >= 0:    # Valid comp kernel
                             comp_key = (i, j, k, l, schedule.schedule_table[i, j, k, l])
                             assert comp_key not in self.kernel_dict.keys()
-                            self.kernel_dict[comp_key] = Comp_Kernel(comp_key, schedule.m_config, comp_map_key, hierarchy)
+                            self.kernel_dict[comp_key] = Comp_Kernel(
+                                comp_key, schedule.m_config, 
+                                causal_comp_map_key if da_config.causal and k == l else comp_map_key, 
+                                hierarchy)
         # step2: Build Comm Kernel
         assert schedule.split_degrees[0] == schedule.split_degrees[1] # [NOTE]: now only support Sq_split == Skv_split !!!
         comm_raw_map_key = schedule.m_config.comm_profile_maps[hierarchy].get_comm_map_key(schedule.da_config, [1, 1], schedule.split_degrees)
