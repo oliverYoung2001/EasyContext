@@ -31,7 +31,7 @@ class Evaluation_Configs():
 class Dist_Attn_Config():
     def __init__(self, SP, S, Nh, bs, D, causal, hierarchy=1):
         self.SP = SP    # (inter, intra)
-        self.S = S  # (Sq, Skv)
+        self.S = S  # (Sq, Skv) total S !!!
         self.Nh = Nh    # (Nh, Ng)
         self.bs = bs
         self.D = D

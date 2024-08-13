@@ -161,18 +161,18 @@ class Execution_Plan(): # input: kernel streams of gpus
         hierarchy_sp = self.hierarchy_sp
         OJB = 'node' if hierarchy == 0 else 'gpu'
         
-        print(f'schedule:\n{d_graph.schedule.schedule_table}', flush=True)
-        print(f'fob: {fob}, get_e2e_time(): {d_graph.schedule.get_e2e_time()[fob]:.3e}, get_absolute_cc_time:{d_graph.schedule.get_absolute_cc_time()[fob]}', flush=True)
-        for v in d_graph.kernel_dict.values():
-            if not v.is_empty(fob):
-                print(f'{v.key}: {v._start_time:.3e}, {v.time[fob]:.3e}, {(v._start_time + v.time[fob]):.3e}')
+        # print(f'schedule:\n{d_graph.schedule.schedule_table}', flush=True)
+        # print(f'fob: {fob}, get_e2e_time(): {d_graph.schedule.get_e2e_time()[fob]:.3e}, get_absolute_cc_time:{d_graph.schedule.get_absolute_cc_time()[fob]}', flush=True)
+        # for v in d_graph.kernel_dict.values():
+        #     if not v.is_empty(fob):
+        #         print(f'{v.key}: {v._start_time:.3e}, {v.time[fob]:.3e}, {(v._start_time + v.time[fob]):.3e}')
         
-        print(f'Streams:')
-        for g in range(hierarchy_sp):
-            for s in range(3):
-                print(f"{OJB}{g}, {['comp', 'send', 'recv'][s]}: {len(self.stream_kernel_lists[(g, s)])}")
-                for v in self.stream_kernel_lists[(g, s)]:
-                    print(f'{v.key}: {v._start_time:.3e}, {v.time[fob]:.3e}, {(v._start_time + v.time[fob]):.3e}')
+        # print(f'Streams:')
+        # for g in range(hierarchy_sp):
+        #     for s in range(3):
+        #         print(f"{OJB}{g}, {['comp', 'send', 'recv'][s]}: {len(self.stream_kernel_lists[(g, s)])}")
+        #         for v in self.stream_kernel_lists[(g, s)]:
+        #             print(f'{v.key}: {v._start_time:.3e}, {v.time[fob]:.3e}, {(v._start_time + v.time[fob]):.3e}')
         if self.plan_type == 'automatic':
             print(f'objective={pulp.value(self.mylp.objective):.3e}', flush=True)
         # elif self.plan_type == 'manual':

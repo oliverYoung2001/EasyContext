@@ -17,8 +17,8 @@ def get_exp_configs():
     # plan_type = 'ablation1'
     MAX_QUEUE_SIZE = 100
     fobs = [
-        # 0,
-        1,
+        0,
+        # 1,
     ]
     # hierarchy = 0  # 0: intra-machine, 1: inter-machine
     hierarchy = None    # define in exps !!!
@@ -38,9 +38,9 @@ def get_configs():
     hierarchy = None    # define in exps !!!
     
     SP0, SP1 = 1, 8
-    # SP0, SP1 = 2, 8
+    SP0, SP1 = 2, 8
     # SP0, SP1 = 3, 8
-    # SP0, SP1 = 4, 8
+    SP0, SP1 = 4, 8
     # # SP0, SP1 = 6, 8
     # SP0, SP1 = 8, 8
     # SP0, SP1 = 16, 8
@@ -60,7 +60,7 @@ def get_configs():
         8 * 1024, 
         16 * 1024, 
         32 * 1024,    # fused failed !!!
-        64 * 1024,    # fused failed !!!
+        # 64 * 1024,    # fused failed !!!
     ]    # S per GPU
     # Ss = [16 * 1024]    # S per GPU
 
@@ -304,8 +304,8 @@ def main():
             print(f'da_config: {da_config}', flush=True)
             # run_cc_optimal_exp(exp_config, da_config)
             # run_exp(exp_config, da_config)
-            # generate_inter_execution_plans(exp_config, da_config)
-            generate_intra_execution_plans(exp_config, da_config)
+            generate_inter_execution_plans(exp_config, da_config)
+            # generate_intra_execution_plans(exp_config, da_config)
 
 if __name__ == '__main__':
     main()

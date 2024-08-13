@@ -117,7 +117,7 @@ def execute_kernel(kernel: Cuda_Kernel, data_dict: dict, PROC_INFO, comp_func, c
             kernel.event = torch.cuda.Event()
             kernel.event.record(kernel.stream)
 
-def execute_inter_kernel(kernel: Cuda_Kernel, data_dict: dict, PROC_INFO, comp_func, comm: InterComm, idata_buf: dict, causal):
+def execute_inter_kernel(kernel: Cuda_Kernel, data_dict: dict, PROC_INFO, comp_func, comm: InterComm, buf_dict: dict, causal):
     rank = PROC_INFO['rank']
     # local_rank = PROC_INFO['local_rank']
     node_id = PROC_INFO['nodeid']
@@ -169,15 +169,11 @@ def execute_inter_kernel(kernel: Cuda_Kernel, data_dict: dict, PROC_INFO, comp_f
                 #         data_dict[o_keys[t]] = out[t]
             else:
                 # d_key = kernel.key[: 3] + kernel.key[5:]
+                buf_key = (kernel.key[-2:], 1)  # (('i'/'o', 'r'/'c'), 1)
                 if kernel.key[3] == node_id: # Send
-                    # assert d_key in data_dict.keys()
-                    # comm.send(kernel.key[4], data_dict[d_key], kernel.stream, kernel.ncclcomm)
-
-                    idata_tmp = idata_buf[kernel.key[-2:]]
-                    comm.send(kernel.key[4], idata_tmp, kernel.stream, kernel.ncclcomm)
+                    comm.send(kernel.key[4], buf_dict[buf_key], kernel.stream, kernel.ncclcomm)
                 else:                           # Recv
-                    idata_tmp = idata_buf[kernel.key[-2:]]
-                    comm.recv(kernel.key[3], idata_tmp, kernel.stream, kernel.ncclcomm)
+                    comm.recv(kernel.key[3], buf_dict[buf_key], kernel.stream, kernel.ncclcomm)
                     # if d_key in data_dict.keys():
                     #     data_dict[d_key].reduce(idata_tmp)
                     # else:
@@ -431,7 +427,8 @@ def intra_attn_backward(
         # Comp
         with torch.cuda.stream(intra_streams[0]):
             # step1: input data layout transform
-            if execution_plan.da_config.bs == 1:    # always true !!!
+            # if execution_plan.da_config.bs == 1:    # always true !!!
+            if inp_row.Q.shape[0] == 1:     # bs == 1
                 Q_shape = list(inp_row.Q.shape)     # (bs, Sq, Nh, D)
                 Q_nelem = math.prod(Q_shape)
                 K_shape = list(inp_col.K.shape)     # (bs, Skv, Nh, D)

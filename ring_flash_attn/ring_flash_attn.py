@@ -67,9 +67,10 @@ def ring_flash_attn_backward(
     window_size=(-1, -1),
     alibi_slopes=None,
     deterministic=False,
+    PROC_INFO: dict =None,
 ):
-    kv_comm = RingComm(process_group)
-    d_kv_comm = RingComm(process_group)
+    kv_comm = RingComm(process_group, PROC_INFO)
+    d_kv_comm = RingComm(process_group, PROC_INFO)
     dq, dk, dv = None, None, None
     next_dk, next_dv = None, None
 

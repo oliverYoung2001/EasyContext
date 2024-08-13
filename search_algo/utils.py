@@ -173,9 +173,10 @@ def select_best_schedule_in_node_profile_data(file_name: str, local_size: int):
     fused = 0
     YX_id = None
     pat0 = re.compile(r'^fob=(\d).*$')
-    pat1 = re.compile(r'^SP=\((\d+),(\d+)\),S=\((\d+),(\d+)\),Nh=\((\d+),(\d+)\),bs=(\d+),D=(\d+),causal=(True|False).*$')
+    pat1 = re.compile(r'^.*SP=\((\d+),(\d+)\),.*S=\((\d+),(\d+)\),Nh=\((\d+),(\d+)\),bs=(\d+),D=(\d+),causal=(True|False).*$')
     pat2 = re.compile(r'^.*iter/s, (-?(\d+(?:\.\d+)?(?:e[+-]\d+)?)) s/iter,.*$')
     pat3 = re.compile(r'^.*fused.*$')
+    # non causal
     with open(file_name, 'r') as f:
         for line in f.readlines():
             if skip_lines > 0:
@@ -228,6 +229,7 @@ def select_best_schedule_in_node_profile_data(file_name: str, local_size: int):
                 # print(f'fob: {fob}')
                 continue
             
+    # causal
     # print(f'profile_map: {profile_map}')
     return profile_map
 

@@ -2,6 +2,7 @@ from flash_attn import flash_attn_qkvpacked_func, flash_attn_func
 import torch
 import torch.distributed as dist
 import torch.distributed
+import torch.distributed
 from ring_flash_attn import (
     # ring_flash_attn_qkvpacked_func,
     # zigzag_ring_flash_attn_qkvpacked_func,
@@ -9,6 +10,9 @@ from ring_flash_attn import (
     ring_flash_attn_func,
     zigzag_ring_flash_attn_func,
     stripe_flash_attn_func,
+    ring_flash_attn_backward,
+    zigzag_ring_flash_attn_backward,
+    stripe_flash_attn_backward,
 )
 import torch.distributed
 from hierarchy_attn.hierarchy_attn_impl import hierarchy_attn_func
@@ -140,7 +144,34 @@ def get_XY_from_plan_path(plan_path: str):
     assert res is not None, f'Invalid plan_path: {plan_path}'
     return (int(res.group(2)), int(res.group(1)))   # (X, Y)
      
-def benchmark(args, f, da_config: Dist_Attn_Config, tensor_buf, global_group, warmup=11, num_iter=20, forward_only=True, log=True):
+def run_func(f, inputs, num_iter, main_stream, forward_only, qkv=None, dout=None):
+    torch.cuda.synchronize()
+    torch.distributed.barrier()
+        
+    event_start = torch.cuda.Event(enable_timing=True)
+    event_end = torch.cuda.Event(enable_timing=True)
+    placeholder_op(stream=main_stream) # [NOTE]: aim to eliminate cpu overhead
+    event_start.record(stream=main_stream)
+    if forward_only:
+        with torch.no_grad():
+            for _ in range(num_iter):
+                _ = f(**inputs)
+    else:
+        for _ in range(num_iter):
+            qkv.grad = None
+            out = f(**inputs)
+            out.backward(dout)
+    event_end.record(stream=main_stream)
+    torch.cuda.synchronize()
+    td = event_start.elapsed_time(event_end) / 1000 # s
+    
+    td = torch.tensor(td, device=torch.cuda.current_device())
+    torch.distributed.all_reduce(td, op=torch.distributed.ReduceOp.MAX, async_op=False)
+    torch.cuda.synchronize()
+    td = td.cpu().item()
+    return td
+            
+def benchmark(args, f, da_config: Dist_Attn_Config, tensor_buf, global_group, warmup=11, num_iter=20, fob=0, log=True):
     warmup = 2
     num_iter = 4
     main_stream = torch.cuda.current_stream()
@@ -152,7 +183,18 @@ def benchmark(args, f, da_config: Dist_Attn_Config, tensor_buf, global_group, wa
     local_rank = PROC_INFO['local_rank']
     local_size = PROC_INFO['tasks_per_node']
     if rank == 0:
-        print(f'# {f.__name__}, {"fwd" if forward_only else "fwd + bwd"}', flush=True)
+        print(f'# {f.__name__}, {"fwd" if fob == 0 else "bwd"}', flush=True)
+    if fob == 1:
+        fwd_f = f
+        if f == ring_flash_attn_func:
+            f = ring_flash_attn_backward
+        elif f == zigzag_ring_flash_attn_func:
+            f = zigzag_ring_flash_attn_backward
+        elif f == stripe_flash_attn_func:
+            f = stripe_flash_attn_backward
+        else:
+            raise Exception(f'Invalid f: {f}')
+        
     world_size = dist.get_world_size()
     device = torch.device(f"cuda:{PROC_INFO['deviceid']}")
     # torch.cuda.set_device(device)
@@ -174,14 +216,18 @@ def benchmark(args, f, da_config: Dist_Attn_Config, tensor_buf, global_group, wa
 
     Q_shape = (batch_size, Sq, nheads, d)
     K_shape = (batch_size, Skv, nheads, d)
+    lse_shape = (batch_size, nheads, Sq)
     Q_numel = math.prod(Q_shape)
     K_numel = math.prod(K_shape)
+    lse_numel = math.prod(lse_shape)
     q = tensor_buf[: Q_numel].view(Q_shape)
     k = tensor_buf[Q_numel: Q_numel + K_numel].view(K_shape)
     v = tensor_buf[Q_numel + K_numel: Q_numel + K_numel * 2].view(K_shape)
     dout = tensor_buf[Q_numel + K_numel * 2: Q_numel * 2 + K_numel * 2].view(Q_shape)
+    out = tensor_buf[Q_numel * 2 + K_numel * 2: Q_numel * 3 + K_numel * 2].view(Q_shape)
+    softmax_lse = tensor_buf[Q_numel * 3 + K_numel * 2: Q_numel * 3 + K_numel * 2 + lse_numel * 2].view(FULL_DTYPE).view(lse_shape)
     qkv = tensor_buf[: Q_numel + K_numel * 2]
-    qkv.requires_grad = True
+    # qkv.requires_grad = True
     # bsz, nh, seq_len, hdim
     if f == lightseq_attn_func:
         q = q.permute(0, 2, 1, 3)
@@ -200,21 +246,36 @@ def benchmark(args, f, da_config: Dist_Attn_Config, tensor_buf, global_group, wa
         "PROC_INFO": PROC_INFO,
         "groups": {},
     }
+    if fob == 1:
+        # # get groups from executing fwd !!!
+        # inputs = filter_kwargs(fwd_f, inputs)
+        # fwd_f(**inputs)
+
+        inputs = {
+            "process_group": {},
+            "dout": dout,
+            "q": q,
+            "k": k,
+            "v": v,
+            "out": out,
+            "softmax_lse": softmax_lse,
+            "dropout_p": dropout_p,
+            "causal": causal,
+            "deterministic": deterministic,
+            "sm_scale": q.shape[-1] ** (-0.5),
+            "softmax_scale": q.shape[-1] ** (-0.5),
+            "PROC_INFO": PROC_INFO,
+            "groups": {},
+        }
     inputs = filter_kwargs(f, inputs)
     
     # warmup
     # global placeholder_op
     placeholder_op = dummy_placeholder_op
     placeholder_op(stream=main_stream) # [NOTE]: aim to eliminate cpu overhead
-    if forward_only:
-        with torch.no_grad():
-            for _ in range(warmup):
-                _ = f(**inputs)
-    else:
+    with torch.no_grad():
         for _ in range(warmup):
-            qkv.grad = None
-            out = f(**inputs)
-            out.backward(dout)
+            _ = f(**inputs)
     torch.cuda.synchronize()
     torch.distributed.barrier(group=global_group)   
     # print_rank_0(f'Warmup done !!!')
@@ -223,7 +284,7 @@ def benchmark(args, f, da_config: Dist_Attn_Config, tensor_buf, global_group, wa
     
     is_runned = False
     t1 = time.time()
-    
+
     # warmup cudagraph
     if use_cudagraph:
         for _ in range(warmup):
@@ -289,22 +350,25 @@ def benchmark(args, f, da_config: Dist_Attn_Config, tensor_buf, global_group, wa
             event_end = torch.cuda.Event(enable_timing=True)
             placeholder_op(stream=main_stream) # [NOTE]: aim to eliminate cpu overhead
             event_start.record(stream=main_stream)
-            if forward_only:
-                with torch.no_grad():
-                    for _ in range(num_iter):
-                        _ = f(**inputs)
-            else:
+            # preprocess
+            with torch.no_grad():
                 for _ in range(num_iter):
-                    qkv.grad = None
-                    out = f(**inputs)
-                    out.backward(dout)
+                    _ = f(**inputs)
+            # postprocess
             event_end.record(stream=main_stream)
             torch.cuda.synchronize()
             td = event_start.elapsed_time(event_end) / 1000 # s
+            # if fob == 0:
+            #     td = run_func(f, inputs, num_iter, main_stream, foward_only=True)
+            # else:
+            #     td0 = run_func(f, inputs, num_iter, main_stream, foward_only=True)
+            #     td1 = run_func(f, inputs, num_iter, main_stream, foward_only=False, qkv=qkv, dout=dout)
+            #     td = td1 - td0
     
     torch.cuda.synchronize()
     torch.distributed.barrier(group=global_group)
     t3 = time.time()
+    assert td >= 0, f'Invalid td: {td}'
     if td < 0:
         td = t3 - t2
     else:
@@ -314,7 +378,7 @@ def benchmark(args, f, da_config: Dist_Attn_Config, tensor_buf, global_group, wa
         td = td.cpu().item()
 
     if rank == 0 and log:
-        m_flops, h_flops = calc_flops(batch_size, (Sq * world_size, Skv * world_size), nheads, d, causal, fob = 0 if forward_only else 2)
+        m_flops, h_flops = calc_flops(batch_size, (Sq * world_size, Skv * world_size), nheads, d, causal, fob = fob)
         mfu, hfu = (round(flops / pow(1000, 4) / (td / num_iter * world_size), 3) for flops in (m_flops, h_flops))
         print(f"mfu: {mfu} Tflops/s, hfu: {hfu} Tflops/s, {num_iter / td:.3f} iter/s, {td / num_iter:.3e} s/iter, ({(t1 - t0):.3f}, {(t2 - t1):.3f}, {td:.3f}) sec", flush=True)
 
@@ -643,7 +707,7 @@ def benchmark_orchestrate(args, raw_f, da_config: Dist_Attn_Config, tensor_buf: 
 
 
     for exp_config in exp_configs:
-        # print_rank_0(f'exp_config: {exp_config}')
+        print_rank_0(f'exp_config: {exp_config}')
         # print(f'rank{rank}, exp_config: {exp_config}', flush=True)
         fob = exp_config.fob
         plan_path = exp_config.plan_path
@@ -682,23 +746,42 @@ def benchmark_orchestrate(args, raw_f, da_config: Dist_Attn_Config, tensor_buf: 
                 )
                 inter_comp_key = (batch_degrees, kernel_causal) # (batch_degrees, causal)
                 if inter_comp_key not in inter_comp_plans.keys():
-                    if inter_comp_profile_map is not None:
-                        map_key = inter_comp_profile_map.get_comp_map_key(da_config, inter_comp_key[0], split_degrees, inter_comp_key[1])
-                        intra_full_attn_config = inter_comp_profile_map.get_value_from_map_key(map_key)[fob] # (Y, X, fused, Time, causal)
-                    else:
-                        intra_full_attn_config = (da_config.SP[1], 1, da_config.Nh[0] == 1, - 0.0, kernel_causal)  # kv
-                        # intra_full_attn_config = (1, da_config.SP[1], da_config.Nh[0] == 1, - 0.0, kernel_causal)  # qo
-
-                    inter_comp_configs[inter_comp_key] = intra_full_attn_config
-                    if intra_full_attn_config[2] == 0:  # not fused, to load intra execution plan
-                        plan_path = f'{par_dir}/SP{local_size}_fob={fob}_Y={batch_degrees[0]}_X={batch_degrees[1]}_dim=0.pkl'
+                    if inter_comp_key[1] == True:   # Causal
+                        # HACK
+                        old_sp = da_config.SP
+                        old_S = da_config.S
+                        da_config.SP = (1, old_sp[1])
+                        da_config.S = (old_S[0] // old_sp[0], old_S[1] // old_sp[0])
+                        plan_name_prefix = da_config.get_plan_name(fob=fob)
+                        da_config.SP = old_sp
+                        da_config.S = old_S
+                        # HACK Done
+                        
+                        suffix = f'_ablation1'
+                        plan_path = f'{par_dir}_causal=True/{plan_name_prefix}{suffix}.pkl'
                         with open(plan_path, 'rb') as fin:
                             inter_comp_plans[inter_comp_key] = pickle.load(fin)
-                    else:
-                        inter_comp_plans[inter_comp_key] = Fused_Execution_Plan(intra_full_attn_config[0], intra_full_attn_config[1], intra_full_attn_config[3], intra_full_attn_config[4], fob=fob)
+                        inter_comp_configs[inter_comp_key] = (- 1, - 1, 1, - 0.0, True)
+                    else:                           # non causal
+                        if inter_comp_profile_map is not None:
+                            map_key = inter_comp_profile_map.get_comp_map_key(da_config, inter_comp_key[0], split_degrees, inter_comp_key[1])
+                            intra_full_attn_config = inter_comp_profile_map.get_value_from_map_key(map_key)[fob] # (Y, X, fused, Time, ~~causal~~)
+                        else:
+                            raise NotImplementedError
+                            intra_full_attn_config = (da_config.SP[1], 1, da_config.Nh[0] == 1, - 0.0, kernel_causal)  # kv
+                            # intra_full_attn_config = (1, da_config.SP[1], da_config.Nh[0] == 1, - 0.0, kernel_causal)  # qo
+
+                        inter_comp_configs[inter_comp_key] = intra_full_attn_config
+                        if intra_full_attn_config[2] == 0:  # not fused, to load intra execution plan
+                            plan_path = f'{par_dir}/SP={local_size}_fob={fob}_Y={intra_full_attn_config[0]}_X={intra_full_attn_config[1]}_dim=0.pkl'
+                            with open(plan_path, 'rb') as fin:
+                                inter_comp_plans[inter_comp_key] = pickle.load(fin)
+                        else:
+                            # print(f'rank{rank}, intra_full_attn_config: {intra_full_attn_config}', flush=True)
+                            inter_comp_plans[inter_comp_key] = Fused_Execution_Plan(intra_full_attn_config[0], intra_full_attn_config[1], intra_full_attn_config[3], False, fob=fob)
                 kernel.execution_plan = inter_comp_plans[inter_comp_key]
                         
-            print(f'rank{rank}, node_id: {node_id}, inter_comp_configs: {inter_comp_configs}', flush=True)
+            # print(f'rank{rank}, node_id: {node_id}, inter_comp_configs: {inter_comp_configs}', flush=True)
             inter_comp_plans_dicts = [inter_comp_plans]
             
         # continue  # above OK !!!
@@ -923,11 +1006,11 @@ def run_all_inter_attn(args, ncclcomm_global, gloo_global_group):
     # variable configs:
     fobs = [
         0, 
-        # 1,    # [TODO]
+        1,
     ]
     Nhs = [
         1,
-        # 32, 
+        32, 
     ]
     
     # experiment variables
@@ -935,9 +1018,11 @@ def run_all_inter_attn(args, ncclcomm_global, gloo_global_group):
     WARMUP, NUM_ITER = 2, 4 # intermediate, best performance for some cases !!!
     # WARMUP, NUM_ITER = 1, 2 # later, bad performance
     
+    # S_BOUND = [256, 64 * 1024]
     S_BOUND = [256, 32 * 1024]  # lower-bound and upper-bound of S per GPU, for (4, 8)
-    S_BOUND = [256, 16 * 1024]  # lower-bound and upper-bound of S per GPU, for (8, 8)
-    S_BOUND = [1 * 1024, 16 * 1024] # for debug
+    # S_BOUND = [256, 16 * 1024]  # lower-bound and upper-bound of S per GPU, for (8, 8)
+    # S_BOUND = [1 * 1024, 16 * 1024] # for debug
+    # S_BOUND = [32 * 1024, 32 * 1024]
     
     S_base = [1 << logS for logS in range(int(math.log2(S_BOUND[0])), int(math.log2(S_BOUND[1])) + 1)]
     multiplying_powers = [1, 2, 3, 4, 5, 6, 7]
@@ -945,8 +1030,8 @@ def run_all_inter_attn(args, ncclcomm_global, gloo_global_group):
     Sqkvs = [S * power for S in S_base for power in multiplying_powers if S * power <= S_BOUND[1]]
     Sqkvs = sorted(list(set(Sqkvs)))    # Sq per GPU
     # Sqs = [327680 // world_size]
-    Sqkvs = [256]  # for debug
-    Sqkvs = [1 * 1024]  # for debug
+    # Sqkvs = [256]  # for debug
+    # Sqkvs = [1 * 1024]  # for debug
     # Sqkvs = [64 * 1024]
     print_rank_0(f'Sqkvs: {Sqkvs}')
     
@@ -972,14 +1057,6 @@ def run_all_inter_attn(args, ncclcomm_global, gloo_global_group):
     # print_rank_0(f'inter_comp_profile_map: {inter_comp_profile_map.profile_map}')
     
     for fob in fobs:
-        # # Config2: Blocking algorithms for intra full attention
-        # par_dir = f'{os.path.dirname(__file__)}/search_algo/execution_plans/intra_SP{local_size}_fob={fob}'
-        # plan_paths = []
-        # for plan_name in os.listdir(par_dir):
-        #     plan_paths.append(f'{par_dir}/{plan_name}')
-        # plan_paths.sort()   # Y=1(qo), Y=2, ..., Y=N(kv)
-        # print_rank_0(f'fob={fob}, plan_paths: {plan_paths}')
-        
         for Nh in Nhs:
             for Sqkv in Sqkvs: # S per GPU
                 da_config = Dist_Attn_Config(SP=SPs, S=(Sqkv * world_size, Sqkv * world_size), Nh=(Nh, Nh), D=D, bs=bs, causal=causal)
@@ -987,8 +1064,9 @@ def run_all_inter_attn(args, ncclcomm_global, gloo_global_group):
                 
                 # exp_configs: 4 = 2 * 2 (w/wo fuse, ILP vs Flexflow)
                 ablation_suffixes = ['', '_fused', '_ablation1', '_fused_ablation1']
-                ablation_suffixes = ['_fused']      # for torch.profiler
-                ablation_suffixes = ['']            # for SP0 = 1
+                # ablation_suffixes = ['_fused']      # for torch.profiler
+                # ablation_suffixes = ['']            # for SP0 = 1
+                ablation_suffixes = []
                 
                 plan_types = ['automatic', 'ablation0']  # [NOTE]: useful !!!
                 plan_types = ['automatic']
@@ -1020,9 +1098,8 @@ def run_all_inter_attn(args, ncclcomm_global, gloo_global_group):
                 
                 # Execution:
                 # 1 baselines
-                if fob == 0:
-                    for f in baseline_funcs:
-                        benchmark(args, f, da_config, tensor_buf, gloo_global_group, forward_only=True, log=True)
+                for f in baseline_funcs:
+                    benchmark(args, f, da_config, tensor_buf, gloo_global_group, fob=fob, log=True)
                 
                 # 2 orchestrated_attn_func:
                 benchmark_op = partial(benchmark_orchestrate,
@@ -1064,8 +1141,8 @@ def profile_all_intra_attn(args, ncclcomm_global, gloo_global_group):
     
     # variable configs:
     fobs = [
-        0, 
-        # 1,    # [TODO]
+        # 0, 
+        1,
     ]
     Nhs = [
         1,
@@ -1101,7 +1178,7 @@ def profile_all_intra_attn(args, ncclcomm_global, gloo_global_group):
         plan_paths = []
     
         # Create exp_configs
-        dummy_da_config = Dist_Attn_Config(SP=SPs, S=(256 * world_size, 256 * world_size), Nh=(1, 1), D=D, bs=bs, causal=False)
+        dummy_da_config = Dist_Attn_Config(SP=SPs, S=(256 * world_size, 256 * world_size), Nh=(1, 1), D=D, bs=bs, causal=True)
         plan_name_prefix = dummy_da_config.get_plan_name(fob=fob)
         for suffix in inter_ablation_suffixes:
             plan_paths.append(f'{par_dir}/{plan_name_prefix}{suffix}.pkl')
@@ -1217,7 +1294,7 @@ def main(args):
     PROC_INFO = get_proc_info()
     
     MASTER_ADDR = os.getenv('MASTER_ADDR', None)
-    MASTER_ADDR = 'localhost'
+    # MASTER_ADDR = 'localhost'
     MASTER_PORT = os.getenv('MASTER_PORT', None)
     init_method = f'tcp://[{MASTER_ADDR}]:{MASTER_PORT}'
     # print(f'init_method: {init_method}')
@@ -1248,8 +1325,8 @@ def main(args):
     
     # run_all_intra_attn(args, ncclcomm_global, gloo_global_group)
     # return
-    profile_all_intra_attn(args, ncclcomm_global, gloo_global_group)
-    # run_all_inter_attn(args, ncclcomm_global, gloo_global_group)    # E2E !!!
+    # profile_all_intra_attn(args, ncclcomm_global, gloo_global_group)
+    run_all_inter_attn(args, ncclcomm_global, gloo_global_group)    # E2E !!!
     return
 
     forward_only = False

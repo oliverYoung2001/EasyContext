@@ -182,21 +182,22 @@ def zigzag_ring_flash_attn_backward(
     v,
     out,
     softmax_lse,
-    softmax_scale,
+    softmax_scale=None,
     dropout_p=0,
     causal=True,
     window_size=(-1, -1),
     alibi_slopes=None,
     deterministic=False,
     opt=False,
+    PROC_INFO: dict =None,
 ):
     assert causal == True, "zigzag ring is meaningless for causal=False"
     if opt:
-        kv_comm = RingCommNew(process_group)
-        d_kv_comm = RingCommNew(process_group)
+        kv_comm = RingCommNew(process_group, PROC_INFO)
+        d_kv_comm = RingCommNew(process_group, PROC_INFO)
     else:
-        kv_comm = RingCommOld(process_group)
-        d_kv_comm = RingCommOld(process_group)
+        kv_comm = RingCommOld(process_group, PROC_INFO)
+        d_kv_comm = RingCommOld(process_group, PROC_INFO)
     dq, dk, dv = None, None, None
     next_dk, next_dv = None, None
     next_k, next_v = None, None
