@@ -33,7 +33,9 @@ def get_configs():
     hierarchy = None    # define in exps !!!
     
     # for Intra:
-    SP0, SP1 = 1, 4
+    SP0, SP1 = 1, 1
+    # SP0, SP1 = 1, 2
+    # SP0, SP1 = 1, 4
     # SP0, SP1 = 1, 8
     # Sq = Skv = 16 * 1024   # 16k
     # Sq = Skv = 8 * 1024   # 8k
@@ -76,7 +78,7 @@ def get_configs():
     bs = 1
     D = 128
     causal = False
-    # causal = True
+    causal = True
     
     tot_sp = SP0 * SP1
     da_configs = []
@@ -214,7 +216,7 @@ def run_exp(exp_config: Evaluation_Configs, da_config: Dist_Attn_Config):
 
 def generate_inter_execution_plans(exp_config: Evaluation_Configs, da_config: Dist_Attn_Config):
     exp_config.hierarchy = da_config.hierarchy = 0
-    m_config = get_profile_data(da_config.SP)
+    m_config = get_profile_data(da_config.SP, exp_config.hierarchy)
     cc_optimal_schedule = get_cc_optimal_schedule(da_config, m_config)
     if not isinstance(cc_optimal_schedule, Dist_Attn_Schedule):
         assert isinstance(cc_optimal_schedule, list)
@@ -255,7 +257,7 @@ def generate_inter_execution_plans(exp_config: Evaluation_Configs, da_config: Di
 
 def generate_intra_execution_plans(exp_config: Evaluation_Configs, da_config: Dist_Attn_Config):
     exp_config.hierarchy = da_config.hierarchy = 1
-    m_config = get_profile_data(da_config.SP)
+    m_config = get_profile_data(da_config.SP, exp_config.hierarchy)
     cc_optimal_schedule = get_cc_optimal_schedule(da_config, m_config)
     if not isinstance(cc_optimal_schedule, Dist_Attn_Schedule):
         assert isinstance(cc_optimal_schedule, list)

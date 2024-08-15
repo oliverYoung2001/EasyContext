@@ -1060,8 +1060,8 @@ def run_all_inter_attn(args, ncclcomm_global, gloo_global_group):
     bs = 1
     D = 128
     causals = [
-        False,
-        # True,
+        # False,
+        True,
     ]
     SPs = (node_num, local_size)
     
@@ -1139,7 +1139,7 @@ def run_all_inter_attn(args, ncclcomm_global, gloo_global_group):
                         ablation_suffixes = ['', '_fused', '_ablation1', '_fused_ablation1']
                         # ablation_suffixes = ['_fused']      # for torch.profiler
                         # ablation_suffixes = ['']            # for SP0 = 1
-                        ablation_suffixes = []
+                        # ablation_suffixes = []
                         
                         
                         par_dir = f'{os.path.dirname(__file__)}/search_algo/execution_plans/inter_SP{node_num}_fob={fob}'
@@ -1147,11 +1147,14 @@ def run_all_inter_attn(args, ncclcomm_global, gloo_global_group):
                         
                         # HACK
                         # if da_config.SP[1] != 8:
-                        old_SP = da_config.SP
-                        da_config.SP = (old_SP[0], 8)
+                        old_sp = da_config.SP
+                        old_S = da_config.S
+                        da_config.SP = (old_sp[0], 8)
+                        da_config.S = (old_S[0] * da_config.SP[1] // old_sp[1], old_S[1] * da_config.SP[1] // old_sp[1])
                         plan_name_prefix = da_config.get_plan_name(fob=fob)
                         # Restore
-                        da_config.SP = old_SP
+                        da_config.SP = old_sp
+                        da_config.S = old_S
                         
                         for suffix in ablation_suffixes:
                             plan_paths.append(f'{par_dir}/{plan_name_prefix}{suffix}.pkl')
