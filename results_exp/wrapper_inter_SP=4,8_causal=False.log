@@ -1,0 +1,4 @@
++ export CUDA_DEVICE_MAX_CONNECTIONS=32
++ CUDA_DEVICE_MAX_CONNECTIONS=32
++ srun -p rag -N 1 --ntasks-per-node=8 --gres=gpu:8 --mem 256G -K -w g3015 -c 16 ./scripts/bench_ring_attn.sh python bench_ring_attn.py
+srun: job 17944 queued and waiting for resources

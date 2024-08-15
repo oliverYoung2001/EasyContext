@@ -394,6 +394,7 @@ def main_stream_wait_all(stream_list: list, main_stream: torch.cuda.Stream):
         
 def benchmark_ops(streams, global_group, device, f, inputs, \
                 warmup, warmup_cudagraph, num_iter, use_cudagraph, TRACE_NAME, args):
+    # print_rank_0(f'streams: {streams}')
     torch.cuda.empty_cache()
     main_stream = streams['intra'][0] # intra comp stream
     stream_list = streams['intra'] + streams['inter']
@@ -551,7 +552,8 @@ def create_buf_dict(da_config: Dist_Attn_Config, exp_config: Evaluation_Configs,
             ('o', 'r'): Output_Row_Fwd if fob == 0 else Output_Row_Bwd,
             ('o', 'c'): Output_Col_Fwd if fob == 0 else Output_Col_Bwd,
         }
-        Q_buf = tensor_buf[2 * bs * Skv * Nhg * d * 2: ]    # last 2 stands for the largest low_dg of all execution plans !!!
+        # Q_buf = tensor_buf[2 * bs * Skv * Nhg * d * 2: ]    # last 2 stands for the largest low_dg of all execution plans !!!
+        Q_buf = tensor_buf
         KV_buf = tensor_buf
         # batch_degrees = (1, 1):   # for input/output and comm kernels
         buf_dict = {
@@ -682,7 +684,10 @@ def benchmark_orchestrate(args, raw_f, da_config: Dist_Attn_Config, tensor_buf: 
             'da_config': da_config,
             'exp_configs': exp_config,
         }
-        inter_buf_dict = create_buf_dict(da_config, exp_config, inter_execution_plan, False, (1, 1), tensor_buf, node_id)
+        inter_buf_dict = create_buf_dict(
+            da_config, exp_config, inter_execution_plan, 
+            isinstance(inter_execution_plan, Fused_Execution_Plan), 
+            (1, 1), tensor_buf, node_id)
         inter_execution_plan.buf_dict =  inter_buf_dict
         # Create buf_dict for inter_comp_plans
         for inter_comp_key, intra_execution_plan in inter_comp_plans.items():
@@ -707,80 +712,105 @@ def benchmark_orchestrate(args, raw_f, da_config: Dist_Attn_Config, tensor_buf: 
 
 
     for exp_config in exp_configs:
-        print_rank_0(f'exp_config: {exp_config}')
+        # print_rank_0(f'exp_config: {exp_config}')
         # print(f'rank{rank}, exp_config: {exp_config}', flush=True)
         fob = exp_config.fob
         plan_path = exp_config.plan_path
         plan_type = exp_config.plan_type
         inter_comp_profile_map = exp_config.inter_comp_profile_map
         
-        # path for intra execution plans:
-        par_dir = f'{os.path.dirname(__file__)}/search_algo/execution_plans/intra_SP{local_size}_fob={fob}'
-
         torch.cuda.empty_cache()
         t0 = time.time()
         SP = da_config.SP
         Ss = (Sq * world_size, Skv * world_size)
         Nhs = (nheads, nheads)
         bs = batch_size
-        # load inter plan
-        with open(plan_path, 'rb') as fin:
-            inter_execution_plan = pickle.load(fin)
+        if exp_config.execution_plan is not None:
+            inter_execution_plan = exp_config.execution_plan
+        else:
+            # load inter plan
+            with open(plan_path, 'rb') as fin:
+                inter_execution_plan = pickle.load(fin)
         # print_rank_0(f'inter_execution_plan:')
         # if rank == 0:
-        #     inter_execution_plan.print_lp_result()
+        #     if isinstance(inter_execution_plan, Fused_Execution_Plan):
+        #         print_rank_0(f'fused_inter_execution_plan: {inter_execution_plan}')
+        #     else:
+        #         inter_execution_plan.print_lp_result()
         
+        # path for intra execution plans:
+        par_dir = f'{os.path.dirname(__file__)}/search_algo/execution_plans/intra_SP{local_size}_fob={fob}'
         if mode == 'test':
             # load intra plans and form a dict for test mode
             split_degrees = (da_config.SP[0], da_config.SP[0], 1, 1)
             inter_comp_plans = {}   # batch_degrees -> plan, ranks with the same node_id have the same inter_comp_plans
             inter_comp_configs = {}   # batch_degrees -> configs 
-            for kernel in inter_execution_plan.gpu_kernel_lists[node_id]:
-                if not isinstance(kernel, Comp_Kernel):
-                    continue
-                kernel_causal = da_config.causal and isinstance(kernel.key[2], int) and kernel.key[2] == kernel.key[3]  # global causal, both are int, equal
-                rcs = kernel.key[2: 4]
-                batch_degrees = (
-                    len(rcs[0]) if isinstance(rcs[0], tuple) else 1,
-                    len(rcs[1]) if isinstance(rcs[1], tuple) else 1, 
-                )
-                inter_comp_key = (batch_degrees, kernel_causal) # (batch_degrees, causal)
-                if inter_comp_key not in inter_comp_plans.keys():
-                    if inter_comp_key[1] == True:   # Causal
-                        # HACK
-                        old_sp = da_config.SP
-                        old_S = da_config.S
-                        da_config.SP = (1, old_sp[1])
-                        da_config.S = (old_S[0] // old_sp[0], old_S[1] // old_sp[0])
-                        plan_name_prefix = da_config.get_plan_name(fob=fob)
-                        da_config.SP = old_sp
-                        da_config.S = old_S
-                        # HACK Done
-                        
-                        suffix = f'_ablation1'
-                        plan_path = f'{par_dir}_causal=True/{plan_name_prefix}{suffix}.pkl'
-                        with open(plan_path, 'rb') as fin:
-                            inter_comp_plans[inter_comp_key] = pickle.load(fin)
-                        inter_comp_configs[inter_comp_key] = (- 1, - 1, 1, - 0.0, True)
-                    else:                           # non causal
-                        if inter_comp_profile_map is not None:
-                            map_key = inter_comp_profile_map.get_comp_map_key(da_config, inter_comp_key[0], split_degrees, inter_comp_key[1])
-                            intra_full_attn_config = inter_comp_profile_map.get_value_from_map_key(map_key)[fob] # (Y, X, fused, Time, ~~causal~~)
-                        else:
-                            raise NotImplementedError
-                            intra_full_attn_config = (da_config.SP[1], 1, da_config.Nh[0] == 1, - 0.0, kernel_causal)  # kv
-                            # intra_full_attn_config = (1, da_config.SP[1], da_config.Nh[0] == 1, - 0.0, kernel_causal)  # qo
-
-                        inter_comp_configs[inter_comp_key] = intra_full_attn_config
-                        if intra_full_attn_config[2] == 0:  # not fused, to load intra execution plan
-                            plan_path = f'{par_dir}/SP={local_size}_fob={fob}_Y={intra_full_attn_config[0]}_X={intra_full_attn_config[1]}_dim=0.pkl'
+            if isinstance(inter_execution_plan, Fused_Execution_Plan):
+                assert da_config.causal == False, "Causal is not supported for fused execution plan"
+                batch_degrees = (inter_execution_plan.X, inter_execution_plan.Y)
+                inter_comp_key = (batch_degrees, False)
+                if inter_comp_profile_map is not None:
+                    map_key = inter_comp_profile_map.get_comp_map_key(da_config, inter_comp_key[0], split_degrees, inter_comp_key[1])
+                    intra_full_attn_config = inter_comp_profile_map.get_value_from_map_key(map_key)[fob] # (Y, X, fused, Time, ~~causal~~)
+                else:
+                    # raise NotImplementedError
+                    intra_full_attn_config = (da_config.SP[1], 1, da_config.Nh[0] == 1, - 0.0, False)  # kv
+                    # intra_full_attn_config = (1, da_config.SP[1], da_config.Nh[0] == 1, - 0.0, False)  # qo
+                inter_comp_configs[inter_comp_key] = intra_full_attn_config
+                if intra_full_attn_config[2] == 0:  # not fused, to load intra execution plan
+                    plan_path = f'{par_dir}/SP={local_size}_fob={fob}_Y={intra_full_attn_config[0]}_X={intra_full_attn_config[1]}_dim=0.pkl'
+                    with open(plan_path, 'rb') as fin:
+                        inter_comp_plans[inter_comp_key] = pickle.load(fin)
+                else:
+                    inter_comp_plans[inter_comp_key] = Fused_Execution_Plan(intra_full_attn_config[0], intra_full_attn_config[1], intra_full_attn_config[3], False, fob=fob)
+                # necessary for fused execution plan !!!
+                inter_execution_plan.kernel_execution_plan = inter_comp_plans[inter_comp_key]
+            else:
+                for kernel in inter_execution_plan.gpu_kernel_lists[node_id]:
+                    if not isinstance(kernel, Comp_Kernel):
+                        continue
+                    kernel_causal = da_config.causal and isinstance(kernel.key[2], int) and kernel.key[2] == kernel.key[3]  # global causal, both are int, equal
+                    rcs = kernel.key[2: 4]
+                    batch_degrees = (
+                        len(rcs[0]) if isinstance(rcs[0], tuple) else 1,
+                        len(rcs[1]) if isinstance(rcs[1], tuple) else 1, 
+                    )
+                    inter_comp_key = (batch_degrees, kernel_causal) # (batch_degrees, causal)
+                    if inter_comp_key not in inter_comp_plans.keys():
+                        if inter_comp_key[1] == True:   # Causal
+                            # HACK
+                            old_sp = da_config.SP
+                            old_S = da_config.S
+                            da_config.SP = (1, old_sp[1])
+                            da_config.S = (old_S[0] // old_sp[0], old_S[1] // old_sp[0])
+                            plan_name_prefix = da_config.get_plan_name(fob=fob)
+                            da_config.SP = old_sp
+                            da_config.S = old_S
+                            # HACK Done
+                            
+                            suffix = f'_ablation1'
+                            plan_path = f'{par_dir}_causal=True/{plan_name_prefix}{suffix}.pkl'
                             with open(plan_path, 'rb') as fin:
                                 inter_comp_plans[inter_comp_key] = pickle.load(fin)
-                        else:
-                            # print(f'rank{rank}, intra_full_attn_config: {intra_full_attn_config}', flush=True)
-                            inter_comp_plans[inter_comp_key] = Fused_Execution_Plan(intra_full_attn_config[0], intra_full_attn_config[1], intra_full_attn_config[3], False, fob=fob)
-                kernel.execution_plan = inter_comp_plans[inter_comp_key]
-                        
+                            inter_comp_configs[inter_comp_key] = (- 1, - 1, 1, - 0.0, True)
+                        else:                           # non causal
+                            if inter_comp_profile_map is not None:
+                                map_key = inter_comp_profile_map.get_comp_map_key(da_config, inter_comp_key[0], split_degrees, inter_comp_key[1])
+                                intra_full_attn_config = inter_comp_profile_map.get_value_from_map_key(map_key)[fob] # (Y, X, fused, Time, ~~causal~~)
+                            else:
+                                # raise NotImplementedError
+                                intra_full_attn_config = (da_config.SP[1], 1, da_config.Nh[0] == 1, - 0.0, kernel_causal)  # kv
+                                # intra_full_attn_config = (1, da_config.SP[1], da_config.Nh[0] == 1, - 0.0, kernel_causal)  # qo
+
+                            inter_comp_configs[inter_comp_key] = intra_full_attn_config
+                            if intra_full_attn_config[2] == 0:  # not fused, to load intra execution plan
+                                plan_path = f'{par_dir}/SP={local_size}_fob={fob}_Y={intra_full_attn_config[0]}_X={intra_full_attn_config[1]}_dim=0.pkl'
+                                with open(plan_path, 'rb') as fin:
+                                    inter_comp_plans[inter_comp_key] = pickle.load(fin)
+                            else:
+                                inter_comp_plans[inter_comp_key] = Fused_Execution_Plan(intra_full_attn_config[0], intra_full_attn_config[1], intra_full_attn_config[3], False, fob=fob)
+                    kernel.execution_plan = inter_comp_plans[inter_comp_key]
+                            
             # print(f'rank{rank}, node_id: {node_id}, inter_comp_configs: {inter_comp_configs}', flush=True)
             inter_comp_plans_dicts = [inter_comp_plans]
             
@@ -808,18 +838,20 @@ def benchmark_orchestrate(args, raw_f, da_config: Dist_Attn_Config, tensor_buf: 
             inputs = create_inputs_and_buf_dict(exp_config, inter_execution_plan, inter_comp_plans)
             inputs['causal'] = causal
             # Mark in_ranks on execution_plans to judge whether kernel is on current rank easily
-            for kernel in inter_execution_plan.gpu_kernel_lists[node_id]:
-                kernel.in_ranks = set([rank])
+            if isinstance(inter_execution_plan, Execution_Plan):
+                for kernel in inter_execution_plan.gpu_kernel_lists[node_id]:
+                    kernel.in_ranks = set([rank])
             for _, intra_execution_plan in inter_comp_plans.items():
                 if not isinstance(intra_execution_plan, Execution_Plan):
                     continue
                 for kernel in intra_execution_plan.gpu_kernel_lists[local_rank]:
                     kernel.in_ranks = set([rank])
             # Modify da_config
-            if inter_execution_plan.da_config.S != Ss:
-                inter_execution_plan.da_config.S = Ss
-            if inter_execution_plan.da_config.Nh != Nhs:
-                inter_execution_plan.da_config.Nh = Nhs
+            if isinstance(inter_execution_plan, Execution_Plan):
+                if inter_execution_plan.da_config.S != Ss:
+                    inter_execution_plan.da_config.S = Ss
+                if inter_execution_plan.da_config.Nh != Nhs:
+                    inter_execution_plan.da_config.Nh = Nhs
             # Create streams for both inter and intra execution plans
             if exp_config.plan_type == 'ablation0':
                 raise NotImplementedError
@@ -879,18 +911,20 @@ def benchmark_orchestrate(args, raw_f, da_config: Dist_Attn_Config, tensor_buf: 
                             else:
                                 kernel.stream = streams['intra'][2]    # Recv
                 # Set Streams for Inter Execution Plan
-                for kernel in inter_execution_plan.gpu_kernel_lists[node_id]:
-                    if isinstance(kernel, Comp_Kernel):
-                        # kernel.stream = streams['inter'][0]
-                        assert len(streams['intra']) >= 3
-                        kernel.sub_streams = streams['intra'][: 3] # [NOTE]: hardcode here !!! not support ablation0 !!!
-                        assert not hasattr(kernel, 'stream')
-                    else:
-                        if kernel.key[3] == node_id:
-                            kernel.stream = streams['inter'][1]    # Send
+                if isinstance(inter_execution_plan, Execution_Plan):
+                    for kernel in inter_execution_plan.gpu_kernel_lists[node_id]:
+                        # print_rank_0(f'inter kernel: {kernel.key}, {isinstance(kernel, Comp_Kernel)}, {isinstance(kernel, Comm_Kernel)}')
+                        if isinstance(kernel, Comp_Kernel):
+                            # kernel.stream = streams['inter'][0]
+                            assert len(streams['intra']) >= 3
+                            kernel.sub_streams = streams['intra'][: 3] # [NOTE]: hardcode here !!! not support ablation0 !!!
+                            assert not hasattr(kernel, 'stream')
                         else:
-                            kernel.stream = streams['inter'][2]    # Recv
-                        assert not hasattr(kernel, 'sub_streams')
+                            if kernel.key[3] == node_id:
+                                kernel.stream = streams['inter'][1]    # Send
+                            else:
+                                kernel.stream = streams['inter'][2]    # Recv
+                            assert not hasattr(kernel, 'sub_streams')
             torch.cuda.synchronize()
             torch.distributed.barrier(group=global_group)
             # print(f'rank{rank}, Create Streams Done !!!', flush=True)
@@ -898,13 +932,31 @@ def benchmark_orchestrate(args, raw_f, da_config: Dist_Attn_Config, tensor_buf: 
             # Build nccl communicator for each pair of ranks
             ncclcomm_dict = get_global_var('ncclcomm_dict')
                 # For Inter
-            for kernel in inter_execution_plan.valid_kernels:
-                if isinstance(kernel, Comm_Kernel):
-                    key = (kernel.key[3] * local_size + local_rank, kernel.key[4] * local_size + local_rank)    # (send, recv)
-                    if rank in key:
-                        if key not in ncclcomm_dict.keys():
-                            ncclcomm_dict[key] = PyNcclCommunicator(global_group, ranks=key, device=torch.cuda.current_device())
-                        kernel.ncclcomm = ncclcomm_dict[key]
+            if isinstance(inter_execution_plan, Fused_Execution_Plan):
+                # [TODO]
+                # Create Row&Col PyNcclCommunicator
+                Y = inter_execution_plan.Y
+                X = inter_execution_plan.X
+                cur_x_id = node_id % X
+                cur_y_id = node_id // X
+                # r_key = tuple(range(node_id * local_size + cur_y_id * X, node_id * local_size + (cur_y_id + 1) * X))
+                # c_key = tuple(range(node_id * local_size + cur_x_id, (node_id + 1) * local_size, X))
+                r_key = tuple(range(cur_y_id * X * local_size + local_rank, (cur_y_id + 1) * X * local_size + local_rank, local_size))
+                c_key = tuple(range(cur_x_id * local_size + local_rank, world_size, X * local_size))
+                # print(f'rank{rank}, r_key: {r_key}, c_key: {c_key}', flush=True)
+                assert rank in r_key and rank in c_key
+                if r_key not in ncclcomm_dict.keys():
+                    ncclcomm_dict[r_key] = PyNcclCommunicator(global_group, ranks=r_key, device=torch.cuda.current_device())
+                if c_key not in ncclcomm_dict.keys():
+                    ncclcomm_dict[c_key] = PyNcclCommunicator(global_group, ranks=c_key, device=torch.cuda.current_device())
+            else:
+                for kernel in inter_execution_plan.valid_kernels:
+                    if isinstance(kernel, Comm_Kernel):
+                        key = (kernel.key[3] * local_size + local_rank, kernel.key[4] * local_size + local_rank)    # (send, recv)
+                        if rank in key:
+                            if key not in ncclcomm_dict.keys():
+                                ncclcomm_dict[key] = PyNcclCommunicator(global_group, ranks=key, device=torch.cuda.current_device())
+                            kernel.ncclcomm = ncclcomm_dict[key]
                 # For Intra
             for _, intra_execution_plan in inter_comp_plans.items():
                     # print(f'rank{rank}, batch_degrees: {batch_degrees}, intra_execution_plan: {intra_execution_plan}', flush=True)
@@ -982,10 +1034,18 @@ def run_all_inter_attn(args, ncclcomm_global, gloo_global_group):
     # PROC_INFO['world_size'] = PROC_INFO['node_num'] * PROC_INFO['tasks_per_node']
     # # modify finished
     
-    # # modified PROC_INFO for debug, version2:  1 * 8 -> 4 * 2
+    # modified PROC_INFO for debug, version2:  1 * 8 -> 4 * 2
+    assert PROC_INFO['node_num'] == 1 and PROC_INFO['tasks_per_node'] == 8
+    PROC_INFO['node_num'] = 4
+    PROC_INFO['tasks_per_node'] = 2
+    PROC_INFO['nodeid'] = PROC_INFO['rank'] // PROC_INFO['tasks_per_node']
+    PROC_INFO['local_rank'] = PROC_INFO['rank'] % PROC_INFO['tasks_per_node']
+    # modify finished
+    
+    # # modified PROC_INFO for debug, version3:  1 * 8 -> 8 * 1
     # assert PROC_INFO['node_num'] == 1 and PROC_INFO['tasks_per_node'] == 8
-    # PROC_INFO['node_num'] = 4
-    # PROC_INFO['tasks_per_node'] = 2
+    # PROC_INFO['node_num'] = 8
+    # PROC_INFO['tasks_per_node'] = 1
     # PROC_INFO['nodeid'] = PROC_INFO['rank'] // PROC_INFO['tasks_per_node']
     # PROC_INFO['local_rank'] = PROC_INFO['rank'] % PROC_INFO['tasks_per_node']
     # # modify finished
@@ -999,8 +1059,10 @@ def run_all_inter_attn(args, ncclcomm_global, gloo_global_group):
     # fix configs:
     bs = 1
     D = 128
-    causal = False
-    causal = True
+    causals = [
+        False,
+        # True,
+    ]
     SPs = (node_num, local_size)
     
     # variable configs:
@@ -1038,13 +1100,16 @@ def run_all_inter_attn(args, ncclcomm_global, gloo_global_group):
     # pre-allocated buffer:
     MAX_SEQ = max(Sqkvs)
     # Nh=32, max_batch_degrees = (2, 3) (q, do, D, lse), (k, v, dk, dv)
+    print_rank_0(f'total_size: {(bs * MAX_SEQ * max(Nhs) * (D + 1)) * (8 * 8) * (3 + 4)}')
     tensor_buf = torch.empty(
         # (6 * bs * MAX_SEQ * max(Nhs) * D), 
-        (bs * MAX_SEQ * max(Nhs) * D * 4) * 3                       # k, v, dk, dv
-      + (bs * MAX_SEQ * max(Nhs) * (D * 3) + (1 * (2 + 1))) * 2     # q, do, D, lse, dq
-      + (bs * MAX_SEQ * max(Nhs) * (D * 2) + (1 * (2 + 1))) * 2,    # q, do, D, lse (for inp_row_extra_buf because of bugs of bwd of FA)
+    #     (bs * MAX_SEQ * max(Nhs) * D * 4) * 3                       # k, v, dk, dv
+    #   + (bs * MAX_SEQ * max(Nhs) * (D * 3) + (1 * (2 + 1))) * 2     # q, do, D, lse, dq
+    #   + (bs * MAX_SEQ * max(Nhs) * (D * 2) + (1 * (2 + 1))) * 2,    # q, do, D, lse (for inp_row_extra_buf because of bugs of bwd of FA)
+        # (bs * MAX_SEQ * max(Nhs) * (D + 1)) * (4 * 8) * (3 + 4)),
+        ((bs * MAX_SEQ * max(Nhs) * (D + 1)) * (4 * 8) * (4)),
         device=torch.cuda.current_device(), dtype=DTYPE, requires_grad=False
-    )   # 6 * 512MB = 3GB
+    )   # 1 * (32 * 1024) * (32 * 128) * (8 * 8)
     # print_rank_0(f'tensor_buf: {tensor_buf.numel() * 2} B')
 
     INTER_COMP_FILE_NAME = f'./prof_data/wrapper_intra_SP={local_size}_all.log'
@@ -1056,58 +1121,107 @@ def run_all_inter_attn(args, ncclcomm_global, gloo_global_group):
         inter_comp_profile_map = None
     # print_rank_0(f'inter_comp_profile_map: {inter_comp_profile_map.profile_map}')
     
-    for fob in fobs:
-        for Nh in Nhs:
-            for Sqkv in Sqkvs: # S per GPU
-                da_config = Dist_Attn_Config(SP=SPs, S=(Sqkv * world_size, Sqkv * world_size), Nh=(Nh, Nh), D=D, bs=bs, causal=causal)
-                print_rank_0(f'da_config: {da_config}:')
-                
-                # exp_configs: 4 = 2 * 2 (w/wo fuse, ILP vs Flexflow)
-                ablation_suffixes = ['', '_fused', '_ablation1', '_fused_ablation1']
-                # ablation_suffixes = ['_fused']      # for torch.profiler
-                # ablation_suffixes = ['']            # for SP0 = 1
-                ablation_suffixes = []
-                
-                plan_types = ['automatic', 'ablation0']  # [NOTE]: useful !!!
-                plan_types = ['automatic']
-                exp_configs = []
-                par_dir = f'{os.path.dirname(__file__)}/search_algo/execution_plans/inter_SP{node_num}_fob={fob}'
-                plan_paths = []
-                
-                # HACK
-                # if da_config.SP[1] != 8:
-                old_SP = da_config.SP
-                da_config.SP = (old_SP[0], 8)
-                plan_name_prefix = da_config.get_plan_name(fob=fob)
-                # Restore
-                da_config.SP = old_SP
-                
-                for suffix in ablation_suffixes:
-                    plan_paths.append(f'{par_dir}/{plan_name_prefix}{suffix}.pkl')
-                # print(f'plan_paths: {plan_paths}')
-                for plan_type in plan_types:
-                    for plan_path in plan_paths:
-                        exp_config = Evaluation_Configs(
-                                plan_type=plan_type,
-                                MAX_QUEUE_SIZE=0,
-                                fob=fob,
-                                plan_path=plan_path,
-                                inter_comp_profile_map=inter_comp_profile_map,
-                            )
-                        exp_configs.append(exp_config)
-                
-                # Execution:
-                # 1 baselines
-                for f in baseline_funcs:
-                    benchmark(args, f, da_config, tensor_buf, gloo_global_group, fob=fob, log=True)
-                
-                # 2 orchestrated_attn_func:
-                benchmark_op = partial(benchmark_orchestrate,
-                    args, orchestrated_attn_func, da_config, tensor_buf, log=True, exp_configs=exp_configs, 
-                    global_group=gloo_global_group, ncclcomm_global=ncclcomm_global,
-                    warmup=WARMUP, num_iter=NUM_ITER,
-                )
-                benchmark_op(use_cudagraph=False)          
+    for causal in causals:
+        for fob in fobs:
+            print_rank_0(f'causal={causal}, fob={fob}:')
+            for Nh in Nhs:
+                for Sqkv in Sqkvs: # S per GPU
+                    da_config = Dist_Attn_Config(SP=SPs, S=(Sqkv * world_size, Sqkv * world_size), Nh=(Nh, Nh), D=D, bs=bs, causal=causal)
+                    print_rank_0(f'da_config: {da_config}:')
+                    
+                    
+                    plan_types = ['automatic', 'ablation0']  # [NOTE]: useful !!!
+                    plan_types = ['automatic']
+                    exp_configs = []
+                    
+                    if causal:  # For causal !!!
+                        # exp_configs: 4 = 2 * 2 (w/wo fuse, ILP vs Flexflow)
+                        ablation_suffixes = ['', '_fused', '_ablation1', '_fused_ablation1']
+                        # ablation_suffixes = ['_fused']      # for torch.profiler
+                        # ablation_suffixes = ['']            # for SP0 = 1
+                        ablation_suffixes = []
+                        
+                        
+                        par_dir = f'{os.path.dirname(__file__)}/search_algo/execution_plans/inter_SP{node_num}_fob={fob}'
+                        plan_paths = []
+                        
+                        # HACK
+                        # if da_config.SP[1] != 8:
+                        old_SP = da_config.SP
+                        da_config.SP = (old_SP[0], 8)
+                        plan_name_prefix = da_config.get_plan_name(fob=fob)
+                        # Restore
+                        da_config.SP = old_SP
+                        
+                        for suffix in ablation_suffixes:
+                            plan_paths.append(f'{par_dir}/{plan_name_prefix}{suffix}.pkl')
+                        print(f'plan_paths: {plan_paths}')
+                        for plan_type in plan_types:
+                            for plan_path in plan_paths:
+                                # load inter execution plans
+                                with open(plan_path, 'rb') as fin:
+                                    inter_execution_plan = pickle.load(fin)
+                                exp_config = Evaluation_Configs(
+                                        plan_type=plan_type,
+                                        MAX_QUEUE_SIZE=0,
+                                        fob=fob,
+                                        plan_path=plan_path,
+                                        inter_comp_profile_map=inter_comp_profile_map,
+                                        execution_plan=inter_execution_plan,
+                                    )
+                                exp_configs.append(exp_config)
+                    else:   # For non-causal !!!
+                        # (log2(SP[0]) + 1) * 2 types of inter_execution_plans, 2 stands for w/wo fuse
+                        # inter execution plans !!!
+                        par_dir = f'{os.path.dirname(__file__)}/search_algo/execution_plans/intra_SP{node_num}_fob={fob}'
+                        YXs = [(y, node_num // y) for y in range(1, node_num + 1) if node_num % y == 0]
+                        print_rank_0(f'YXs: {YXs}')
+                        for plan_type in plan_types:
+                            # non fused
+                            for yx in YXs:
+                                plan_path = f'{par_dir}/SP={node_num}_fob={fob}_Y={yx[0]}_X={yx[1]}_dim=0.pkl'
+                                with open(plan_path, 'rb') as fin:
+                                    inter_execution_plan = pickle.load(fin)
+                                exp_config = Evaluation_Configs(
+                                        plan_type=plan_type,
+                                        MAX_QUEUE_SIZE=0,
+                                        fob=fob,
+                                        plan_path=plan_path,
+                                        inter_comp_profile_map=inter_comp_profile_map,
+                                        execution_plan=inter_execution_plan,
+                                    )
+                                exp_configs.append(exp_config)
+                            
+                            # fused !!!
+                            if fob == 0 or Nh == 1:
+                                for yx in YXs:
+                                # for yx in YXs[: 1]: # qo
+                                    fused_execution_plan = Fused_Execution_Plan(yx[0], yx[1], - 0.0, False, fob=fob)
+                                    fused_execution_plan.stream_num = 3
+                                    exp_config = Evaluation_Configs(
+                                            plan_type=plan_type,
+                                            MAX_QUEUE_SIZE=0,
+                                            fob=fob,
+                                            plan_path=None,
+                                            inter_comp_profile_map=inter_comp_profile_map,
+                                            execution_plan=fused_execution_plan,
+                                        )
+                                    exp_configs.append(exp_config)
+                    
+                    # Execution:
+                    # 1 baselines
+                    for f in baseline_funcs:
+                        if causal == False and f in [zigzag_ring_flash_attn_func, stripe_flash_attn_func]:
+                            continue
+                        benchmark(args, f, da_config, tensor_buf, gloo_global_group, fob=fob, log=True)
+                    
+                    # 2 orchestrated_attn_func:
+                    benchmark_op = partial(benchmark_orchestrate,
+                        args, orchestrated_attn_func, da_config, tensor_buf, log=True, exp_configs=exp_configs, 
+                        global_group=gloo_global_group, ncclcomm_global=ncclcomm_global,
+                        warmup=WARMUP, num_iter=NUM_ITER,
+                    )
+                    benchmark_op(use_cudagraph=False)          
 
 def profile_all_intra_attn(args, ncclcomm_global, gloo_global_group):
     global PROC_INFO

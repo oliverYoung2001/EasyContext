@@ -12,13 +12,13 @@ import pickle
 import numpy as np
 
 def get_exp_configs():
-    plan_type = 'automatic'
-    # plan_type = 'maunal'
+    # plan_type = 'automatic'
+    plan_type = 'manual'  # for noncausal !!!
     # plan_type = 'ablation1'
     MAX_QUEUE_SIZE = 100
     fobs = [
         0,
-        # 1,
+        1,
     ]
     # hierarchy = 0  # 0: intra-machine, 1: inter-machine
     hierarchy = None    # define in exps !!!
@@ -30,20 +30,23 @@ def get_exp_configs():
     return exp_configs
 
 def get_configs():
-    # SP0, SP1 = 1, 4
+    hierarchy = None    # define in exps !!!
+    
+    # for Intra:
+    SP0, SP1 = 1, 4
     # SP0, SP1 = 1, 8
     # Sq = Skv = 16 * 1024   # 16k
     # Sq = Skv = 8 * 1024   # 8k
     
-    hierarchy = None    # define in exps !!!
     
-    SP0, SP1 = 1, 8
-    SP0, SP1 = 2, 8
-    # SP0, SP1 = 3, 8
-    SP0, SP1 = 4, 8
-    # # SP0, SP1 = 6, 8
-    # SP0, SP1 = 8, 8
-    # SP0, SP1 = 16, 8
+    # for Inter:
+    # SP0, SP1 = 1, 8
+    # SP0, SP1 = 2, 8
+    # # SP0, SP1 = 3, 8
+    # SP0, SP1 = 4, 8
+    # # # SP0, SP1 = 6, 8
+    # # SP0, SP1 = 8, 8
+    # # SP0, SP1 = 16, 8
 
     Sq = Skv = 256   # S per GPU
     Sq = Skv = 512   # S per GPU
@@ -59,7 +62,7 @@ def get_configs():
         4 * 1024, 
         8 * 1024, 
         16 * 1024, 
-        32 * 1024,    # fused failed !!!
+        32 * 1024,    # fused failed on 8 * 8!!!
         # 64 * 1024,    # fused failed !!!
     ]    # S per GPU
     # Ss = [16 * 1024]    # S per GPU
@@ -73,7 +76,7 @@ def get_configs():
     bs = 1
     D = 128
     causal = False
-    causal = True
+    # causal = True
     
     tot_sp = SP0 * SP1
     da_configs = []
@@ -304,8 +307,8 @@ def main():
             print(f'da_config: {da_config}', flush=True)
             # run_cc_optimal_exp(exp_config, da_config)
             # run_exp(exp_config, da_config)
-            generate_inter_execution_plans(exp_config, da_config)
-            # generate_intra_execution_plans(exp_config, da_config)
+            # generate_inter_execution_plans(exp_config, da_config) # for causal
+            generate_intra_execution_plans(exp_config, da_config)   # for causal
 
 if __name__ == '__main__':
     main()

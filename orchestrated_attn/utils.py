@@ -327,8 +327,20 @@ class IntraComm:
         ncclcomm.recv(idata.data, self.rank < global_src, stream)
         return idata
 
-class IntraComm_fused:
+class Comm_Fused():
+    def all_gather(self, type: str, send_idata: Integrated_Data, recv_tensor: torch.Tensor, stream: torch.cuda.Stream) -> None:
+        assert type in ['r', 'c']
+        ncclcomm: PyNcclCommunicator = self.r_ncclcomm if type == 'r' else self.c_ncclcomm
+        ncclcomm.all_gather(send_idata.data, recv_tensor, stream)
+    
+    def reduce_scatter(self, type: str, send_tensor: torch.Tensor, recv_idata: Integrated_Data, stream: torch.cuda.Stream) -> None:
+        assert type in ['r', 'c']
+        ncclcomm: PyNcclCommunicator = self.r_ncclcomm if type == 'r' else self.c_ncclcomm
+        ncclcomm.reduce_scatter(send_tensor, recv_idata.data, stream=stream)
+
+class IntraComm_fused(Comm_Fused):
     def __init__(self, PROC_INFO: dict, X: int, Y: int):
+        super().__init__()
         self.rank = PROC_INFO['rank']
         self.world_size = PROC_INFO['world_size']
         self.local_rank = PROC_INFO['local_rank']
@@ -342,14 +354,20 @@ class IntraComm_fused:
         ncclcomm_dict = get_global_var('ncclcomm_dict')
         self.r_ncclcomm: PyNcclCommunicator = ncclcomm_dict[r_key]
         self.c_ncclcomm: PyNcclCommunicator = ncclcomm_dict[c_key]
-    
-    def all_gather(self, type: str, send_idata: Integrated_Data, recv_tensor: torch.Tensor, stream: torch.cuda.Stream) -> None:
-        assert type in ['r', 'c']
-        ncclcomm: PyNcclCommunicator = self.r_ncclcomm if type == 'r' else self.c_ncclcomm
-        ncclcomm.all_gather(send_idata.data, recv_tensor, stream)
-    
-    def reduce_scatter(self, type: str, send_tensor: torch.Tensor, recv_idata: Integrated_Data, stream: torch.cuda.Stream) -> None:
-        assert type in ['r', 'c']
-        ncclcomm: PyNcclCommunicator = self.r_ncclcomm if type == 'r' else self.c_ncclcomm
-        ncclcomm.reduce_scatter(send_tensor, recv_idata.data, stream=stream)
-    
+
+class InterComm_fused(Comm_Fused):
+    def __init__(self, PROC_INFO: dict, X: int, Y: int):
+        super().__init__()
+        rank = PROC_INFO['rank']
+        world_size = PROC_INFO['world_size']
+        local_rank = PROC_INFO['local_rank']
+        local_size = PROC_INFO['tasks_per_node']
+        node_id = PROC_INFO['nodeid']
+        
+        cur_x_id = node_id % X
+        cur_y_id = node_id // X
+        r_key = tuple(range(cur_y_id * X * local_size + local_rank, (cur_y_id + 1) * X * local_size + local_rank, local_size))
+        c_key = tuple(range(cur_x_id * local_size + local_rank, world_size, X * local_size))
+        ncclcomm_dict = get_global_var('ncclcomm_dict')
+        self.r_ncclcomm: PyNcclCommunicator = ncclcomm_dict[r_key]
+        self.c_ncclcomm: PyNcclCommunicator = ncclcomm_dict[c_key]

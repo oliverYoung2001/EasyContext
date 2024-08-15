@@ -1,0 +1,99 @@
++ export CUDA_DEVICE_MAX_CONNECTIONS=32
++ CUDA_DEVICE_MAX_CONNECTIONS=32
++ srun -p rag -N 1 --ntasks-per-node=8 --gres=gpu:8 --mem 256G -K -w g3015 -c 16 ./scripts/bench_ring_attn.sh python bench_ring_attn.py
+srun: job 17939 queued and waiting for resources
+srun: job 17939 has been allocated resources
+torch distributed is already initialized, skipping initialization ...
+************ Finish sequence pralell group Initialization. ***********
+Sqkvs: [256, 512, 1024, 2048, 4096, 8192, 16384, 32768]
+total_size: 60599304192
+causal=False, fob=1:
+da_config: SP=(8,1),Sg=(256,256),S=(2048,2048),Nh=(32,32),bs=1,D=128,causal=False,hierarchy=1:
+YXs: [(1, 8), (2, 4), (4, 2), (8, 1)]
+# ring_flash_attn_func, bwd
+[W ProcessGroupNCCL.cpp:1856] Warning: 0NCCL_AVOID_RECORD_STREAMS=1 has no effect for point-to-point collectives. (function operator())
+[W ProcessGroupNCCL.cpp:1856] Warning: 0NCCL_AVOID_RECORD_STREAMS=1 has no effect for point-to-point collectives. (function operator())
+[W ProcessGroupNCCL.cpp:1856] Warning: 0NCCL_AVOID_RECORD_STREAMS=1 has no effect for point-to-point collectives. (function operator())
+[W ProcessGroupNCCL.cpp:1856] Warning: 0NCCL_AVOID_RECORD_STREAMS=1 has no effect for point-to-point collectives. (function operator())
+[W ProcessGroupNCCL.cpp:1856] Warning: 0NCCL_AVOID_RECORD_STREAMS=1 has no effect for point-to-point collectives. (function operator())
+[W ProcessGroupNCCL.cpp:1856] Warning: 0NCCL_AVOID_RECORD_STREAMS=1 has no effect for point-to-point collectives. (function operator())
+[W ProcessGroupNCCL.cpp:1856] Warning: 0NCCL_AVOID_RECORD_STREAMS=1 has no effect for point-to-point collectives. (function operator())
+[W ProcessGroupNCCL.cpp:1856] Warning: 0NCCL_AVOID_RECORD_STREAMS=1 has no effect for point-to-point collectives. (function operator())
+[W ProcessGroupNCCL.cpp:1856] Warning: 0NCCL_AVOID_RECORD_STREAMS=1 has no effect for point-to-point collectives. (function operator())
+[W ProcessGroupNCCL.cpp:1856] Warning: 0NCCL_AVOID_RECORD_STREAMS=1 has no effect for point-to-point collectives. (function operator())
+[W ProcessGroupNCCL.cpp:1856] Warning: 0NCCL_AVOID_RECORD_STREAMS=1 has no effect for point-to-point collectives. (function operator())
+[W ProcessGroupNCCL.cpp:1856] Warning: 0NCCL_AVOID_RECORD_STREAMS=1 has no effect for point-to-point collectives. (function operator())
+[W ProcessGroupNCCL.cpp:1856] Warning: 0NCCL_AVOID_RECORD_STREAMS=1 has no effect for point-to-point collectives. (function operator())
+[W ProcessGroupNCCL.cpp:1856] Warning: 0NCCL_AVOID_RECORD_STREAMS=1 has no effect for point-to-point collectives. (function operator())
+[W ProcessGroupNCCL.cpp:1856] Warning: 0NCCL_AVOID_RECORD_STREAMS=1 has no effect for point-to-point collectives. (function operator())
+[W ProcessGroupNCCL.cpp:1856] Warning: 0NCCL_AVOID_RECORD_STREAMS=1 has no effect for point-to-point collectives. (function operator())
+mfu: 2.744 Tflops/s, hfu: 3.431 Tflops/s, 159.746 iter/s, 6.260e-03 s/iter, (2.271, 0.001, 0.025) sec
+# orchestrated_attn_func
+mfu: 29.761 Tflops/s, hfu: 37.201 Tflops/s, 1732.310 iter/s, 5.773e-04 s/iter, (31.991, 0.000, 0.002) sec
+mfu: 35.347 Tflops/s, hfu: 44.183 Tflops/s, 2057.444 iter/s, 4.860e-04 s/iter, (0.077, 0.000, 0.002) sec
+mfu: 34.149 Tflops/s, hfu: 42.686 Tflops/s, 1987.724 iter/s, 5.031e-04 s/iter, (0.071, 0.000, 0.002) sec
+mfu: 27.85 Tflops/s, hfu: 34.813 Tflops/s, 1621.103 iter/s, 6.169e-04 s/iter, (0.071, 0.000, 0.002) sec
+da_config: SP=(8,1),Sg=(512,512),S=(4096,4096),Nh=(32,32),bs=1,D=128,causal=False,hierarchy=1:
+YXs: [(1, 8), (2, 4), (4, 2), (8, 1)]
+# ring_flash_attn_func, bwd
+mfu: 16.607 Tflops/s, hfu: 20.759 Tflops/s, 241.662 iter/s, 4.138e-03 s/iter, (0.012, 0.000, 0.017) sec
+# orchestrated_attn_func
+mfu: 60.873 Tflops/s, hfu: 76.091 Tflops/s, 885.815 iter/s, 1.129e-03 s/iter, (0.074, 0.000, 0.005) sec
+mfu: 63.132 Tflops/s, hfu: 78.915 Tflops/s, 918.692 iter/s, 1.089e-03 s/iter, (0.072, 0.000, 0.004) sec
+mfu: 61.471 Tflops/s, hfu: 76.839 Tflops/s, 894.525 iter/s, 1.118e-03 s/iter, (0.072, 0.000, 0.004) sec
+mfu: 50.714 Tflops/s, hfu: 63.392 Tflops/s, 737.986 iter/s, 1.355e-03 s/iter, (0.072, 0.000, 0.005) sec
+da_config: SP=(8,1),Sg=(1024,1024),S=(8192,8192),Nh=(32,32),bs=1,D=128,causal=False,hierarchy=1:
+YXs: [(1, 8), (2, 4), (4, 2), (8, 1)]
+# ring_flash_attn_func, bwd
+mfu: 59.729 Tflops/s, hfu: 74.661 Tflops/s, 217.291 iter/s, 4.602e-03 s/iter, (0.016, 0.000, 0.018) sec
+# orchestrated_attn_func
+mfu: 98.474 Tflops/s, hfu: 123.093 Tflops/s, 358.247 iter/s, 2.791e-03 s/iter, (0.086, 0.000, 0.011) sec
+mfu: 90.872 Tflops/s, hfu: 113.59 Tflops/s, 330.592 iter/s, 3.025e-03 s/iter, (0.078, 0.000, 0.012) sec
+mfu: 91.395 Tflops/s, hfu: 114.243 Tflops/s, 332.492 iter/s, 3.008e-03 s/iter, (0.075, 0.000, 0.012) sec
+mfu: 91.505 Tflops/s, hfu: 114.381 Tflops/s, 332.894 iter/s, 3.004e-03 s/iter, (0.075, 0.000, 0.012) sec
+da_config: SP=(8,1),Sg=(2048,2048),S=(16384,16384),Nh=(32,32),bs=1,D=128,causal=False,hierarchy=1:
+YXs: [(1, 8), (2, 4), (4, 2), (8, 1)]
+# ring_flash_attn_func, bwd
+mfu: 90.234 Tflops/s, hfu: 112.793 Tflops/s, 82.068 iter/s, 1.219e-02 s/iter, (0.047, 0.000, 0.049) sec
+# orchestrated_attn_func
+mfu: 126.833 Tflops/s, hfu: 158.541 Tflops/s, 115.354 iter/s, 8.669e-03 s/iter, (0.095, 0.000, 0.035) sec
+mfu: 112.447 Tflops/s, hfu: 140.558 Tflops/s, 102.270 iter/s, 9.778e-03 s/iter, (0.091, 0.000, 0.039) sec
+mfu: 114.04 Tflops/s, hfu: 142.55 Tflops/s, 103.719 iter/s, 9.641e-03 s/iter, (0.089, 0.000, 0.039) sec
+mfu: 120.003 Tflops/s, hfu: 150.004 Tflops/s, 109.142 iter/s, 9.162e-03 s/iter, (0.088, 0.000, 0.037) sec
+da_config: SP=(8,1),Sg=(4096,4096),S=(32768,32768),Nh=(32,32),bs=1,D=128,causal=False,hierarchy=1:
+YXs: [(1, 8), (2, 4), (4, 2), (8, 1)]
+# ring_flash_attn_func, bwd
+mfu: 107.847 Tflops/s, hfu: 134.809 Tflops/s, 24.522 iter/s, 4.078e-02 s/iter, (0.092, 0.000, 0.163) sec
+# orchestrated_attn_func
+mfu: 130.362 Tflops/s, hfu: 162.953 Tflops/s, 29.641 iter/s, 3.374e-02 s/iter, (0.163, 0.000, 0.135) sec
+mfu: 121.492 Tflops/s, hfu: 151.866 Tflops/s, 27.624 iter/s, 3.620e-02 s/iter, (0.145, 0.000, 0.145) sec
+mfu: 124.73 Tflops/s, hfu: 155.912 Tflops/s, 28.360 iter/s, 3.526e-02 s/iter, (0.139, 0.000, 0.141) sec
+mfu: 133.158 Tflops/s, hfu: 166.448 Tflops/s, 30.277 iter/s, 3.303e-02 s/iter, (0.139, 0.000, 0.132) sec
+da_config: SP=(8,1),Sg=(8192,8192),S=(65536,65536),Nh=(32,32),bs=1,D=128,causal=False,hierarchy=1:
+YXs: [(1, 8), (2, 4), (4, 2), (8, 1)]
+# ring_flash_attn_func, bwd
+mfu: 111.948 Tflops/s, hfu: 139.935 Tflops/s, 6.363 iter/s, 1.571e-01 s/iter, (0.324, 0.000, 0.629) sec
+# orchestrated_attn_func
+mfu: 135.574 Tflops/s, hfu: 169.467 Tflops/s, 7.706 iter/s, 1.298e-01 s/iter, (0.336, 0.000, 0.519) sec
+mfu: 130.423 Tflops/s, hfu: 163.028 Tflops/s, 7.414 iter/s, 1.349e-01 s/iter, (0.354, 0.000, 0.540) sec
+mfu: 129.487 Tflops/s, hfu: 161.859 Tflops/s, 7.361 iter/s, 1.359e-01 s/iter, (0.351, 0.000, 0.543) sec
+mfu: 125.428 Tflops/s, hfu: 156.785 Tflops/s, 7.130 iter/s, 1.403e-01 s/iter, (0.356, 0.000, 0.561) sec
+da_config: SP=(8,1),Sg=(16384,16384),S=(131072,131072),Nh=(32,32),bs=1,D=128,causal=False,hierarchy=1:
+YXs: [(1, 8), (2, 4), (4, 2), (8, 1)]
+# ring_flash_attn_func, bwd
+mfu: 105.415 Tflops/s, hfu: 131.769 Tflops/s, 1.498 iter/s, 6.675e-01 s/iter, (1.289, 0.000, 2.670) sec
+# orchestrated_attn_func
+mfu: 117.411 Tflops/s, hfu: 146.764 Tflops/s, 1.669 iter/s, 5.993e-01 s/iter, (1.248, 0.000, 2.397) sec
+mfu: 124.336 Tflops/s, hfu: 155.42 Tflops/s, 1.767 iter/s, 5.660e-01 s/iter, (1.177, 0.000, 2.264) sec
+mfu: 133.705 Tflops/s, hfu: 167.131 Tflops/s, 1.900 iter/s, 5.263e-01 s/iter, (1.158, 0.000, 2.105) sec
+mfu: 128.14 Tflops/s, hfu: 160.176 Tflops/s, 1.821 iter/s, 5.492e-01 s/iter, (1.191, 0.000, 2.197) sec
+da_config: SP=(8,1),Sg=(32768,32768),S=(262144,262144),Nh=(32,32),bs=1,D=128,causal=False,hierarchy=1:
+YXs: [(1, 8), (2, 4), (4, 2), (8, 1)]
+# ring_flash_attn_func, bwd
+mfu: 87.331 Tflops/s, hfu: 109.164 Tflops/s, 0.310 iter/s, 3.223e+00 s/iter, (6.138, 0.000, 12.892) sec
+# orchestrated_attn_func
+mfu: 119.895 Tflops/s, hfu: 149.869 Tflops/s, 0.426 iter/s, 2.348e+00 s/iter, (4.841, 0.000, 9.391) sec
+mfu: 125.79 Tflops/s, hfu: 157.238 Tflops/s, 0.447 iter/s, 2.238e+00 s/iter, (4.870, 0.000, 8.951) sec
+mfu: 108.997 Tflops/s, hfu: 136.246 Tflops/s, 0.387 iter/s, 2.582e+00 s/iter, (4.978, 0.000, 10.330) sec
+mfu: 116.434 Tflops/s, hfu: 145.542 Tflops/s, 0.414 iter/s, 2.417e+00 s/iter, (5.218, 0.000, 9.670) sec
++ set +x

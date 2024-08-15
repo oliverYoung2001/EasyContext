@@ -129,6 +129,12 @@ def execute_inter_kernel(kernel: Cuda_Kernel, data_dict: dict, PROC_INFO, comp_f
         # if True:
             # step1: wait for precursors
             for precursor in kernel.precursors:
+                if not hasattr(precursor, 'in_ranks'):  # filter bad dependency !!!
+                    continue
+                # remove dependency between kernels on the same stream
+                if (isinstance(precursor, Comp_Kernel) and isinstance(kernel, Comp_Kernel)) \
+                or (isinstance(precursor, Comm_Kernel) and isinstance(kernel, Comm_Kernel) and precursor.stream.cuda_stream == kernel.stream.cuda_stream):
+                    continue
                 if hasattr(precursor, 'in_ranks') and rank in precursor.in_ranks:
                     if hasattr(precursor, 'sub_streams'):       # precursor is a comp kernel !!!
                         assert isinstance(kernel, Comm_Kernel)  # Current is a comm kernel !!!
@@ -192,8 +198,92 @@ def execute_inter_kernel(kernel: Cuda_Kernel, data_dict: dict, PROC_INFO, comp_f
             else:                               # Current is a comm kernel !!!
                 kernel.event = torch.cuda.Event()
                 kernel.event.record(kernel.stream)
+                
+def stream_wait_event(stream: Union[torch.cuda.Stream, list], event: torch.cuda.Event):
+    if isinstance(stream, torch.cuda.Stream):
+        stream.wait_event(event)
+    else:
+        stream[0].wait_event(event)
+        stream[1].wait_event(event)
+        
+def fused_attn_forward(execution_plan: Fused_Execution_Plan, comm: Comm_Fused, streams: list, level_rank: int, fwd_comp_func):
+    X, Y = execution_plan.X, execution_plan.Y
+    cur_x_id = level_rank % X
+    cur_y_id = level_rank // X  
+    buf_dict = execution_plan.buf_dict
+    inp_row = buf_dict['inp_row']
+    inp_col = buf_dict['inp_col']
+    
+    or_nelems = buf_dict['or_nelems']
+    out_row = buf_dict['or'][or_nelems * cur_x_id: or_nelems * (cur_x_id + 1)]
 
-
+    event_ir = torch.cuda.Event()
+    event_ic = torch.cuda.Event()
+    event_comp = torch.cuda.Event()
+    # Allgather rc
+    comm.all_gather('c', inp_col, buf_dict['ic'], streams[1])
+    event_ic.record(streams[1])
+    comm.all_gather('r', inp_row, buf_dict['ir'], streams[1])
+    event_ir.record(streams[1])
+    
+    if isinstance(streams[0], torch.cuda.Stream):
+        comp_stream = streams[0]
+    else:
+        events = [
+            torch.cuda.Event(), # Comp Stream
+            None,               # Send Stream
+            torch.cuda.Event(), # Recv Stream
+        ]
+        comp_stream = streams[0][0]
+    # Comp
+    with torch.cuda.stream(comp_stream):
+        # step1: input data layout transform
+        # if execution_plan.da_config.bs != 1:    # always bs == 1 !!!
+        if inp_row.Q.shape[0] != 1:     # bs == 1
+            raise NotImplementedError
+        Q_shape = list(inp_row.Q.shape)
+        assert len(Q_shape) == 4    # (bs, Sq, Nh, D)
+        Q_shape_row = copy.deepcopy(Q_shape)
+        Q_shape_row[1] *= X         # (bs, X * Sq, Nh, D)
+        inp_row_tot = Input_Row_Fwd(buf_dict['ir'].view(Q_shape_row))
+        
+        K_shape = list(inp_col.K.shape) # (bs, Skv, Nh, D)
+        K_shape_col = copy.deepcopy(K_shape)
+        K_shape_col[1] *= Y             # (bs, Y * Skv, Nh, D)
+        K_shape_col_tot = copy.deepcopy(K_shape)
+        K_shape_col_tot = [Y, 2] + K_shape_col_tot  # (Y, 2, bs, Skv, Nh, D)
+        comp_stream.wait_event(event_ic)    # [NOTE]: maybe error here !!! in inter level !!!
+        inp_col_tot_data = buf_dict['ic'].view(K_shape_col_tot).transpose(0, 1).transpose(1, 2).flatten(2, 3).contiguous()    # [2, bs, Y * Skv, Nh, D]
+        K_tot = inp_col_tot_data[0]  # [bs, Y * Skv, Nh, D]
+        V_tot = inp_col_tot_data[1]  # [bs, Y * Skv, Nh, D]
+        inp_col_tot = Input_Col_Fwd(K_tot, V_tot, inp_col_tot_data.flatten())
+        
+        out_row_tot = Output_Row_Fwd(buf_dict['or'].view(Q_shape_row))
+        out_col_tot = None
+        
+        # step2: execute flashattn kernel
+        stream_wait_event(streams[0], event_ir)
+        fwd_comp_func(inp_row_tot, inp_col_tot, out_row_tot, out_col_tot)
+        
+        # step3: output data layout transform
+        pass
+        if isinstance(streams[0], torch.cuda.Stream):
+            event_comp.record(streams[0])
+        else:
+            events[0].record(streams[0][0])
+            events[2].record(streams[0][2])
+        
+    
+    # ReduceScatter rc
+    if isinstance(streams[0], torch.cuda.Stream):
+        streams[2].wait_event(event_comp)
+    else:
+        streams[2].wait_event(events[0])
+        streams[2].wait_event(events[2])
+    comm.reduce_scatter('r', buf_dict['or'], out_row, streams[2])
+    # comm.all_gather('c', buf_dict['oc'], out_col, streams[2])
+    return out_row
+    
 def intra_attn_forward(
     inp_row: Input_Row_Fwd,
     inp_col: Input_Col_Fwd,
@@ -235,6 +325,8 @@ def intra_attn_forward(
         lse = lse.transpose(-2, -1).contiguous().unsqueeze(dim=-1) # block_out, block_lse # [mbs, S, Nh, D], [mbs, S, Nh, 1]
         return (Output_Row_Fwd(O, lse), Output_Col_Fwd())
     
+    unified_fwd_comp_func = partial(fwd_comp_func, causal=causal)
+    
     if buf_dict['graph_type'] == 'general':    # general cases        
         # initialize Comm
         comm = IntraComm(PROC_INFO)
@@ -245,61 +337,14 @@ def intra_attn_forward(
     elif buf_dict['graph_type'] == 'fused':   # (X, Y) cases
         assert causal == False, 'Intra attn XY not support causal == True'
         X, Y = execution_plan.X, execution_plan.Y
-        cur_x_id = local_rank % X
-        cur_y_id = local_rank // X  
         comm = IntraComm_fused(PROC_INFO, X, Y)
-        or_nelems = buf_dict['or_nelems']
-        out_row = buf_dict['or'][or_nelems * cur_x_id: or_nelems * (cur_x_id + 1)]
-
-        event_ir = torch.cuda.Event()
-        event_ic = torch.cuda.Event()
-        event_comp = torch.cuda.Event()
-        # Allgather rc
-        comm.all_gather('c', inp_col, buf_dict['ic'], intra_streams[1])
-        event_ic.record(intra_streams[1])
-        comm.all_gather('r', inp_row, buf_dict['ir'], intra_streams[1])
-        event_ir.record(intra_streams[1])
-        
-        # Comp
-        with torch.cuda.stream(intra_streams[0]):
-            # step1: input data layout transform
-            # if execution_plan.da_config.bs != 1:    # always bs == 1 !!!
-            if inp_row.Q.shape[0] != 1:     # bs == 1
-                raise NotImplementedError
-            Q_shape = list(inp_row.Q.shape)
-            assert len(Q_shape) == 4    # (bs, Sq, Nh, D)
-            Q_shape_row = copy.deepcopy(Q_shape)
-            Q_shape_row[1] *= X         # (bs, X * Sq, Nh, D)
-            inp_row_tot = Input_Row_Fwd(buf_dict['ir'].view(Q_shape_row))
-            
-            K_shape = list(inp_col.K.shape) # (bs, Skv, Nh, D)
-            K_shape_col = copy.deepcopy(K_shape)
-            K_shape_col[1] *= Y             # (bs, Y * Skv, Nh, D)
-            K_shape_col_tot = copy.deepcopy(K_shape)
-            K_shape_col_tot = [Y, 2] + K_shape_col_tot  # (Y, 2, bs, Skv, Nh, D)
-            intra_streams[0].wait_event(event_ic)
-            inp_col_tot_data = buf_dict['ic'].view(K_shape_col_tot).transpose(0, 1).transpose(1, 2).flatten(2, 3).contiguous()    # [2, bs, Y * Skv, Nh, D]
-            K_tot = inp_col_tot_data[0]  # [bs, Y * Skv, Nh, D]
-            V_tot = inp_col_tot_data[1]  # [bs, Y * Skv, Nh, D]
-            inp_col_tot = Input_Col_Fwd(K_tot, V_tot, inp_col_tot_data.flatten())
-            
-            out_row_tot = Output_Row_Fwd(buf_dict['or'].view(Q_shape_row))
-            out_col_tot = None
-            
-            # step2: execute flashattn kernel
-            intra_streams[0].wait_event(event_ir)
-            fwd_comp_func(inp_row_tot, inp_col_tot, out_row_tot, out_col_tot, causal)
-            
-            # step3: output data layout transform
-            pass
-        
-            event_comp.record(intra_streams[0])
-        
-        # ReduceScatter rc
-        intra_streams[2].wait_event(event_comp)
-        comm.reduce_scatter('r', buf_dict['or'], out_row, intra_streams[2])
-        # comm.all_gather('c', buf_dict['oc'], out_col, streams[2])
-        return out_row
+        return fused_attn_forward(
+            execution_plan=execution_plan,
+            comm=comm,
+            streams=intra_streams,
+            level_rank=local_rank,
+            fwd_comp_func=unified_fwd_comp_func,
+        )
     else:
         raise Exception(f"graph_type {buf_dict['graph_type']} not supported !!!")
 
@@ -327,15 +372,15 @@ def orchestrated_attn_forward(
     # Parse buf_dict
     buf_dict = inter_execution_plan.buf_dict
         
-    da_config = inter_execution_plan.da_config
-    assert inter_execution_plan.hierarchy_sp == PROC_INFO['node_num']
-    assert inter_execution_plan.split_degrees[2] == 1 and inter_execution_plan.split_degrees[3] == 1
-    
-    # # Inter-level
-    # data_dict = {}  # (b_id, h_id, r/c_id, i/o, r/c) -> Integrated_Data
-    # initialize Comm
-    comm = InterComm(PROC_INFO)
-    
+    if hasattr(inter_execution_plan, 'hierarchy_sp'):
+        assert inter_execution_plan.hierarchy_sp == PROC_INFO['node_num']
+    else:
+        assert inter_execution_plan.X * inter_execution_plan.Y == PROC_INFO['node_num']
+    # assert inter_execution_plan.split_degrees[2] == 1 and inter_execution_plan.split_degrees[3] == 1
+    inter_streams = copy.copy(get_global_var('streams')['inter'])
+    # modify inter_streams[0] to intra_streams
+    inter_streams[0] = get_global_var('streams')['intra']
+
     p_fwd_inter_comp_func = partial(
         intra_attn_forward, 
         softmax_scale=softmax_scale,
@@ -347,9 +392,156 @@ def orchestrated_attn_forward(
         PROC_INFO=PROC_INFO,
         
     )    # [NOTE]: fuse of not fuse !!!
-    for kernel in inter_execution_plan.gpu_kernel_lists[node_id]:
-        execute_inter_kernel(kernel, None, PROC_INFO, p_fwd_inter_comp_func, comm, buf_dict, causal)
-    return inter_execution_plan.buf_dict['out_row'], inter_execution_plan.buf_dict['out_col']
+    
+    if buf_dict['graph_type'] == 'general':    # general cases 
+        # initialize Comm
+        comm = InterComm(PROC_INFO)
+        for kernel in inter_execution_plan.gpu_kernel_lists[node_id]:
+            execute_inter_kernel(kernel, None, PROC_INFO, p_fwd_inter_comp_func, comm, buf_dict, causal)
+        return inter_execution_plan.buf_dict['out_row'], inter_execution_plan.buf_dict['out_col']
+    elif buf_dict['graph_type'] == 'fused':   # (X, Y) cases
+        assert causal == False, 'Intra attn XY not support causal == True'
+        assert hasattr(inter_execution_plan, 'kernel_execution_plan')
+        X, Y = inter_execution_plan.X, inter_execution_plan.Y
+        comm = InterComm_fused(PROC_INFO, X, Y)
+        def unified_fwd_comp_func(inp_row: Input_Row_Fwd, inp_col: Input_Col_Fwd, 
+                                  out_row: Output_Row_Fwd, out_col: Output_Col_Fwd):
+            return p_fwd_inter_comp_func(
+                inp_row=inp_row,
+                inp_col=inp_col,
+                causal=causal,
+                execution_plan=inter_execution_plan.kernel_execution_plan,
+            )
+        return fused_attn_forward(
+            execution_plan=inter_execution_plan,
+            comm=comm,
+            streams=inter_streams,
+            level_rank=node_id,
+            fwd_comp_func=unified_fwd_comp_func,
+        )
+    else:
+        raise Exception(f"graph_type {buf_dict['graph_type']} not supported !!!")
+
+def fused_attn_backward(execution_plan: Fused_Execution_Plan, comm: Comm_Fused, streams: list, level_rank: int, bwd_comp_func):
+    X, Y = execution_plan.X, execution_plan.Y
+    cur_x_id = level_rank % X   # [0, X)
+    cur_y_id = level_rank // X  # [0, Y)
+    buf_dict = execution_plan.buf_dict
+    ir_nelems= buf_dict['ir_nelems']
+    or_nelems = buf_dict['or_nelems']
+    oc_nelems = buf_dict['oc_nelems']
+    inp_row = buf_dict['inp_row']
+    inp_col = buf_dict['inp_col']
+    out_row = buf_dict['or'][or_nelems * cur_x_id: or_nelems * (cur_x_id + 1)]
+    out_col = buf_dict['oc'][oc_nelems * cur_y_id: oc_nelems * (cur_y_id + 1)]
+
+    event_ir = torch.cuda.Event()
+    event_ic = torch.cuda.Event()
+    event_oc = torch.cuda.Event()
+    event_comp = torch.cuda.Event()
+    # # Allgather rc
+    comm.all_gather('r', inp_row, buf_dict['ir'], streams[1])
+    event_ir.record(streams[1])
+    comm.all_gather('c', inp_col, buf_dict['ic'], streams[1])
+    event_ic.record(streams[1])
+    
+    if isinstance(streams[0], torch.cuda.Stream):
+        comp_stream = streams[0]
+    else:
+        events = [
+            torch.cuda.Event(), # Comp Stream
+            None,               # Send Stream
+            torch.cuda.Event(), # Recv Stream
+        ]
+        comp_stream = streams[0][0]
+    # Comp
+    with torch.cuda.stream(comp_stream):
+        # step1: input data layout transform
+        # if execution_plan.da_config.bs == 1:    # always true !!!
+        if inp_row.Q.shape[0] == 1:     # bs == 1
+            Q_shape = list(inp_row.Q.shape)     # (bs, Sq, Nh, D)
+            Q_nelem = math.prod(Q_shape)
+            K_shape = list(inp_col.K.shape)     # (bs, Skv, Nh, D)
+            K_nelem = math.prod(K_shape)
+            lse_shape = list(inp_row.lse.shape) # (bs, Nh, Sq)
+            lse_nelem = math.prod(lse_shape)
+            assert len(Q_shape) == 4        # (bs, Sq, Nh, D)
+            assert len(K_shape) == 4        # (bs, Skv, Nh, D)
+            assert len(lse_shape) == 3      # (bs, Nh, Sq)
+
+            # ir_tot
+            comp_stream.wait_event(event_ir)
+            Q_shape_row = copy.deepcopy(Q_shape)
+            Q_shape_row[1] *= X         # (bs, X * Sq, Nh, D)
+            Q_nelem_row = math.prod(Q_shape_row)
+            lse_shape_row = copy.deepcopy(lse_shape)
+            assert lse_shape_row[1] == 1, 'Now Nh > 1 not supported in fused backward !!!'    # Nh == 1
+            lse_shape_row[2] *= X       # (bs, Nh, X * Sq)
+            lse_nelem_row = math.prod(lse_shape_row)
+            t_list = []
+            offsets = [0, Q_nelem, 2 * Q_nelem, 2 * Q_nelem + 2 * lse_nelem, 2 * Q_nelem + 3 * lse_nelem]   # Q, dO, D, lse
+            assert ir_nelems == offsets[-1]
+            for idx in range(len(offsets) - 1):
+                for x in range(X):
+                    t_list.append(buf_dict['ir'][ir_nelems * x + offsets[idx]: ir_nelems * x + offsets[idx + 1]].flatten())
+            inp_row_tot_data = torch.cat(t_list, out=buf_dict['ir_'])    # [NOTE]: passed !!!
+            # inp_row_tot_data = torch.cat(t_list)                       # failed !!!
+            assert inp_row_tot_data.numel() == 2 * Q_nelem_row + 3 * lse_nelem_row
+            
+            Q_tot = inp_row_tot_data[: Q_nelem_row].view(Q_shape_row)
+            dO_tot = inp_row_tot_data[Q_nelem_row: 2 * Q_nelem_row].view(Q_shape_row)
+            D_tot = inp_row_tot_data[2 * Q_nelem_row: - lse_nelem_row].view(FULL_DTYPE).view(lse_shape_row)
+            lse_tot = inp_row_tot_data[- lse_nelem_row: ].view(lse_shape_row)
+            inp_row_tot = Input_Row_Bwd(Q_tot, dO_tot, D_tot, lse_tot, inp_row_tot_data)
+            
+            # ic_tot
+            K_shape_col = copy.deepcopy(K_shape)
+            K_shape_col[1] *= Y     # (bs, Y * Skv, Nh, D)
+            K_nelem_col = math.prod(K_shape_col)
+            K_shape_col_tot = copy.deepcopy(K_shape)
+            K_shape_col_tot = [Y, 2] + K_shape_col_tot  # (Y, 2, bs, Skv, Nh, D)
+            comp_stream.wait_event(event_ic)
+            inp_col_tot_data = buf_dict['ic'].view(K_shape_col_tot).transpose(0, 1).transpose(1, 2).flatten(2, 3).contiguous() # [2, bs, Y * Skv, Nh, D]
+            K_tot = inp_col_tot_data[0]  # [bs, Y * Skv, Nh, D]
+            V_tot = inp_col_tot_data[1]  # [bs, Y * Skv, Nh, D]
+            inp_col_tot = Input_Col_Bwd(K_tot, V_tot, inp_col_tot_data.flatten())
+            
+            # or_tot
+            out_row_tot = Output_Row_Bwd(buf_dict['or'].view(Q_shape_row))
+            
+            # oc_tot
+            dK_tot = buf_dict['oc'][: K_nelem_col].view(K_shape_col)
+            dV_tot = buf_dict['oc'][K_nelem_col: ].view(K_shape_col)
+            out_col_tot = Output_Col_Bwd(dK_tot, dV_tot, buf_dict['oc'].flatten())
+        else:
+            raise NotImplementedError()
+        # step2: execute flashattn kernel
+        # print_rank_0(f"buf['ir']: {buf_dict['ir'].data_ptr()}, buf['ic']: {buf_dict['ic'].data_ptr()}, "
+        #              f"buf['or']: {buf_dict['or'].data_ptr()}, buf['oc']: {buf_dict['oc'].data_ptr()}")
+        # print_rank_0(f'inp_row_tot: {inp_row_tot.data.data_ptr()}, inp_col_tot: {inp_col_tot.data.data_ptr()}, '
+        #              f'out_row_tot: {out_row_tot.data.data_ptr()}, out_col_tot: {out_col_tot.data.data_ptr()}')
+        stream_wait_event(streams[0], event_ic)
+        bwd_comp_func(inp_row_tot, inp_col_tot, out_row_tot, out_col_tot)
+        if isinstance(streams[0], torch.cuda.Stream):
+            event_comp.record(streams[0])
+        else:
+            events[0].record(streams[0][0])
+            events[2].record(streams[0][2])
+    
+    # ReduceScatter rc
+    if isinstance(streams[0], torch.cuda.Stream):
+        streams[2].wait_event(event_comp)
+    else:
+        streams[2].wait_event(events[0])
+        streams[2].wait_event(events[2])
+    comm.reduce_scatter('r', buf_dict['or'], out_row, streams[2])
+    with torch.cuda.stream(comp_stream):    # [NOTE]: maybe error here !!! in inter level !!!
+        # step3: output  layout transform
+        out_col_tot_data = buf_dict['oc'].view((2, Y, K_nelem)).transpose(0, 1).contiguous()    # [Y, 2, bs, Skv, Nh, D]
+        event_oc.record(comp_stream)
+    streams[2].wait_event(event_oc)
+    comm.reduce_scatter('c', out_col_tot_data, out_col, streams[2])
+    return (out_row, out_col)
 
 def intra_attn_backward(
     inp_row: Input_Row_Bwd,
@@ -373,6 +565,7 @@ def intra_attn_backward(
     # Comp Func
     def bwd_comp_func(inp_row: Input_Row_Bwd, inp_col: Input_Col_Bwd, 
                       out_row: Output_Row_Bwd, out_col: Output_Col_Bwd, causal) -> tuple:
+        # print_rank_0(f'shape Q: {inp_row.Q.shape}, dO: {inp_row.dO.shape}, K: {inp_col.K.shape}, V: {inp_col.V.shape}, dQ: {out_row.dQ.shape}, dK: {out_col.dK.shape}')
         # print(f'rank{local_rank}, dropout_p: {dropout_p}, softmax_scale: {softmax_scale}, , causal: {causal}, window_size: {window_size}, alibi_slopes: {alibi_slopes}, return_softmax: {True and dropout_p > 0}', flush=True)
         _flash_attn_backward(
             inp_row.dO,
@@ -395,6 +588,8 @@ def intra_attn_backward(
         )
         return (out_row, out_col)
     
+    unified_bwd_comp_func = partial(bwd_comp_func, causal=causal)
+
     if buf_dict['graph_type'] == 'general':    # general cases
         # initialize Comm
         comm = IntraComm(PROC_INFO)
@@ -405,104 +600,14 @@ def intra_attn_backward(
     elif buf_dict['graph_type'] == 'fused':   # (X, Y) cases
         assert causal == False, 'Intra attn XY not support causal == True'
         X, Y = execution_plan.X, execution_plan.Y
-        cur_x_id = local_rank % X   # [0, X)
-        cur_y_id = local_rank // X  # [0, Y)
         comm = IntraComm_fused(PROC_INFO, X, Y)
-        ir_nelems= buf_dict['ir_nelems']
-        or_nelems = buf_dict['or_nelems']
-        oc_nelems = buf_dict['oc_nelems']
-        out_row = buf_dict['or'][or_nelems * cur_x_id: or_nelems * (cur_x_id + 1)]
-        out_col = buf_dict['oc'][oc_nelems * cur_y_id: oc_nelems * (cur_y_id + 1)]
-
-        event_ir = torch.cuda.Event()
-        event_ic = torch.cuda.Event()
-        event_oc = torch.cuda.Event()
-        event_comp = torch.cuda.Event()
-        # # Allgather rc
-        comm.all_gather('r', inp_row, buf_dict['ir'], intra_streams[1])
-        event_ir.record(intra_streams[1])
-        comm.all_gather('c', inp_col, buf_dict['ic'], intra_streams[1])
-        event_ic.record(intra_streams[1])
-        
-        # Comp
-        with torch.cuda.stream(intra_streams[0]):
-            # step1: input data layout transform
-            # if execution_plan.da_config.bs == 1:    # always true !!!
-            if inp_row.Q.shape[0] == 1:     # bs == 1
-                Q_shape = list(inp_row.Q.shape)     # (bs, Sq, Nh, D)
-                Q_nelem = math.prod(Q_shape)
-                K_shape = list(inp_col.K.shape)     # (bs, Skv, Nh, D)
-                K_nelem = math.prod(K_shape)
-                lse_shape = list(inp_row.lse.shape) # (bs, Nh, Sq)
-                lse_nelem = math.prod(lse_shape)
-                assert len(Q_shape) == 4        # (bs, Sq, Nh, D)
-                assert len(K_shape) == 4        # (bs, Skv, Nh, D)
-                assert len(lse_shape) == 3      # (bs, Nh, Sq)
-
-                # ir_tot
-                intra_streams[0].wait_event(event_ir)
-                Q_shape_row = copy.deepcopy(Q_shape)
-                Q_shape_row[1] *= X         # (bs, X * Sq, Nh, D)
-                Q_nelem_row = math.prod(Q_shape_row)
-                lse_shape_row = copy.deepcopy(lse_shape)
-                assert lse_shape_row[1] == 1, 'Now Nh > 1 not supported in fused backward !!!'    # Nh == 1
-                lse_shape_row[2] *= X       # (bs, Nh, X * Sq)
-                lse_nelem_row = math.prod(lse_shape_row)
-                t_list = []
-                offsets = [0, Q_nelem, 2 * Q_nelem, 2 * Q_nelem + 2 * lse_nelem, 2 * Q_nelem + 3 * lse_nelem]   # Q, dO, D, lse
-                assert ir_nelems == offsets[-1]
-                for idx in range(len(offsets) - 1):
-                    for x in range(X):
-                        t_list.append(buf_dict['ir'][ir_nelems * x + offsets[idx]: ir_nelems * x + offsets[idx + 1]].flatten())
-                inp_row_tot_data = torch.cat(t_list, out=buf_dict['ir_'])    # [NOTE]: passed !!!
-                # inp_row_tot_data = torch.cat(t_list)                       # failed !!!
-                assert inp_row_tot_data.numel() == 2 * Q_nelem_row + 3 * lse_nelem_row
-                
-                Q_tot = inp_row_tot_data[: Q_nelem_row].view(Q_shape_row)
-                dO_tot = inp_row_tot_data[Q_nelem_row: 2 * Q_nelem_row].view(Q_shape_row)
-                D_tot = inp_row_tot_data[2 * Q_nelem_row: - lse_nelem_row].view(FULL_DTYPE).view(lse_shape_row)
-                lse_tot = inp_row_tot_data[- lse_nelem_row: ].view(lse_shape_row)
-                inp_row_tot = Input_Row_Bwd(Q_tot, dO_tot, D_tot, lse_tot, inp_row_tot_data)
-                
-                # ic_tot
-                K_shape_col = copy.deepcopy(K_shape)
-                K_shape_col[1] *= Y     # (bs, Y * Skv, Nh, D)
-                K_nelem_col = math.prod(K_shape_col)
-                K_shape_col_tot = copy.deepcopy(K_shape)
-                K_shape_col_tot = [Y, 2] + K_shape_col_tot  # (Y, 2, bs, Skv, Nh, D)
-                intra_streams[0].wait_event(event_ic)
-                inp_col_tot_data = buf_dict['ic'].view(K_shape_col_tot).transpose(0, 1).transpose(1, 2).flatten(2, 3).contiguous() # [2, bs, Y * Skv, Nh, D]
-                K_tot = inp_col_tot_data[0]  # [bs, Y * Skv, Nh, D]
-                V_tot = inp_col_tot_data[1]  # [bs, Y * Skv, Nh, D]
-                inp_col_tot = Input_Col_Bwd(K_tot, V_tot, inp_col_tot_data.flatten())
-                
-                # or_tot
-                out_row_tot = Output_Row_Bwd(buf_dict['or'].view(Q_shape_row))
-                
-                # oc_tot
-                dK_tot = buf_dict['oc'][: K_nelem_col].view(K_shape_col)
-                dV_tot = buf_dict['oc'][K_nelem_col: ].view(K_shape_col)
-                out_col_tot = Output_Col_Bwd(dK_tot, dV_tot, buf_dict['oc'].flatten())
-            else:
-                raise NotImplementedError()
-            # step2: execute flashattn kernel
-            # print_rank_0(f"buf['ir']: {buf_dict['ir'].data_ptr()}, buf['ic']: {buf_dict['ic'].data_ptr()}, "
-            #              f"buf['or']: {buf_dict['or'].data_ptr()}, buf['oc']: {buf_dict['oc'].data_ptr()}")
-            # print_rank_0(f'inp_row_tot: {inp_row_tot.data.data_ptr()}, inp_col_tot: {inp_col_tot.data.data_ptr()}, '
-            #              f'out_row_tot: {out_row_tot.data.data_ptr()}, out_col_tot: {out_col_tot.data.data_ptr()}')
-            bwd_comp_func(inp_row_tot, inp_col_tot, out_row_tot, out_col_tot, causal)
-            event_comp.record(intra_streams[0])
-        
-        # ReduceScatter rc
-        intra_streams[2].wait_event(event_comp)
-        comm.reduce_scatter('r', buf_dict['or'], out_row, intra_streams[2])
-        with torch.cuda.stream(intra_streams[0]):
-            # step3: output  layout transform
-            out_col_tot_data = buf_dict['oc'].view((2, Y, K_nelem)).transpose(0, 1).contiguous()    # [Y, 2, bs, Skv, Nh, D]
-            event_oc.record(intra_streams[0])
-        intra_streams[2].wait_event(event_oc)
-        comm.reduce_scatter('c', out_col_tot_data, out_col, intra_streams[2])
-        return (out_row, out_col)
+        return fused_attn_backward(
+            execution_plan=execution_plan,
+            comm=comm,
+            streams=intra_streams,
+            level_rank=local_rank,
+            bwd_comp_func=unified_bwd_comp_func,
+        )
     else:
         raise Exception(f"graph_type {buf_dict['graph_type']} not supported !!!")
     
@@ -529,15 +634,15 @@ def orchestrated_attn_backward(
     
     # Parse buf_dict
     buf_dict = inter_execution_plan.buf_dict
-        
-    da_config = inter_execution_plan.da_config
-    assert inter_execution_plan.hierarchy_sp == PROC_INFO['node_num']
-    assert inter_execution_plan.split_degrees[2] == 1 and inter_execution_plan.split_degrees[3] == 1
     
-    # # Inter-level
-    # data_dict = {}  # (b_id, h_id, r/c_id, i/o, r/c) -> Integrated_Data
-    # initialize Comm
-    comm = InterComm(PROC_INFO)
+    if hasattr(inter_execution_plan, 'hierarchy_sp'):
+        assert inter_execution_plan.hierarchy_sp == PROC_INFO['node_num']
+    else:
+        assert inter_execution_plan.X * inter_execution_plan.Y == PROC_INFO['node_num']
+    # assert inter_execution_plan.split_degrees[2] == 1 and inter_execution_plan.split_degrees[3] == 1
+    inter_streams = copy.copy(get_global_var('streams')['inter'])
+    # modify inter_streams[0] to intra_streams
+    inter_streams[0] = get_global_var('streams')['intra']
     
     p_bwd_inter_comp_func = partial(
         intra_attn_backward,
@@ -548,8 +653,34 @@ def orchestrated_attn_backward(
         deterministic=deterministic,
         PROC_INFO=PROC_INFO,
     )
-    for kernel in inter_execution_plan.gpu_kernel_lists[node_id]:
-        execute_inter_kernel(kernel, None, PROC_INFO, p_bwd_inter_comp_func, comm, buf_dict, causal)
+    if buf_dict['graph_type'] == 'general':   # general cases
+        # initialize Comm
+        comm = InterComm(PROC_INFO)
+        for kernel in inter_execution_plan.gpu_kernel_lists[node_id]:
+            execute_inter_kernel(kernel, None, PROC_INFO, p_bwd_inter_comp_func, comm, buf_dict, causal)
+    elif buf_dict['graph_type'] == 'fused':   # (X, Y) cases
+        assert causal == False, 'Intra attn XY not support causal == True'
+        assert hasattr(inter_execution_plan, 'kernel_execution_plan')
+        X, Y = inter_execution_plan.X, inter_execution_plan.Y
+        comm = InterComm_fused(PROC_INFO, X, Y)
+        def unified_bwd_comp_func(inp_row: Input_Row_Fwd, inp_col: Input_Col_Fwd, 
+                                  out_row: Output_Row_Fwd, out_col: Output_Col_Fwd):
+            return p_bwd_inter_comp_func(
+                inp_row=inp_row,
+                inp_col=inp_col,
+                causal=causal,
+                execution_plan=inter_execution_plan.kernel_execution_plan,
+            )
+        return fused_attn_backward(
+            execution_plan=inter_execution_plan,
+            comm=comm,
+            streams=inter_streams,
+            level_rank=node_id,
+            bwd_comp_func=unified_bwd_comp_func,
+        )
+    else:
+        raise Exception(f"graph_type {buf_dict['graph_type']} not supported !!!")
+    
     return inter_execution_plan.buf_dict['out_row'], inter_execution_plan.buf_dict['out_col']
 
 class OrchestratedAttnFunc(torch.autograd.Function):

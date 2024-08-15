@@ -9,6 +9,7 @@ from search_algo.global_vars import *
 import math
 import regex as re
 import numpy as np
+from typing import Optional
 
 def get_factors(n: int):
     factors = []
@@ -83,8 +84,10 @@ def convert_profile_data_to_comm_map(file_name: str, num_gpus_div: int):
     # print(f'profile_map: {profile_map}')
     return profile_map
 
-def convert_node_profile_data_to_comp_map(file_name: str, local_size: int):
+def convert_node_profile_data_to_comp_map(file_name: Optional[str], local_size: int):
     # map_key: ((Sq, Skv), (Nhq, Nhg), bs, D, causal) -> Time[fwd/bwd]  # S per GPU !!!
+    if file_name is None:
+        return {}
     profile_map = {} 
     # fob = SP = S = Nh = bs = D = causal = None
     # cur_map_key = None

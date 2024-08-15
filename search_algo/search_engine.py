@@ -15,14 +15,15 @@ import math
 from typing import Optional
 
 class Evaluation_Configs():
-    def __init__(self, plan_type: str, MAX_QUEUE_SIZE: int, fob: bool, plan_path: str = None, hierarchy: bool = 1, transform_mode: str = 'bf', inter_comp_profile_map=None):
-        self.plan_type = plan_type  # 'automatic', 'maunal', 'ablation1'
+    def __init__(self, plan_type: str, MAX_QUEUE_SIZE: int, fob: bool, plan_path: str = None, hierarchy: bool = 1, transform_mode: str = 'bf', inter_comp_profile_map=None, execution_plan=None):
+        self.plan_type = plan_type  # 'automatic', 'manual', 'ablation1'
         self.MAX_QUEUE_SIZE = MAX_QUEUE_SIZE
         self.fob = fob
         self.plan_path = plan_path
         self.hierarchy = hierarchy
         self.transform_mode = transform_mode
         self.inter_comp_profile_map = inter_comp_profile_map
+        self.execution_plan = execution_plan
         
     def __str__(self):
         ret = f'fob={self.fob}, plan_type={self.plan_type}, hierarchy={self.hierarchy}, transform_mode={self.transform_mode}, plan_path={self.plan_path}'
@@ -692,7 +693,8 @@ class Search_Engine():
                 # if gid == 0:
                     # print(f'cur_pos: {cur_pos}, left: {left}, cur_r_num_gid: {cur_r_num_gid}')
                 if cur_r_num_gid == self.ub_rc_num[gid] and left > 0:
-                    # print(f'pruning3: g: {g}, gid: {gid}, cur_r_num_gid: {cur_r_num_gid}, left: {left}')
+                    # print(f'pruning3: g: {g}, gid
+                    # : {gid}, cur_r_num_gid: {cur_r_num_gid}, left: {left}')
                     # print(f'{self.cur_schedule.schedule_table}')
                     return False
         
@@ -762,10 +764,13 @@ class Search_Engine():
         # except Exception as e:
         #     pass
 
-def get_profile_data(SP: tuple):
+def get_profile_data(SP: tuple, hierarchy: bool = 0):
     BW = (12.5, 215)   # Inter-Machine, Intra-Machine, GB/s, bidirectional
     PROFILE_FILE_NAME = './prof_data/time_flashattn_ratio.json'
-    INTER_COMP_FILE_NAME = f'./prof_data/wrapper_intra_SP={SP[1]}_all.log'
+    if hierarchy == 0:
+        INTER_COMP_FILE_NAME = f'./prof_data/wrapper_intra_SP={SP[1]}_all.log'
+    else:
+        INTER_COMP_FILE_NAME = None
     
     INTER_COMM_FILE_NAME = './prof_data/cb_16_g3018-9.log'
     # INTRA_COMM_FILE_NAME = './prof_data/cb_8_g3028.log'

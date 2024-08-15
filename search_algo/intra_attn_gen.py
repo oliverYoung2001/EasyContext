@@ -13,20 +13,23 @@ from functools import partial
 
 
 def get_configs():
-    SP0, SP1 = 1, 2
-    Sq = Skv = 2 * 1024   # 2k
-    SP0, SP1 = 1, 4
-    Sq = Skv = 4 * 1024   # 4k
-    SP0, SP1 = 1, 8
-    Sq = Skv = 16 * 1024   # 16k
-    Sq = Skv = 8 * 1024   # 8k
+    SP0, SP1 = 1, 1
+    Sq = Skv = 1 * 1024   # 2k
+    # SP0, SP1 = 1, 2
+    # Sq = Skv = 2 * 1024   # 2k
+    # SP0, SP1 = 1, 4
+    # Sq = Skv = 4 * 1024   # 4k
+    # SP0, SP1 = 1, 8
+    # Sq = Skv = 16 * 1024   # 16k
+    # Sq = Skv = 8 * 1024   # 8k
     
     Nhq = Ng = 32
     bs = 1
     D = 128
     causal = False
     # causal = True
-    return Dist_Attn_Config((SP0, SP1), (Sq, Skv), (Nhq, Ng), bs, D, causal)
+    hierarchy = 1
+    return Dist_Attn_Config((SP0, SP1), (Sq, Skv), (Nhq, Ng), bs, D, causal, hierarchy)
 
 def get_block_schedule_table(split_degrees: list, S_map: np.ndarray, causal: bool, X):
     assert len(split_degrees) == 4
@@ -52,8 +55,9 @@ def create_plan(da_config: Dist_Attn_Config, m_config: Machine_Config, X, fob, f
     S_map[:] = np.arange(tot_sp)
     get_schedule_table_func = partial(get_block_schedule_table, X=X)
     schedule =  create_schedule(da_config, m_config, split_degrees, S_map, get_schedule_table_func)
+    print(f'schedule: {schedule.schedule_table}', flush=True)
     # Create Dependent Graph:
-    d_graph = Dependent_Graph(schedule, fob, 1) # Intra-machine
+    d_graph = Dependent_Graph(schedule, fob) # Intra-machine
     # Create Execution Plan:
     plan = Execution_Plan(d_graph, fob, False)
     # Generate Manual Plan:
@@ -72,23 +76,26 @@ def write_plan(execute_plan: Execution_Plan, prefix: str):
     execute_plan_loaded.print_lp_result()
 
 def main():
-    fob = 0 # forward
-    fob = 1 # backward
+    fobs = [
+        0,
+        1,
+    ]
     da_config = get_configs()
-    m_config = get_profile_data()
+    m_config = get_profile_data(da_config.SP, da_config.hierarchy)
     tot_sp = da_config.SP[0] * da_config.SP[1]
-    par_dir = f'{os.path.dirname(__file__)}/execution_plans/intra_SP{da_config.SP[1]}_fob={fob}'
-    os.makedirs(par_dir, exist_ok=True)
-    for X in range(1, tot_sp + 1):
-        if tot_sp % X != 0:
-            continue
-        if X == 1 or X == tot_sp:
-            plan = create_plan(da_config, m_config, X, fob=fob, first_dim=0)
-            write_plan(plan, prefix=par_dir)
-        else:
-            for first_dim in range(1):  # [TODO]: Support first_dim == 1
-                plan = create_plan(da_config, m_config, X, fob=fob, first_dim=first_dim)
+    for fob in fobs:
+        par_dir = f'{os.path.dirname(__file__)}/execution_plans/intra_SP{da_config.SP[1]}_fob={fob}'
+        os.makedirs(par_dir, exist_ok=True)
+        for X in range(1, tot_sp + 1):
+            if tot_sp % X != 0:
+                continue
+            if X == 1 or X == tot_sp:
+                plan = create_plan(da_config, m_config, X, fob=fob, first_dim=0)
                 write_plan(plan, prefix=par_dir)
+            else:
+                for first_dim in range(1):  # [TODO]: Support first_dim == 1
+                    plan = create_plan(da_config, m_config, X, fob=fob, first_dim=first_dim)
+                    write_plan(plan, prefix=par_dir)
     
 if __name__ == '__main__':
     main()
