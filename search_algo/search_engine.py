@@ -583,7 +583,10 @@ class Search_Engine():
             if self.hierarchy_sp % 2 == 0:
                 self.ub_comp[: self.hierarchy_sp // 2] += 1
         else:
-            raise NotImplementedError
+            self.ub_comp = np.empty(self.hierarchy_sp, dtype=np.int32)  # ub_comp without causal block
+            self.ub_comp.fill(int(math.floor((self.hierarchy_sp - 1) / 2)))
+            if self.hierarchy_sp % 2 == 0:
+                self.ub_comp[self.hierarchy_sp // 2: ] += 1
         
         # for comp workload locality 2
         if self.fob == 0:
@@ -594,7 +597,12 @@ class Search_Engine():
             else:
                 self.ub_rc_num = self.ub_comp
         else:
-            raise NotImplementedError
+            self.ub_rc_num = np.empty(self.hierarchy_sp, dtype=np.int32)
+            if self.hierarchy_sp == 8:  # [3, 3, 3, 3, 2, 2, 2, 2]
+                # self.ub_rc_num = np.array([3, 3, 3, 3, 2, 2, 2, 3], dtype=np.int32) # no feasible solution !!!
+                self.ub_rc_num = np.array([3, 2, 2, 2, 3, 3, 3, 3], dtype=np.int32)
+            else:
+                self.ub_rc_num = self.ub_comp
         print(f'ub_comp: {self.ub_comp}')
         print(f'ub_rc_num: {self.ub_rc_num}', flush=True)
     
@@ -669,6 +677,7 @@ class Search_Engine():
         if self.cur_cc_units[self.fob, 0, g] > self.ub_comp[g]:
             return False
         
+        # return True
         # pruning strategy 3: comp workload locality 1
         cur_r_num = np.count_nonzero(self.rc_num[g, 0]) + (self.rc_num[g, 0, cur_pos[2]] == 0)
         cur_c_num = np.count_nonzero(self.rc_num[g, 1]) + (self.rc_num[g, 1, cur_pos[3]] == 0)
@@ -738,8 +747,9 @@ class Search_Engine():
         assert self.cur_schedule.schedule_table[cur_pos] == TASK_STATUS.UNSETTLED.value
         next_pos = self.get_next_unsettled_pos(cur_pos)
         
-        # if cur_pos == (0, 0, 3, 0):
-        #     print(f'{self.cur_schedule.schedule_table}', flush=True)
+        if cur_pos == (0, 0, 3, 0):
+        # if cur_pos == (0, 0, 5, 2):
+            print(f'{self.cur_schedule.schedule_table}', flush=True)
         for g in range(self.hierarchy_sp):    # fill in gpu_id
             # print(f'cur_pos: {cur_pos}, next_pos: {next_pos}, g: {g}', flush=True)
             if not self.apply_pruning_passed(cur_pos, next_pos, g):

@@ -86,11 +86,11 @@ def execute_kernel(kernel: Cuda_Kernel, data_dict: dict, PROC_INFO, comp_func, c
                 )
                 # print(f'rank{local_rank}, causal: {kernel_causal}, rid: {rid}, cid: {cid}', flush=True)
                 # out = comp_func(data_dict[(bid, hid, rid, 'i', 'r')], data_dict[(bid, hid, cid, 'i', 'c')], causal=kernel_causal)
-                out = comp_func(
-                    buf_dict[(('i', 'r'), low_bds[0])], buf_dict[(('i', 'c'), low_bds[1])],
-                    buf_dict[(('o', 'r'), low_bds[0])], buf_dict[(('o', 'c'), low_bds[1])],
-                    kernel_causal
-                )
+                # out = comp_func(
+                #     buf_dict[(('i', 'r'), low_bds[0])], buf_dict[(('i', 'c'), low_bds[1])],
+                #     buf_dict[(('o', 'r'), low_bds[0])], buf_dict[(('o', 'c'), low_bds[1])],
+                #     kernel_causal
+                # )
                 # o_keys = (bid, hid, rid, 'o', 'r'), (bid, hid, cid, 'o', 'c')   # (or, oc)
                 # for t in range(2):  # 0 -> r, 1 -> c
                 #     if o_keys[t] in data_dict.keys():

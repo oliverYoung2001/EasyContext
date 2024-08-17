@@ -1,0 +1,267 @@
++ srun -p arch -N 1 --ntasks-per-node=1 --mem 256G -K python search_algo/main.py
+srun: job 16959 queued and waiting for resources
+srun: job 16959 has been allocated resources
+exp_config: fob=0,plan_type=automatic,hierarchy=0,transform_mode=greedy
+da_config: SP=(8,8),Sg=(256,256),S=(16384,16384),Nh=(1,1),bs=1,D=128,causal=True,hierarchy=0
+Raw, ILP:
+LP solve time: 40.93788290023804 s
+objective=7.176e-04
+Fused, ILP:
+LP solve time: 5.515526533126831 s
+objective=7.378e-04
+Raw, Flexflow:
+end_time=1.098e-03
+Fused, Flexflow:
+end_time=1.093e-03
+da_config: SP=(8,8),Sg=(512,512),S=(32768,32768),Nh=(1,1),bs=1,D=128,causal=True,hierarchy=0
+Raw, ILP:
+LP solve time: 20.85613512992859 s
+objective=6.821e-04
+Fused, ILP:
+LP solve time: 1.5633316040039062 s
+objective=7.081e-04
+Raw, Flexflow:
+end_time=1.069e-03
+Fused, Flexflow:
+end_time=9.125e-04
+da_config: SP=(8,8),Sg=(1024,1024),S=(65536,65536),Nh=(1,1),bs=1,D=128,causal=True,hierarchy=0
+Raw, ILP:
+LP solve time: 11.139757633209229 s
+objective=6.730e-04
+Fused, ILP:
+LP solve time: 2.51709246635437 s
+objective=6.532e-04
+Raw, Flexflow:
+end_time=8.733e-04
+Fused, Flexflow:
+end_time=9.493e-04
+da_config: SP=(8,8),Sg=(2048,2048),S=(131072,131072),Nh=(1,1),bs=1,D=128,causal=True,hierarchy=0
+Raw, ILP:
+LP solve time: 47.267573833465576 s
+objective=1.281e-03
+Fused, ILP:
+LP solve time: 1.9115948677062988 s
+objective=1.113e-03
+Raw, Flexflow:
+end_time=1.403e-03
+Fused, Flexflow:
+end_time=1.457e-03
+da_config: SP=(8,8),Sg=(4096,4096),S=(262144,262144),Nh=(1,1),bs=1,D=128,causal=True,hierarchy=0
+Raw, ILP:
+LP solve time: 10.680536270141602 s
+objective=2.993e-03
+Fused, ILP:
+LP solve time: 0.5041415691375732 s
+objective=2.618e-03
+Raw, Flexflow:
+end_time=2.993e-03
+Fused, Flexflow:
+end_time=2.747e-03
+da_config: SP=(8,8),Sg=(8192,8192),S=(524288,524288),Nh=(1,1),bs=1,D=128,causal=True,hierarchy=0
+Raw, ILP:
+LP solve time: 42.158854246139526 s
+objective=8.035e-03
+Fused, ILP:
+LP solve time: 0.23196983337402344 s
+objective=7.464e-03
+Raw, Flexflow:
+end_time=8.035e-03
+Fused, Flexflow:
+end_time=7.464e-03
+da_config: SP=(8,8),Sg=(16384,16384),S=(1048576,1048576),Nh=(1,1),bs=1,D=128,causal=True,hierarchy=0
+Raw, ILP:
+LP solve time: 38.206764221191406 s
+objective=2.758e-02
+Fused, ILP:
+LP solve time: 0.6918087005615234 s
+objective=2.667e-02
+Raw, Flexflow:
+end_time=2.758e-02
+Fused, Flexflow:
+end_time=2.667e-02
+da_config: SP=(8,8),Sg=(256,256),S=(16384,16384),Nh=(32,32),bs=1,D=128,causal=True,hierarchy=0
+Raw, ILP:
+LP solve time: 252.61351871490479 s
+objective=1.905e-03
+Fused, ILP:
+LP solve time: 5.073023796081543 s
+objective=2.105e-03
+Raw, Flexflow:
+end_time=2.874e-03
+Fused, Flexflow:
+end_time=2.935e-03
+da_config: SP=(8,8),Sg=(512,512),S=(32768,32768),Nh=(32,32),bs=1,D=128,causal=True,hierarchy=0
+Raw, ILP:
+LP solve time: 91.96229314804077 s
+objective=3.585e-03
+Fused, ILP:
+LP solve time: 2.0021307468414307 s
+objective=3.748e-03
+Raw, Flexflow:
+end_time=5.357e-03
+Fused, Flexflow:
+end_time=5.481e-03
+da_config: SP=(8,8),Sg=(1024,1024),S=(65536,65536),Nh=(32,32),bs=1,D=128,causal=True,hierarchy=0
+Raw, ILP:
+LP solve time: 58.163374185562134 s
+objective=6.860e-03
+Fused, ILP:
+LP solve time: 1.4229719638824463 s
+objective=8.036e-03
+Raw, Flexflow:
+end_time=1.056e-02
+Fused, Flexflow:
+end_time=1.149e-02
+da_config: SP=(8,8),Sg=(2048,2048),S=(131072,131072),Nh=(32,32),bs=1,D=128,causal=True,hierarchy=0
+Raw, ILP:
+LP solve time: 15.77217173576355 s
+objective=1.812e-02
+Fused, ILP:
+LP solve time: 1.965681552886963 s
+objective=1.959e-02
+Raw, Flexflow:
+end_time=2.283e-02
+Fused, Flexflow:
+end_time=2.552e-02
+da_config: SP=(8,8),Sg=(4096,4096),S=(262144,262144),Nh=(32,32),bs=1,D=128,causal=True,hierarchy=0
+Raw, ILP:
+LP solve time: 19.275012493133545 s
+objective=5.617e-02
+Fused, ILP:
+LP solve time: 0.748621940612793 s
+objective=6.020e-02
+Raw, Flexflow:
+end_time=5.617e-02
+Fused, Flexflow:
+end_time=6.596e-02
+da_config: SP=(8,8),Sg=(8192,8192),S=(524288,524288),Nh=(32,32),bs=1,D=128,causal=True,hierarchy=0
+Raw, ILP:
+LP solve time: 300.01777052879333 s
+objective=2.197e-01
+Fused, ILP:
+LP solve time: 0.1819915771484375 s
+objective=2.236e-01
+Raw, Flexflow:
+end_time=2.197e-01
+Fused, Flexflow:
+end_time=2.236e-01
+da_config: SP=(8,8),Sg=(16384,16384),S=(1048576,1048576),Nh=(32,32),bs=1,D=128,causal=True,hierarchy=0
+Raw, ILP:
+LP solve time: 9.313497066497803 s
+objective=8.319e-01
+Fused, ILP:
+LP solve time: 0.37769556045532227 s
+objective=8.730e-01
+Raw, Flexflow:
+end_time=8.319e-01
+Fused, Flexflow:
+end_time=8.730e-01
++ set +x
+
++ srun -p arch -N 1 --ntasks-per-node=1 --mem 256G -K python search_algo/main.py
+srun: job 17638 queued and waiting for resources
+srun: job 17638 has been allocated resources
+exp_config: fob=1,plan_type=automatic,hierarchy=None,transform_mode=greedy,plan_path=None
+da_config: SP=(8,8),Sg=(256,256),S=(16384,16384),Nh=(1,1),bs=1,D=128,causal=True,hierarchy=None
+Raw, ILP:
+LP solve time: 300.62439489364624 s
+objective=9.488e-04
+Fused, ILP:
+LP solve time: 300.2194445133209 s
+objective=9.579e-04
+Raw, Flexflow:
+end_time=1.382e-03
+Fused, Flexflow:
+end_time=1.551e-03
+da_config: SP=(8,8),Sg=(512,512),S=(32768,32768),Nh=(1,1),bs=1,D=128,causal=True,hierarchy=None
+Raw, ILP:
+LP solve time: 300.398157119751 s
+objective=9.764e-04
+Fused, ILP:
+LP solve time: 300.2397999763489 s
+objective=8.842e-04
+Raw, Flexflow:
+end_time=1.397e-03
+Fused, Flexflow:
+end_time=1.303e-03
+da_config: SP=(8,8),Sg=(1024,1024),S=(65536,65536),Nh=(1,1),bs=1,D=128,causal=True,hierarchy=None
+Raw, ILP:
+LP solve time: 300.37068009376526 s
+objective=1.472e-03
+Fused, ILP:
+LP solve time: 264.58212876319885 s
+objective=1.215e-03
+Raw, Flexflow:
+end_time=1.695e-03
+Fused, Flexflow:
+end_time=1.703e-03
+da_config: SP=(8,8),Sg=(2048,2048),S=(131072,131072),Nh=(1,1),bs=1,D=128,causal=True,hierarchy=None
+Raw, ILP:
+LP solve time: 300.21754336357117 s
+objective=3.165e-03
+Fused, ILP:
+LP solve time: 9.467366695404053 s
+objective=2.393e-03
+Raw, Flexflow:
+end_time=3.208e-03
+Fused, Flexflow:
+end_time=2.772e-03
+da_config: SP=(8,8),Sg=(4096,4096),S=(262144,262144),Nh=(1,1),bs=1,D=128,causal=True,hierarchy=None
+Raw, ILP:
+LP solve time: 300.05001759529114 s
+objective=7.429e-03
+Fused, ILP:
+LP solve time: 4.994446039199829 s
+objective=6.280e-03
+Raw, Flexflow:
+end_time=7.663e-03
+Fused, Flexflow:
+end_time=6.893e-03
+da_config: SP=(8,8),Sg=(8192,8192),S=(524288,524288),Nh=(1,1),bs=1,D=128,causal=True,hierarchy=None
+Raw, ILP:
+LP solve time: 300.1019699573517 s
+objective=2.103e-02
+Fused, ILP:
+LP solve time: 1.922515630722046 s
+objective=2.062e-02
+Raw, Flexflow:
+end_time=2.145e-02
+Fused, Flexflow:
+end_time=2.169e-02
+da_config: SP=(8,8),Sg=(16384,16384),S=(1048576,1048576),Nh=(1,1),bs=1,D=128,causal=True,hierarchy=None
+Raw, ILP:
+LP solve time: 213.6293158531189 s
+objective=7.581e-02
+Fused, ILP:
+LP solve time: 0.7240004539489746 s
+objective=7.505e-02
+Raw, Flexflow:
+end_time=7.660e-02
+Fused, Flexflow:
+end_time=7.703e-02
+da_config: SP=(8,8),Sg=(32768,32768),S=(2097152,2097152),Nh=(1,1),bs=1,D=128,causal=True,hierarchy=None
+Raw, ILP:
+LP solve time: 300.25222539901733 s
+objective=2.829e-01
+Fused, ILP:
+Traceback (most recent call last):
+  File "/home/zhaijidong/yhy/llm/EasyContext/search_algo/main.py", line 311, in <module>
+    main()
+  File "/home/zhaijidong/yhy/llm/EasyContext/search_algo/main.py", line 307, in main
+    generate_inter_execution_plans(exp_config, da_config)
+  File "/home/zhaijidong/yhy/llm/EasyContext/search_algo/main.py", line 241, in generate_inter_execution_plans
+    execute_plan = gt_engine.transform(d_graph, exp_config.transform_mode, plan_type=plan_type)
+  File "/home/zhaijidong/yhy/llm/EasyContext/search_algo/graph_transformation_engine.py", line 263, in transform
+    execute_plan = self.apply_transformations(selected_trans)
+  File "/home/zhaijidong/yhy/llm/EasyContext/search_algo/graph_transformation_engine.py", line 221, in apply_transformations
+    tran.apply_on_d_graph(new_d_graph)
+  File "/home/zhaijidong/yhy/llm/EasyContext/search_algo/graph_transformation_engine.py", line 67, in apply_on_d_graph
+    new_kernel = Comp_Kernel(comp_key, schedule.m_config, comp_map_key, hierarchy)
+  File "/home/zhaijidong/yhy/llm/EasyContext/search_algo/dependent_graph.py", line 40, in __init__
+    self.time = m_config.comp_profile_maps[hierarchy].get_comp_time_from_map_key(comp_map_key)    # [fwd/bwd]
+  File "/home/zhaijidong/yhy/llm/EasyContext/search_algo/search_engine.py", line 69, in get_comp_time_from_map_key
+    def get_comp_time_from_map_key(self, map_key: tuple) -> np.ndarray:
+AssertionError: Key ((1, 8), (32768, 98304), (1, 1), 1, 128, False) not found in profile_map
+srun: error: g3010: task 0: Exited with exit code 1
+srun: launch/slurm: _step_signal: Terminating StepId=17638.0
++ set +x

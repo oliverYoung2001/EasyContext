@@ -1,0 +1,2399 @@
++ srun -p arch -N 1 --ntasks-per-node=1 --mem 256G -K python search_algo/main.py
+srun: job 18117 queued and waiting for resources
+srun: job 18117 has been allocated resources
+plan_name: S=(4096, 4096)_SP=(1, 4)_causal=True_fob=0_b=1_Nh=(32, 32)_D=128
+ub_comp: [2 2 1 1]
+ub_rc_num: [2 2 1 1]
+schedule:
+[[[[ 0 -1 -1 -1]
+   [ 0  1 -1 -1]
+   [ 0  1  2 -1]
+   [ 0  1  2  3]]]]
+get_tot_comm_units: 12.0
+get_relative_cc_time:
+[[3. 3. 2. 1.]
+ [3. 3. 2. 1.]]
+get_balanced_relative_cc_time: 3.0, 4.0
+[[3. 3. 3. 3.]
+ [3. 3. 3. 3.]]
+schedule:
+[[[[ 0 -1 -1 -1]
+   [ 1  1 -1 -1]
+   [ 2  2  2 -1]
+   [ 3  3  3  3]]]]
+get_tot_comm_units: 12.0
+get_relative_cc_time:
+[[0. 2. 4. 6.]
+ [2. 2. 2. 0.]]
+get_balanced_relative_cc_time: 6.0, 4.0
+[[0. 2. 4. 6.]
+ [6. 4. 2. 0.]]
+schedule:
+[[[[ 0 -1 -1 -1 -1 -1 -1 -1]
+   [ 1  1 -1 -1 -1 -1 -1 -1]
+   [ 2  2  2 -1 -1 -1 -1 -1]
+   [ 3  3  3  3 -1 -1 -1 -1]
+   [ 3  3  3  3  3 -1 -1 -1]
+   [ 2  2  2  2  2  2 -1 -1]
+   [ 1  1  1  1  1  1  1 -1]
+   [ 0  0  0  0  0  0  0  0]]]]
+get_tot_comm_units: 36.0
+get_relative_cc_time:
+[[12. 10.  8.  6.]
+ [ 2.  4.  4.  4.]]
+get_balanced_relative_cc_time: 12.0, 9.0
+[[12. 10.  8.  6.]
+ [12. 12.  8.  4.]]
+schedule:
+[[[[ 0 -1 -1 -1]
+   [ 1  1 -1 -1]
+   [ 0  0  2 -1]
+   [ 3  1  2  3]]]]
+get_tot_comm_units: 12.0
+get_relative_cc_time:
+[[3. 3. 2. 3.]
+ [3. 3. 2. 1.]]
+get_balanced_relative_cc_time: 3.0, 3.0
+[[3. 3. 3. 3.]
+ [3. 3. 3. 3.]]
+SCHEDULE_UNIQUE_ID: 4
+schedule:
+[[[[ 0 -1 -1 -1]
+   [ 0  1 -1 -1]
+   [ 0  1  2 -1]
+   [ 1  2  3  3]]]]
+get_tot_comm_units: 16.0
+get_relative_cc_time:
+[[2. 5. 4. 3.]
+ [4. 5. 4. 1.]]
+get_balanced_relative_cc_time: 5.0, 3.0
+[[3. 5. 5. 3.]
+ [5. 5. 5. 1.]]
+SCHEDULE_UNIQUE_ID: 5
+schedule:
+[[[[ 0 -1 -1 -1]
+   [ 0  1 -1 -1]
+   [ 0  1  2 -1]
+   [ 1  3  2  3]]]]
+get_tot_comm_units: 14.0
+get_relative_cc_time:
+[[2. 5. 2. 3.]
+ [4. 5. 2. 1.]]
+get_balanced_relative_cc_time: 5.0, 3.0
+[[3. 5. 3. 3.]
+ [5. 5. 3. 1.]]
+SCHEDULE_UNIQUE_ID: 6
+schedule:
+[[[[ 0 -1 -1 -1]
+   [ 0  1 -1 -1]
+   [ 0  1  2 -1]
+   [ 2  1  3  3]]]]
+get_tot_comm_units: 14.0
+get_relative_cc_time:
+[[2. 3. 4. 3.]
+ [4. 3. 4. 1.]]
+get_balanced_relative_cc_time: 4.0, 3.0
+[[3. 4. 4. 3.]
+ [4. 4. 4. 2.]]
+SCHEDULE_UNIQUE_ID: 7
+schedule:
+[[[[ 0 -1 -1 -1]
+   [ 0  1 -1 -1]
+   [ 0  1  2 -1]
+   [ 2  3  1  3]]]]
+get_tot_comm_units: 16.0
+get_relative_cc_time:
+[[2. 5. 4. 3.]
+ [4. 5. 4. 1.]]
+get_balanced_relative_cc_time: 5.0, 3.0
+[[3. 5. 5. 3.]
+ [5. 5. 5. 1.]]
+SCHEDULE_UNIQUE_ID: 8
+schedule:
+[[[[ 0 -1 -1 -1]
+   [ 0  1 -1 -1]
+   [ 0  1  2 -1]
+   [ 3  1  2  3]]]]
+get_tot_comm_units: 12.0
+get_relative_cc_time:
+[[2. 3. 2. 3.]
+ [4. 3. 2. 1.]]
+get_balanced_relative_cc_time: 4.0, 3.0
+[[3. 4. 2. 3.]
+ [4. 4. 3. 1.]]
+SCHEDULE_UNIQUE_ID: 9
+schedule:
+[[[[ 0 -1 -1 -1]
+   [ 0  1 -1 -1]
+   [ 0  1  2 -1]
+   [ 3  2  1  3]]]]
+get_tot_comm_units: 16.0
+get_relative_cc_time:
+[[2. 5. 4. 3.]
+ [4. 5. 4. 1.]]
+get_balanced_relative_cc_time: 5.0, 3.0
+[[3. 5. 5. 3.]
+ [5. 5. 5. 1.]]
+SCHEDULE_UNIQUE_ID: 10
+schedule:
+[[[[ 0 -1 -1 -1]
+   [ 0  1 -1 -1]
+   [ 0  2  2 -1]
+   [ 1  1  3  3]]]]
+get_tot_comm_units: 12.0
+get_relative_cc_time:
+[[2. 4. 3. 3.]
+ [4. 4. 3. 1.]]
+get_balanced_relative_cc_time: 4.0, 3.0
+[[2. 4. 3. 3.]
+ [4. 4. 3. 1.]]
+SCHEDULE_UNIQUE_ID: 11
+schedule:
+[[[[ 0 -1 -1 -1]
+   [ 0  1 -1 -1]
+   [ 0  2  2 -1]
+   [ 1  3  1  3]]]]
+get_tot_comm_units: 14.0
+get_relative_cc_time:
+[[2. 6. 3. 3.]
+ [4. 4. 3. 1.]]
+get_balanced_relative_cc_time: 6.0, 3.0
+[[2. 6. 3. 3.]
+ [4. 6. 3. 1.]]
+SCHEDULE_UNIQUE_ID: 12
+schedule:
+[[[[ 0 -1 -1 -1]
+   [ 0  1 -1 -1]
+   [ 0  2  2 -1]
+   [ 3  1  1  3]]]]
+get_tot_comm_units: 12.0
+get_relative_cc_time:
+[[2. 4. 3. 3.]
+ [4. 4. 3. 1.]]
+get_balanced_relative_cc_time: 4.0, 3.0
+[[2. 4. 3. 3.]
+ [4. 4. 3. 1.]]
+SCHEDULE_UNIQUE_ID: 13
+schedule:
+[[[[ 0 -1 -1 -1]
+   [ 0  1 -1 -1]
+   [ 0  3  2 -1]
+   [ 1  1  2  3]]]]
+get_tot_comm_units: 14.0
+get_relative_cc_time:
+[[2. 4. 2. 4.]
+ [4. 4. 2. 2.]]
+get_balanced_relative_cc_time: 4.0, 3.0
+[[3. 4. 3. 4.]
+ [4. 4. 4. 2.]]
+SCHEDULE_UNIQUE_ID: 14
+schedule:
+[[[[ 0 -1 -1 -1]
+   [ 0  1 -1 -1]
+   [ 0  3  2 -1]
+   [ 1  2  1  3]]]]
+get_tot_comm_units: 18.0
+get_relative_cc_time:
+[[2. 6. 4. 4.]
+ [4. 4. 4. 2.]]
+get_balanced_relative_cc_time: 6.0, 3.0
+[[3. 6. 5. 4.]
+ [5. 6. 5. 2.]]
+SCHEDULE_UNIQUE_ID: 15
+schedule:
+[[[[ 0 -1 -1 -1]
+   [ 0  1 -1 -1]
+   [ 0  3  2 -1]
+   [ 2  1  1  3]]]]
+get_tot_comm_units: 16.0
+get_relative_cc_time:
+[[2. 4. 4. 4.]
+ [4. 4. 4. 2.]]
+get_balanced_relative_cc_time: 4.333333492279053, 3.0
+[[3.        4.3333335 4.3333335 4.3333335]
+ [4.        4.        4.        4.       ]]
+SCHEDULE_UNIQUE_ID: 16
+schedule:
+[[[[ 0 -1 -1 -1]
+   [ 0  1 -1 -1]
+   [ 1  0  2 -1]
+   [ 1  2  3  3]]]]
+get_tot_comm_units: 18.0
+get_relative_cc_time:
+[[4. 5. 4. 3.]
+ [4. 5. 4. 1.]]
+get_balanced_relative_cc_time: 5.333333492279053, 3.0
+[[5.        5.3333335 4.6666665 3.       ]
+ [5.3333335 5.3333335 5.3333335 2.       ]]
+SCHEDULE_UNIQUE_ID: 17
+schedule:
+[[[[ 0 -1 -1 -1]
+   [ 0  1 -1 -1]
+   [ 1  0  2 -1]
+   [ 1  3  2  3]]]]
+get_tot_comm_units: 16.0
+get_relative_cc_time:
+[[4. 5. 2. 3.]
+ [4. 5. 2. 1.]]
+get_balanced_relative_cc_time: 5.0, 3.0
+[[5. 5. 3. 3.]
+ [5. 5. 4. 2.]]
+SCHEDULE_UNIQUE_ID: 18
+schedule:
+[[[[ 0 -1 -1 -1]
+   [ 0  1 -1 -1]
+   [ 1  0  2 -1]
+   [ 2  1  3  3]]]]
+get_tot_comm_units: 18.0
+get_relative_cc_time:
+[[4. 5. 4. 3.]
+ [4. 5. 4. 1.]]
+get_balanced_relative_cc_time: 5.333333492279053, 3.0
+[[5.        5.3333335 4.6666665 3.       ]
+ [5.3333335 5.3333335 5.3333335 2.       ]]
+SCHEDULE_UNIQUE_ID: 19
+schedule:
+[[[[ 0 -1 -1 -1]
+   [ 0  1 -1 -1]
+   [ 1  0  2 -1]
+   [ 2  3  1  3]]]]
+get_tot_comm_units: 20.0
+get_relative_cc_time:
+[[4. 7. 4. 3.]
+ [4. 5. 4. 1.]]
+get_balanced_relative_cc_time: 7.0, 3.0
+[[5. 7. 5. 3.]
+ [7. 7. 5. 1.]]
+SCHEDULE_UNIQUE_ID: 20
+schedule:
+[[[[ 0 -1 -1 -1]
+   [ 0  1 -1 -1]
+   [ 1  0  2 -1]
+   [ 3  1  2  3]]]]
+get_tot_comm_units: 16.0
+get_relative_cc_time:
+[[4. 5. 2. 3.]
+ [4. 5. 2. 1.]]
+get_balanced_relative_cc_time: 5.0, 3.0
+[[5. 5. 3. 3.]
+ [5. 5. 4. 2.]]
+SCHEDULE_UNIQUE_ID: 21
+schedule:
+[[[[ 0 -1 -1 -1]
+   [ 0  1 -1 -1]
+   [ 1  0  2 -1]
+   [ 3  2  1  3]]]]
+get_tot_comm_units: 20.0
+get_relative_cc_time:
+[[4. 7. 4. 3.]
+ [4. 5. 4. 1.]]
+get_balanced_relative_cc_time: 7.0, 3.0
+[[5. 7. 5. 3.]
+ [7. 7. 5. 1.]]
+SCHEDULE_UNIQUE_ID: 22
+schedule:
+[[[[ 0 -1 -1 -1]
+   [ 0  1 -1 -1]
+   [ 1  1  2 -1]
+   [ 0  2  3  3]]]]
+get_tot_comm_units: 14.0
+get_relative_cc_time:
+[[2. 4. 4. 3.]
+ [4. 4. 4. 1.]]
+get_balanced_relative_cc_time: 4.0, 3.0
+[[3. 4. 4. 3.]
+ [4. 4. 4. 2.]]
+SCHEDULE_UNIQUE_ID: 23
+schedule:
+[[[[ 0 -1 -1 -1]
+   [ 0  1 -1 -1]
+   [ 1  1  2 -1]
+   [ 0  3  2  3]]]]
+get_tot_comm_units: 12.0
+get_relative_cc_time:
+[[2. 4. 2. 3.]
+ [4. 4. 2. 1.]]
+get_balanced_relative_cc_time: 4.0, 3.0
+[[3. 4. 2. 3.]
+ [4. 4. 3. 1.]]
+SCHEDULE_UNIQUE_ID: 24
+schedule:
+[[[[ 0 -1 -1 -1]
+   [ 0  1 -1 -1]
+   [ 1  1  2 -1]
+   [ 2  0  3  3]]]]
+get_tot_comm_units: 16.0
+get_relative_cc_time:
+[[4. 4. 4. 3.]
+ [4. 4. 4. 1.]]
+get_balanced_relative_cc_time: 4.666666507720947, 3.0
+[[4.6666665 4.        4.3333335 3.       ]
+ [4.6666665 4.6666665 4.6666665 2.       ]]
+SCHEDULE_UNIQUE_ID: 25
+schedule:
+[[[[ 0 -1 -1 -1]
+   [ 0  1 -1 -1]
+   [ 1  1  2 -1]
+   [ 2  3  0  3]]]]
+get_tot_comm_units: 16.0
+get_relative_cc_time:
+[[4. 4. 4. 3.]
+ [4. 4. 4. 1.]]
+get_balanced_relative_cc_time: 4.666666507720947, 3.0
+[[4.6666665 4.        4.3333335 3.       ]
+ [4.6666665 4.6666665 4.6666665 2.       ]]
+SCHEDULE_UNIQUE_ID: 26
+schedule:
+[[[[ 0 -1 -1 -1]
+   [ 0  1 -1 -1]
+   [ 1  1  2 -1]
+   [ 3  0  2  3]]]]
+get_tot_comm_units: 14.0
+get_relative_cc_time:
+[[4. 4. 2. 3.]
+ [4. 4. 2. 1.]]
+get_balanced_relative_cc_time: 4.0, 3.0
+[[4. 4. 3. 3.]
+ [4. 4. 3. 3.]]
+SCHEDULE_UNIQUE_ID: 27
+schedule:
+[[[[ 0 -1 -1 -1]
+   [ 0  1 -1 -1]
+   [ 1  1  2 -1]
+   [ 3  2  0  3]]]]
+get_tot_comm_units: 16.0
+get_relative_cc_time:
+[[4. 4. 4. 3.]
+ [4. 4. 4. 1.]]
+get_balanced_relative_cc_time: 4.0, 3.0
+[[4. 4. 4. 4.]
+ [4. 4. 4. 4.]]
+SCHEDULE_UNIQUE_ID: 28
+schedule:
+[[[[ 0 -1 -1 -1]
+   [ 0  1 -1 -1]
+   [ 1  2  2 -1]
+   [ 0  1  3  3]]]]
+get_tot_comm_units: 14.0
+get_relative_cc_time:
+[[2. 5. 3. 3.]
+ [4. 5. 3. 1.]]
+get_balanced_relative_cc_time: 5.0, 3.0
+[[3. 5. 3. 3.]
+ [5. 5. 3. 1.]]
+SCHEDULE_UNIQUE_ID: 29
+schedule:
+[[[[ 0 -1 -1 -1]
+   [ 0  1 -1 -1]
+   [ 1  2  2 -1]
+   [ 0  3  1  3]]]]
+get_tot_comm_units: 16.0
+get_relative_cc_time:
+[[2. 7. 3. 3.]
+ [4. 5. 3. 1.]]
+get_balanced_relative_cc_time: 7.0, 3.0
+[[3. 7. 3. 3.]
+ [5. 7. 3. 1.]]
+SCHEDULE_UNIQUE_ID: 30
+schedule:
+[[[[ 0 -1 -1 -1]
+   [ 0  1 -1 -1]
+   [ 1  2  2 -1]
+   [ 1  0  3  3]]]]
+get_tot_comm_units: 16.0
+get_relative_cc_time:
+[[4. 5. 3. 3.]
+ [4. 5. 3. 1.]]
+get_balanced_relative_cc_time: 5.0, 3.0
+[[5. 5. 3. 3.]
+ [5. 5. 4. 2.]]
+SCHEDULE_UNIQUE_ID: 31
+schedule:
+[[[[ 0 -1 -1 -1]
+   [ 0  1 -1 -1]
+   [ 1  2  2 -1]
+   [ 1  3  0  3]]]]
+get_tot_comm_units: 16.0
+get_relative_cc_time:
+[[4. 5. 3. 3.]
+ [4. 5. 3. 1.]]
+get_balanced_relative_cc_time: 5.0, 3.0
+[[5. 5. 3. 3.]
+ [5. 5. 5. 1.]]
+SCHEDULE_UNIQUE_ID: 32
+schedule:
+[[[[ 0 -1 -1 -1]
+   [ 0  1 -1 -1]
+   [ 1  2  2 -1]
+   [ 3  0  1  3]]]]
+get_tot_comm_units: 18.0
+get_relative_cc_time:
+[[4. 7. 3. 3.]
+ [4. 5. 3. 1.]]
+get_balanced_relative_cc_time: 7.0, 3.0
+[[5. 7. 3. 3.]
+ [7. 7. 3. 1.]]
+SCHEDULE_UNIQUE_ID: 33
+schedule:
+[[[[ 0 -1 -1 -1]
+   [ 0  1 -1 -1]
+   [ 1  2  2 -1]
+   [ 3  1  0  3]]]]
+get_tot_comm_units: 16.0
+get_relative_cc_time:
+[[4. 5. 3. 3.]
+ [4. 5. 3. 1.]]
+get_balanced_relative_cc_time: 5.0, 3.0
+[[5. 5. 3. 3.]
+ [5. 5. 3. 3.]]
+SCHEDULE_UNIQUE_ID: 34
+schedule:
+[[[[ 0 -1 -1 -1]
+   [ 0  1 -1 -1]
+   [ 1  3  2 -1]
+   [ 0  1  2  3]]]]
+get_tot_comm_units: 16.0
+get_relative_cc_time:
+[[2. 5. 2. 4.]
+ [4. 5. 2. 2.]]
+get_balanced_relative_cc_time: 5.0, 3.0
+[[4. 5. 3. 4.]
+ [5. 5. 4. 2.]]
+SCHEDULE_UNIQUE_ID: 35
+schedule:
+[[[[ 0 -1 -1 -1]
+   [ 0  1 -1 -1]
+   [ 1  3  2 -1]
+   [ 0  2  1  3]]]]
+get_tot_comm_units: 20.0
+get_relative_cc_time:
+[[2. 7. 4. 4.]
+ [4. 5. 4. 2.]]
+get_balanced_relative_cc_time: 7.0, 3.0
+[[4. 7. 5. 4.]
+ [6. 7. 5. 2.]]
+SCHEDULE_UNIQUE_ID: 36
+schedule:
+[[[[ 0 -1 -1 -1]
+   [ 0  1 -1 -1]
+   [ 1  3  2 -1]
+   [ 1  0  2  3]]]]
+get_tot_comm_units: 18.0
+get_relative_cc_time:
+[[4. 5. 2. 4.]
+ [4. 5. 2. 2.]]
+get_balanced_relative_cc_time: 5.0, 3.0
+[[5. 5. 4. 4.]
+ [5. 5. 5. 3.]]
+SCHEDULE_UNIQUE_ID: 37
+schedule:
+[[[[ 0 -1 -1 -1]
+   [ 0  1 -1 -1]
+   [ 1  3  2 -1]
+   [ 1  2  0  3]]]]
+get_tot_comm_units: 20.0
+get_relative_cc_time:
+[[4. 5. 4. 4.]
+ [4. 5. 4. 2.]]
+get_balanced_relative_cc_time: 5.0, 3.0
+[[5. 5. 5. 5.]
+ [5. 5. 5. 5.]]
+SCHEDULE_UNIQUE_ID: 38
+schedule:
+[[[[ 0 -1 -1 -1]
+   [ 0  1 -1 -1]
+   [ 1  3  2 -1]
+   [ 2  0  1  3]]]]
+get_tot_comm_units: 22.0
+get_relative_cc_time:
+[[4. 7. 4. 4.]
+ [4. 5. 4. 2.]]
+get_balanced_relative_cc_time: 7.0, 3.0
+[[6. 7. 5. 4.]
+ [7. 7. 6. 2.]]
+SCHEDULE_UNIQUE_ID: 39
+schedule:
+[[[[ 0 -1 -1 -1]
+   [ 0  1 -1 -1]
+   [ 1  3  2 -1]
+   [ 2  1  0  3]]]]
+get_tot_comm_units: 20.0
+get_relative_cc_time:
+[[4. 5. 4. 4.]
+ [4. 5. 4. 2.]]
+get_balanced_relative_cc_time: 5.0, 3.0
+[[5. 5. 5. 5.]
+ [5. 5. 5. 5.]]
+SCHEDULE_UNIQUE_ID: 40
+schedule:
+[[[[ 0 -1 -1 -1]
+   [ 0  1 -1 -1]
+   [ 2  0  2 -1]
+   [ 1  1  3  3]]]]
+get_tot_comm_units: 14.0
+get_relative_cc_time:
+[[4. 4. 3. 3.]
+ [4. 4. 3. 1.]]
+get_balanced_relative_cc_time: 4.333333492279053, 3.0
+[[4.        4.        3.        3.       ]
+ [4.3333335 4.3333335 4.3333335 1.       ]]
+SCHEDULE_UNIQUE_ID: 41
+schedule:
+[[[[ 0 -1 -1 -1]
+   [ 0  1 -1 -1]
+   [ 2  0  2 -1]
+   [ 1  3  1  3]]]]
+get_tot_comm_units: 16.0
+get_relative_cc_time:
+[[4. 6. 3. 3.]
+ [4. 4. 3. 1.]]
+get_balanced_relative_cc_time: 6.0, 3.0
+[[4. 6. 3. 3.]
+ [6. 6. 3. 1.]]
+SCHEDULE_UNIQUE_ID: 42
+schedule:
+[[[[ 0 -1 -1 -1]
+   [ 0  1 -1 -1]
+   [ 2  0  2 -1]
+   [ 3  1  1  3]]]]
+get_tot_comm_units: 14.0
+get_relative_cc_time:
+[[4. 4. 3. 3.]
+ [4. 4. 3. 1.]]
+get_balanced_relative_cc_time: 4.0, 3.0
+[[4. 4. 3. 3.]
+ [4. 4. 4. 2.]]
+SCHEDULE_UNIQUE_ID: 43
+schedule:
+[[[[ 0 -1 -1 -1]
+   [ 0  1 -1 -1]
+   [ 2  1  2 -1]
+   [ 0  1  3  3]]]]
+get_tot_comm_units: 12.0
+get_relative_cc_time:
+[[2. 3. 3. 3.]
+ [4. 3. 3. 1.]]
+get_balanced_relative_cc_time: 4.0, 3.0
+[[3. 3. 3. 3.]
+ [4. 4. 3. 1.]]
+SCHEDULE_UNIQUE_ID: 44
+schedule:
+[[[[ 0 -1 -1 -1]
+   [ 0  1 -1 -1]
+   [ 2  1  2 -1]
+   [ 0  3  1  3]]]]
+get_tot_comm_units: 14.0
+get_relative_cc_time:
+[[2. 5. 3. 3.]
+ [4. 5. 3. 1.]]
+get_balanced_relative_cc_time: 5.0, 3.0
+[[3. 5. 3. 3.]
+ [5. 5. 3. 1.]]
+SCHEDULE_UNIQUE_ID: 45
+schedule:
+[[[[ 0 -1 -1 -1]
+   [ 0  1 -1 -1]
+   [ 2  1  2 -1]
+   [ 1  0  3  3]]]]
+get_tot_comm_units: 16.0
+get_relative_cc_time:
+[[4. 5. 3. 3.]
+ [4. 5. 3. 1.]]
+get_balanced_relative_cc_time: 5.0, 3.0
+[[5. 5. 3. 3.]
+ [5. 5. 4. 2.]]
+SCHEDULE_UNIQUE_ID: 46
+schedule:
+[[[[ 0 -1 -1 -1]
+   [ 0  1 -1 -1]
+   [ 2  1  2 -1]
+   [ 1  3  0  3]]]]
+get_tot_comm_units: 16.0
+get_relative_cc_time:
+[[4. 5. 3. 3.]
+ [4. 5. 3. 1.]]
+get_balanced_relative_cc_time: 5.0, 3.0
+[[5. 5. 3. 3.]
+ [5. 5. 4. 2.]]
+SCHEDULE_UNIQUE_ID: 47
+schedule:
+[[[[ 0 -1 -1 -1]
+   [ 0  1 -1 -1]
+   [ 2  1  2 -1]
+   [ 3  0  1  3]]]]
+get_tot_comm_units: 16.0
+get_relative_cc_time:
+[[4. 5. 3. 3.]
+ [4. 5. 3. 1.]]
+get_balanced_relative_cc_time: 5.0, 3.0
+[[5. 5. 3. 3.]
+ [5. 5. 4. 2.]]
+SCHEDULE_UNIQUE_ID: 48
+schedule:
+[[[[ 0 -1 -1 -1]
+   [ 0  1 -1 -1]
+   [ 2  1  2 -1]
+   [ 3  1  0  3]]]]
+get_tot_comm_units: 14.0
+get_relative_cc_time:
+[[4. 3. 3. 3.]
+ [4. 3. 3. 1.]]
+get_balanced_relative_cc_time: 4.0, 3.0
+[[4. 4. 3. 3.]
+ [4. 4. 4. 2.]]
+SCHEDULE_UNIQUE_ID: 49
+schedule:
+[[[[ 0 -1 -1 -1]
+   [ 0  1 -1 -1]
+   [ 2  3  2 -1]
+   [ 0  1  1  3]]]]
+get_tot_comm_units: 14.0
+get_relative_cc_time:
+[[2. 4. 3. 4.]
+ [4. 4. 3. 2.]]
+get_balanced_relative_cc_time: 4.0, 3.0
+[[3. 4. 3. 4.]
+ [4. 4. 3. 3.]]
+SCHEDULE_UNIQUE_ID: 50
+schedule:
+[[[[ 0 -1 -1 -1]
+   [ 0  1 -1 -1]
+   [ 2  3  2 -1]
+   [ 1  0  1  3]]]]
+get_tot_comm_units: 18.0
+get_relative_cc_time:
+[[4. 6. 3. 4.]
+ [4. 4. 3. 2.]]
+get_balanced_relative_cc_time: 6.0, 3.0
+[[5. 6. 3. 4.]
+ [6. 6. 3. 3.]]
+SCHEDULE_UNIQUE_ID: 51
+schedule:
+[[[[ 0 -1 -1 -1]
+   [ 0  1 -1 -1]
+   [ 2  3  2 -1]
+   [ 1  1  0  3]]]]
+get_tot_comm_units: 16.0
+get_relative_cc_time:
+[[4. 4. 3. 4.]
+ [4. 4. 3. 2.]]
+get_balanced_relative_cc_time: 4.333333492279053, 3.0
+[[4.3333335 4.3333335 3.        4.333333 ]
+ [4.3333335 4.3333335 4.3333335 3.       ]]
+SCHEDULE_UNIQUE_ID: 52
+schedule:
+[[[[ 0 -1 -1 -1]
+   [ 0  1 -1 -1]
+   [ 3  0  2 -1]
+   [ 1  1  2  3]]]]
+get_tot_comm_units: 16.0
+get_relative_cc_time:
+[[4. 4. 2. 4.]
+ [4. 4. 2. 2.]]
+get_balanced_relative_cc_time: 4.0, 3.0
+[[4. 4. 4. 4.]
+ [4. 4. 4. 4.]]
+SCHEDULE_UNIQUE_ID: 53
+schedule:
+[[[[ 0 -1 -1 -1]
+   [ 0  1 -1 -1]
+   [ 3  0  2 -1]
+   [ 1  2  1  3]]]]
+get_tot_comm_units: 20.0
+get_relative_cc_time:
+[[4. 6. 4. 4.]
+ [4. 4. 4. 2.]]
+get_balanced_relative_cc_time: 6.0, 3.0
+[[5. 6. 5. 4.]
+ [6. 6. 6. 2.]]
+SCHEDULE_UNIQUE_ID: 54
+schedule:
+[[[[ 0 -1 -1 -1]
+   [ 0  1 -1 -1]
+   [ 3  0  2 -1]
+   [ 2  1  1  3]]]]
+get_tot_comm_units: 18.0
+get_relative_cc_time:
+[[4. 4. 4. 4.]
+ [4. 4. 4. 2.]]
+get_balanced_relative_cc_time: 4.5, 3.0
+[[4.5 4.5 4.5 4.5]
+ [4.5 4.5 4.5 4.5]]
+SCHEDULE_UNIQUE_ID: 55
+schedule:
+[[[[ 0 -1 -1 -1]
+   [ 0  1 -1 -1]
+   [ 3  1  2 -1]
+   [ 0  1  2  3]]]]
+get_tot_comm_units: 14.0
+get_relative_cc_time:
+[[2. 3. 2. 4.]
+ [4. 3. 2. 2.]]
+get_balanced_relative_cc_time: 4.0, 3.0
+[[4. 4. 2. 4.]
+ [4. 4. 4. 2.]]
+SCHEDULE_UNIQUE_ID: 56
+schedule:
+[[[[ 0 -1 -1 -1]
+   [ 0  1 -1 -1]
+   [ 3  1  2 -1]
+   [ 0  2  1  3]]]]
+get_tot_comm_units: 18.0
+get_relative_cc_time:
+[[2. 5. 4. 4.]
+ [4. 5. 4. 2.]]
+get_balanced_relative_cc_time: 5.0, 3.0
+[[4. 5. 5. 4.]
+ [5. 5. 5. 3.]]
+SCHEDULE_UNIQUE_ID: 57
+schedule:
+[[[[ 0 -1 -1 -1]
+   [ 0  1 -1 -1]
+   [ 3  1  2 -1]
+   [ 1  0  2  3]]]]
+get_tot_comm_units: 18.0
+get_relative_cc_time:
+[[4. 5. 2. 4.]
+ [4. 5. 2. 2.]]
+get_balanced_relative_cc_time: 5.0, 3.0
+[[5. 5. 4. 4.]
+ [5. 5. 5. 3.]]
+SCHEDULE_UNIQUE_ID: 58
+schedule:
+[[[[ 0 -1 -1 -1]
+   [ 0  1 -1 -1]
+   [ 3  1  2 -1]
+   [ 1  2  0  3]]]]
+get_tot_comm_units: 20.0
+get_relative_cc_time:
+[[4. 5. 4. 4.]
+ [4. 5. 4. 2.]]
+get_balanced_relative_cc_time: 5.0, 3.0
+[[5. 5. 5. 5.]
+ [5. 5. 5. 5.]]
+SCHEDULE_UNIQUE_ID: 59
+schedule:
+[[[[ 0 -1 -1 -1]
+   [ 0  1 -1 -1]
+   [ 3  1  2 -1]
+   [ 2  0  1  3]]]]
+get_tot_comm_units: 20.0
+get_relative_cc_time:
+[[4. 5. 4. 4.]
+ [4. 5. 4. 2.]]
+get_balanced_relative_cc_time: 5.0, 3.0
+[[5. 5. 5. 5.]
+ [5. 5. 5. 5.]]
+SCHEDULE_UNIQUE_ID: 60
+schedule:
+[[[[ 0 -1 -1 -1]
+   [ 0  1 -1 -1]
+   [ 3  1  2 -1]
+   [ 2  1  0  3]]]]
+get_tot_comm_units: 18.0
+get_relative_cc_time:
+[[4. 3. 4. 4.]
+ [4. 3. 4. 2.]]
+get_balanced_relative_cc_time: 4.5, 3.0
+[[4.5 4.5 4.5 4.5]
+ [4.5 4.5 4.5 4.5]]
+SCHEDULE_UNIQUE_ID: 61
+schedule:
+[[[[ 0 -1 -1 -1]
+   [ 0  1 -1 -1]
+   [ 3  2  2 -1]
+   [ 0  1  1  3]]]]
+get_tot_comm_units: 14.0
+get_relative_cc_time:
+[[2. 4. 3. 4.]
+ [4. 4. 3. 2.]]
+get_balanced_relative_cc_time: 4.0, 3.0
+[[3. 4. 3. 4.]
+ [4. 4. 3. 3.]]
+SCHEDULE_UNIQUE_ID: 62
+schedule:
+[[[[ 0 -1 -1 -1]
+   [ 0  1 -1 -1]
+   [ 3  2  2 -1]
+   [ 1  0  1  3]]]]
+get_tot_comm_units: 18.0
+get_relative_cc_time:
+[[4. 6. 3. 4.]
+ [4. 4. 3. 2.]]
+get_balanced_relative_cc_time: 6.0, 3.0
+[[5. 6. 3. 4.]
+ [6. 6. 4. 2.]]
+SCHEDULE_UNIQUE_ID: 63
+schedule:
+[[[[ 0 -1 -1 -1]
+   [ 0  1 -1 -1]
+   [ 3  2  2 -1]
+   [ 1  1  0  3]]]]
+get_tot_comm_units: 16.0
+get_relative_cc_time:
+[[4. 4. 3. 4.]
+ [4. 4. 3. 2.]]
+get_balanced_relative_cc_time: 4.333333492279053, 3.0
+[[4.3333335 4.3333335 3.        4.3333335]
+ [4.3333335 4.3333335 3.        4.3333335]]
+SCHEDULE_UNIQUE_ID: 64
+schedule:
+[[[[ 0 -1 -1 -1]
+   [ 1  1 -1 -1]
+   [ 0  0  2 -1]
+   [ 1  2  3  3]]]]
+get_tot_comm_units: 14.0
+get_relative_cc_time:
+[[3. 3. 4. 3.]
+ [3. 3. 4. 1.]]
+get_balanced_relative_cc_time: 4.0, 3.0
+[[3. 4. 4. 3.]
+ [4. 4. 4. 2.]]
+SCHEDULE_UNIQUE_ID: 65
+schedule:
+[[[[ 0 -1 -1 -1]
+   [ 1  1 -1 -1]
+   [ 0  0  2 -1]
+   [ 1  3  2  3]]]]
+get_tot_comm_units: 12.0
+get_relative_cc_time:
+[[3. 3. 2. 3.]
+ [3. 3. 2. 1.]]
+get_balanced_relative_cc_time: 3.0, 3.0
+[[3. 3. 3. 3.]
+ [3. 3. 3. 3.]]
+SCHEDULE_UNIQUE_ID: 66
+schedule:
+[[[[ 0 -1 -1 -1]
+   [ 1  1 -1 -1]
+   [ 0  0  2 -1]
+   [ 2  1  3  3]]]]
+get_tot_comm_units: 14.0
+get_relative_cc_time:
+[[3. 3. 4. 3.]
+ [3. 3. 4. 1.]]
+get_balanced_relative_cc_time: 4.0, 3.0
+[[3. 4. 4. 3.]
+ [4. 4. 4. 2.]]
+SCHEDULE_UNIQUE_ID: 67
+schedule:
+[[[[ 0 -1 -1 -1]
+   [ 1  1 -1 -1]
+   [ 0  0  2 -1]
+   [ 2  3  1  3]]]]
+get_tot_comm_units: 16.0
+get_relative_cc_time:
+[[3. 5. 4. 3.]
+ [3. 3. 4. 1.]]
+get_balanced_relative_cc_time: 5.0, 3.0
+[[3. 5. 5. 3.]
+ [5. 5. 5. 1.]]
+SCHEDULE_UNIQUE_ID: 68
+schedule:
+[[[[ 0 -1 -1 -1]
+   [ 1  1 -1 -1]
+   [ 0  0  2 -1]
+   [ 3  1  2  3]]]]
+get_tot_comm_units: 12.0
+get_relative_cc_time:
+[[3. 3. 2. 3.]
+ [3. 3. 2. 1.]]
+get_balanced_relative_cc_time: 3.0, 3.0
+[[3. 3. 3. 3.]
+ [3. 3. 3. 3.]]
+SCHEDULE_UNIQUE_ID: 69
+schedule:
+[[[[ 0 -1 -1 -1]
+   [ 1  1 -1 -1]
+   [ 0  0  2 -1]
+   [ 3  2  1  3]]]]
+get_tot_comm_units: 16.0
+get_relative_cc_time:
+[[3. 5. 4. 3.]
+ [3. 3. 4. 1.]]
+get_balanced_relative_cc_time: 5.0, 3.0
+[[3. 5. 5. 3.]
+ [5. 5. 5. 1.]]
+SCHEDULE_UNIQUE_ID: 70
+schedule:
+[[[[ 0 -1 -1 -1]
+   [ 1  1 -1 -1]
+   [ 0  1  2 -1]
+   [ 0  2  3  3]]]]
+get_tot_comm_units: 14.0
+get_relative_cc_time:
+[[2. 3. 4. 3.]
+ [4. 3. 4. 1.]]
+get_balanced_relative_cc_time: 4.0, 3.0
+[[4. 3. 4. 3.]
+ [4. 4. 4. 2.]]
+SCHEDULE_UNIQUE_ID: 71
+schedule:
+[[[[ 0 -1 -1 -1]
+   [ 1  1 -1 -1]
+   [ 0  1  2 -1]
+   [ 0  3  2  3]]]]
+get_tot_comm_units: 12.0
+get_relative_cc_time:
+[[2. 3. 2. 3.]
+ [4. 3. 2. 1.]]
+get_balanced_relative_cc_time: 4.0, 3.0
+[[4. 3. 2. 3.]
+ [4. 4. 3. 1.]]
+SCHEDULE_UNIQUE_ID: 72
+schedule:
+[[[[ 0 -1 -1 -1]
+   [ 1  1 -1 -1]
+   [ 0  1  2 -1]
+   [ 2  0  3  3]]]]
+get_tot_comm_units: 16.0
+get_relative_cc_time:
+[[4. 3. 4. 3.]
+ [4. 3. 4. 1.]]
+get_balanced_relative_cc_time: 4.666666507720947, 3.0
+[[4.6666665 4.        4.3333335 3.       ]
+ [4.6666665 4.6666665 4.6666665 2.       ]]
+SCHEDULE_UNIQUE_ID: 73
+schedule:
+[[[[ 0 -1 -1 -1]
+   [ 1  1 -1 -1]
+   [ 0  1  2 -1]
+   [ 2  3  0  3]]]]
+get_tot_comm_units: 16.0
+get_relative_cc_time:
+[[4. 3. 4. 3.]
+ [4. 3. 4. 1.]]
+get_balanced_relative_cc_time: 4.666666507720947, 3.0
+[[4.6666665 4.        4.3333335 3.       ]
+ [4.6666665 4.6666665 4.6666665 2.       ]]
+SCHEDULE_UNIQUE_ID: 74
+schedule:
+[[[[ 0 -1 -1 -1]
+   [ 1  1 -1 -1]
+   [ 0  1  2 -1]
+   [ 3  0  2  3]]]]
+get_tot_comm_units: 14.0
+get_relative_cc_time:
+[[4. 3. 2. 3.]
+ [4. 3. 2. 1.]]
+get_balanced_relative_cc_time: 4.0, 3.0
+[[4. 4. 3. 3.]
+ [4. 4. 4. 2.]]
+SCHEDULE_UNIQUE_ID: 75
+schedule:
+[[[[ 0 -1 -1 -1]
+   [ 1  1 -1 -1]
+   [ 0  1  2 -1]
+   [ 3  2  0  3]]]]
+get_tot_comm_units: 16.0
+get_relative_cc_time:
+[[4. 3. 4. 3.]
+ [4. 3. 4. 1.]]
+get_balanced_relative_cc_time: 4.333333492279053, 3.0
+[[4.3333335 4.        4.3333335 3.333333 ]
+ [4.3333335 4.3333335 4.3333335 3.       ]]
+SCHEDULE_UNIQUE_ID: 76
+schedule:
+[[[[ 0 -1 -1 -1]
+   [ 1  1 -1 -1]
+   [ 0  2  2 -1]
+   [ 0  1  3  3]]]]
+get_tot_comm_units: 12.0
+get_relative_cc_time:
+[[2. 3. 3. 3.]
+ [4. 3. 3. 1.]]
+get_balanced_relative_cc_time: 4.0, 3.0
+[[3. 3. 3. 3.]
+ [4. 4. 3. 1.]]
+SCHEDULE_UNIQUE_ID: 77
+schedule:
+[[[[ 0 -1 -1 -1]
+   [ 1  1 -1 -1]
+   [ 0  2  2 -1]
+   [ 0  3  1  3]]]]
+get_tot_comm_units: 14.0
+get_relative_cc_time:
+[[2. 5. 3. 3.]
+ [4. 3. 3. 1.]]
+get_balanced_relative_cc_time: 5.0, 3.0
+[[3. 5. 3. 3.]
+ [5. 5. 3. 1.]]
+SCHEDULE_UNIQUE_ID: 78
+schedule:
+[[[[ 0 -1 -1 -1]
+   [ 1  1 -1 -1]
+   [ 0  2  2 -1]
+   [ 1  0  3  3]]]]
+get_tot_comm_units: 14.0
+get_relative_cc_time:
+[[4. 3. 3. 3.]
+ [4. 3. 3. 1.]]
+get_balanced_relative_cc_time: 4.0, 3.0
+[[4. 4. 3. 3.]
+ [4. 4. 4. 2.]]
+SCHEDULE_UNIQUE_ID: 79
+schedule:
+[[[[ 0 -1 -1 -1]
+   [ 1  1 -1 -1]
+   [ 0  2  2 -1]
+   [ 1  3  0  3]]]]
+get_tot_comm_units: 14.0
+get_relative_cc_time:
+[[4. 3. 3. 3.]
+ [4. 3. 3. 1.]]
+get_balanced_relative_cc_time: 4.0, 3.0
+[[4. 4. 3. 3.]
+ [4. 4. 4. 2.]]
+SCHEDULE_UNIQUE_ID: 80
+schedule:
+[[[[ 0 -1 -1 -1]
+   [ 1  1 -1 -1]
+   [ 0  2  2 -1]
+   [ 3  0  1  3]]]]
+get_tot_comm_units: 16.0
+get_relative_cc_time:
+[[4. 5. 3. 3.]
+ [4. 3. 3. 1.]]
+get_balanced_relative_cc_time: 5.0, 3.0
+[[5. 5. 3. 3.]
+ [5. 5. 5. 1.]]
+SCHEDULE_UNIQUE_ID: 81
+schedule:
+[[[[ 0 -1 -1 -1]
+   [ 1  1 -1 -1]
+   [ 0  2  2 -1]
+   [ 3  1  0  3]]]]
+get_tot_comm_units: 14.0
+get_relative_cc_time:
+[[4. 3. 3. 3.]
+ [4. 3. 3. 1.]]
+get_balanced_relative_cc_time: 4.0, 3.0
+[[4. 4. 3. 3.]
+ [4. 4. 3. 3.]]
+SCHEDULE_UNIQUE_ID: 82
+schedule:
+[[[[ 0 -1 -1 -1]
+   [ 1  1 -1 -1]
+   [ 0  3  2 -1]
+   [ 0  1  2  3]]]]
+get_tot_comm_units: 14.0
+get_relative_cc_time:
+[[2. 3. 2. 4.]
+ [4. 3. 2. 2.]]
+get_balanced_relative_cc_time: 4.0, 3.0
+[[4. 4. 2. 4.]
+ [4. 4. 4. 2.]]
+SCHEDULE_UNIQUE_ID: 83
+schedule:
+[[[[ 0 -1 -1 -1]
+   [ 1  1 -1 -1]
+   [ 0  3  2 -1]
+   [ 0  2  1  3]]]]
+get_tot_comm_units: 18.0
+get_relative_cc_time:
+[[2. 5. 4. 4.]
+ [4. 3. 4. 2.]]
+get_balanced_relative_cc_time: 5.0, 3.0
+[[5. 5. 4. 4.]
+ [5. 5. 5. 3.]]
+SCHEDULE_UNIQUE_ID: 84
+schedule:
+[[[[ 0 -1 -1 -1]
+   [ 1  1 -1 -1]
+   [ 0  3  2 -1]
+   [ 1  0  2  3]]]]
+get_tot_comm_units: 16.0
+get_relative_cc_time:
+[[4. 3. 2. 4.]
+ [4. 3. 2. 2.]]
+get_balanced_relative_cc_time: 4.0, 3.0
+[[4. 4. 4. 4.]
+ [4. 4. 4. 4.]]
+SCHEDULE_UNIQUE_ID: 85
+schedule:
+[[[[ 0 -1 -1 -1]
+   [ 1  1 -1 -1]
+   [ 0  3  2 -1]
+   [ 1  2  0  3]]]]
+get_tot_comm_units: 18.0
+get_relative_cc_time:
+[[4. 3. 4. 4.]
+ [4. 3. 4. 2.]]
+get_balanced_relative_cc_time: 4.5, 3.0
+[[4.5 4.5 4.5 4.5]
+ [4.5 4.5 4.5 4.5]]
+SCHEDULE_UNIQUE_ID: 86
+schedule:
+[[[[ 0 -1 -1 -1]
+   [ 1  1 -1 -1]
+   [ 0  3  2 -1]
+   [ 2  0  1  3]]]]
+get_tot_comm_units: 20.0
+get_relative_cc_time:
+[[4. 5. 4. 4.]
+ [4. 3. 4. 2.]]
+get_balanced_relative_cc_time: 5.0, 3.0
+[[5. 5. 5. 5.]
+ [5. 5. 5. 5.]]
+SCHEDULE_UNIQUE_ID: 87
+schedule:
+[[[[ 0 -1 -1 -1]
+   [ 1  1 -1 -1]
+   [ 0  3  2 -1]
+   [ 2  1  0  3]]]]
+get_tot_comm_units: 18.0
+get_relative_cc_time:
+[[4. 3. 4. 4.]
+ [4. 3. 4. 2.]]
+get_balanced_relative_cc_time: 4.5, 3.0
+[[4.5 4.5 4.5 4.5]
+ [4.5 4.5 4.5 4.5]]
+SCHEDULE_UNIQUE_ID: 88
+schedule:
+[[[[ 0 -1 -1 -1]
+   [ 1  1 -1 -1]
+   [ 1  0  2 -1]
+   [ 0  2  3  3]]]]
+get_tot_comm_units: 16.0
+get_relative_cc_time:
+[[4. 3. 4. 3.]
+ [4. 3. 4. 1.]]
+get_balanced_relative_cc_time: 4.666666507720947, 3.0
+[[4.6666665 4.        4.3333335 3.       ]
+ [4.6666665 4.6666665 4.6666665 2.       ]]
+SCHEDULE_UNIQUE_ID: 89
+schedule:
+[[[[ 0 -1 -1 -1]
+   [ 1  1 -1 -1]
+   [ 1  0  2 -1]
+   [ 0  3  2  3]]]]
+get_tot_comm_units: 14.0
+get_relative_cc_time:
+[[4. 3. 2. 3.]
+ [4. 3. 2. 1.]]
+get_balanced_relative_cc_time: 4.0, 3.0
+[[4. 4. 3. 3.]
+ [4. 4. 4. 2.]]
+SCHEDULE_UNIQUE_ID: 90
+schedule:
+[[[[ 0 -1 -1 -1]
+   [ 1  1 -1 -1]
+   [ 1  0  2 -1]
+   [ 2  0  3  3]]]]
+get_tot_comm_units: 16.0
+get_relative_cc_time:
+[[4. 3. 4. 3.]
+ [4. 3. 4. 1.]]
+get_balanced_relative_cc_time: 4.666666507720947, 3.0
+[[4.6666665 4.        4.3333335 3.       ]
+ [4.6666665 4.6666665 4.6666665 2.       ]]
+SCHEDULE_UNIQUE_ID: 91
+schedule:
+[[[[ 0 -1 -1 -1]
+   [ 1  1 -1 -1]
+   [ 1  0  2 -1]
+   [ 2  3  0  3]]]]
+get_tot_comm_units: 18.0
+get_relative_cc_time:
+[[6. 3. 4. 3.]
+ [4. 3. 4. 1.]]
+get_balanced_relative_cc_time: 6.0, 3.0
+[[6. 4. 5. 3.]
+ [6. 6. 5. 1.]]
+SCHEDULE_UNIQUE_ID: 92
+schedule:
+[[[[ 0 -1 -1 -1]
+   [ 1  1 -1 -1]
+   [ 1  0  2 -1]
+   [ 3  0  2  3]]]]
+get_tot_comm_units: 14.0
+get_relative_cc_time:
+[[4. 3. 2. 3.]
+ [4. 3. 2. 1.]]
+get_balanced_relative_cc_time: 4.0, 3.0
+[[4. 4. 3. 3.]
+ [4. 4. 4. 2.]]
+SCHEDULE_UNIQUE_ID: 93
+schedule:
+[[[[ 0 -1 -1 -1]
+   [ 1  1 -1 -1]
+   [ 1  0  2 -1]
+   [ 3  2  0  3]]]]
+get_tot_comm_units: 18.0
+get_relative_cc_time:
+[[6. 3. 4. 3.]
+ [4. 3. 4. 1.]]
+get_balanced_relative_cc_time: 6.0, 3.0
+[[6. 4. 5. 3.]
+ [6. 6. 5. 1.]]
+SCHEDULE_UNIQUE_ID: 94
+schedule:
+[[[[ 0 -1 -1 -1]
+   [ 1  1 -1 -1]
+   [ 1  2  2 -1]
+   [ 0  0  3  3]]]]
+get_tot_comm_units: 12.0
+get_relative_cc_time:
+[[3. 3. 3. 3.]
+ [3. 3. 3. 1.]]
+get_balanced_relative_cc_time: 3.6666667461395264, 3.0
+[[3.        3.        3.        3.       ]
+ [3.6666667 3.6666667 3.6666667 1.       ]]
+SCHEDULE_UNIQUE_ID: 95
+schedule:
+[[[[ 0 -1 -1 -1]
+   [ 1  1 -1 -1]
+   [ 1  2  2 -1]
+   [ 0  3  0  3]]]]
+get_tot_comm_units: 12.0
+get_relative_cc_time:
+[[3. 3. 3. 3.]
+ [3. 3. 3. 1.]]
+get_balanced_relative_cc_time: 3.0, 3.0
+[[3. 3. 3. 3.]
+ [3. 3. 3. 3.]]
+SCHEDULE_UNIQUE_ID: 96
+schedule:
+[[[[ 0 -1 -1 -1]
+   [ 1  1 -1 -1]
+   [ 1  2  2 -1]
+   [ 3  0  0  3]]]]
+get_tot_comm_units: 14.0
+get_relative_cc_time:
+[[5. 3. 3. 3.]
+ [3. 3. 3. 1.]]
+get_balanced_relative_cc_time: 5.0, 3.0
+[[5. 3. 3. 3.]
+ [5. 5. 3. 1.]]
+SCHEDULE_UNIQUE_ID: 97
+schedule:
+[[[[ 0 -1 -1 -1]
+   [ 1  1 -1 -1]
+   [ 1  3  2 -1]
+   [ 0  0  2  3]]]]
+get_tot_comm_units: 14.0
+get_relative_cc_time:
+[[3. 3. 2. 4.]
+ [3. 3. 2. 2.]]
+get_balanced_relative_cc_time: 4.0, 3.0
+[[4. 4. 2. 4.]
+ [4. 4. 4. 2.]]
+SCHEDULE_UNIQUE_ID: 98
+schedule:
+[[[[ 0 -1 -1 -1]
+   [ 1  1 -1 -1]
+   [ 1  3  2 -1]
+   [ 0  2  0  3]]]]
+get_tot_comm_units: 16.0
+get_relative_cc_time:
+[[3. 3. 4. 4.]
+ [3. 3. 4. 2.]]
+get_balanced_relative_cc_time: 4.0, 3.0
+[[4. 4. 4. 4.]
+ [4. 4. 4. 4.]]
+SCHEDULE_UNIQUE_ID: 99
+schedule:
+[[[[ 0 -1 -1 -1]
+   [ 1  1 -1 -1]
+   [ 1  3  2 -1]
+   [ 2  0  0  3]]]]
+get_tot_comm_units: 18.0
+get_relative_cc_time:
+[[5. 3. 4. 4.]
+ [3. 3. 4. 2.]]
+get_balanced_relative_cc_time: 5.0, 3.0
+[[5. 4. 5. 4.]
+ [5. 5. 5. 3.]]
+SCHEDULE_UNIQUE_ID: 100
+schedule:
+[[[[ 0 -1 -1 -1]
+   [ 1  1 -1 -1]
+   [ 2  0  2 -1]
+   [ 0  1  3  3]]]]
+get_tot_comm_units: 14.0
+get_relative_cc_time:
+[[4. 3. 3. 3.]
+ [4. 3. 3. 1.]]
+get_balanced_relative_cc_time: 4.0, 3.0
+[[4. 4. 3. 3.]
+ [4. 4. 4. 2.]]
+SCHEDULE_UNIQUE_ID: 101
+schedule:
+[[[[ 0 -1 -1 -1]
+   [ 1  1 -1 -1]
+   [ 2  0  2 -1]
+   [ 0  3  1  3]]]]
+get_tot_comm_units: 16.0
+get_relative_cc_time:
+[[4. 5. 3. 3.]
+ [4. 3. 3. 1.]]
+get_balanced_relative_cc_time: 5.0, 3.0
+[[5. 5. 3. 3.]
+ [5. 5. 3. 3.]]
+SCHEDULE_UNIQUE_ID: 102
+schedule:
+[[[[ 0 -1 -1 -1]
+   [ 1  1 -1 -1]
+   [ 2  0  2 -1]
+   [ 1  0  3  3]]]]
+get_tot_comm_units: 14.0
+get_relative_cc_time:
+[[4. 3. 3. 3.]
+ [4. 3. 3. 1.]]
+get_balanced_relative_cc_time: 4.0, 3.0
+[[4. 4. 3. 3.]
+ [4. 4. 4. 2.]]
+SCHEDULE_UNIQUE_ID: 103
+schedule:
+[[[[ 0 -1 -1 -1]
+   [ 1  1 -1 -1]
+   [ 2  0  2 -1]
+   [ 1  3  0  3]]]]
+get_tot_comm_units: 16.0
+get_relative_cc_time:
+[[6. 3. 3. 3.]
+ [4. 3. 3. 1.]]
+get_balanced_relative_cc_time: 6.0, 3.0
+[[6. 4. 3. 3.]
+ [6. 6. 3. 1.]]
+SCHEDULE_UNIQUE_ID: 104
+schedule:
+[[[[ 0 -1 -1 -1]
+   [ 1  1 -1 -1]
+   [ 2  0  2 -1]
+   [ 3  0  1  3]]]]
+get_tot_comm_units: 16.0
+get_relative_cc_time:
+[[4. 5. 3. 3.]
+ [4. 3. 3. 1.]]
+get_balanced_relative_cc_time: 5.0, 3.0
+[[5. 5. 3. 3.]
+ [5. 5. 5. 1.]]
+SCHEDULE_UNIQUE_ID: 105
+schedule:
+[[[[ 0 -1 -1 -1]
+   [ 1  1 -1 -1]
+   [ 2  0  2 -1]
+   [ 3  1  0  3]]]]
+get_tot_comm_units: 16.0
+get_relative_cc_time:
+[[6. 3. 3. 3.]
+ [4. 3. 3. 1.]]
+get_balanced_relative_cc_time: 6.0, 3.0
+[[6. 4. 3. 3.]
+ [6. 6. 3. 1.]]
+SCHEDULE_UNIQUE_ID: 106
+schedule:
+[[[[ 0 -1 -1 -1]
+   [ 1  1 -1 -1]
+   [ 2  1  2 -1]
+   [ 0  0  3  3]]]]
+get_tot_comm_units: 12.0
+get_relative_cc_time:
+[[3. 3. 3. 3.]
+ [3. 3. 3. 1.]]
+get_balanced_relative_cc_time: 3.6666667461395264, 3.0
+[[3.        3.        3.        3.       ]
+ [3.6666667 3.6666667 3.6666667 1.       ]]
+SCHEDULE_UNIQUE_ID: 107
+schedule:
+[[[[ 0 -1 -1 -1]
+   [ 1  1 -1 -1]
+   [ 2  1  2 -1]
+   [ 0  3  0  3]]]]
+get_tot_comm_units: 12.0
+get_relative_cc_time:
+[[3. 3. 3. 3.]
+ [3. 3. 3. 1.]]
+get_balanced_relative_cc_time: 3.6666667461395264, 3.0
+[[3.        3.        3.        3.       ]
+ [3.6666667 3.6666667 3.6666667 1.       ]]
+SCHEDULE_UNIQUE_ID: 108
+schedule:
+[[[[ 0 -1 -1 -1]
+   [ 1  1 -1 -1]
+   [ 2  1  2 -1]
+   [ 3  0  0  3]]]]
+get_tot_comm_units: 14.0
+get_relative_cc_time:
+[[5. 3. 3. 3.]
+ [3. 3. 3. 1.]]
+get_balanced_relative_cc_time: 5.0, 3.0
+[[5. 3. 3. 3.]
+ [5. 5. 3. 1.]]
+SCHEDULE_UNIQUE_ID: 109
+schedule:
+[[[[ 0 -1 -1 -1]
+   [ 1  1 -1 -1]
+   [ 2  3  2 -1]
+   [ 0  0  1  3]]]]
+get_tot_comm_units: 16.0
+get_relative_cc_time:
+[[3. 5. 3. 4.]
+ [3. 3. 3. 2.]]
+get_balanced_relative_cc_time: 5.0, 3.0
+[[4. 5. 3. 4.]
+ [5. 5. 3. 3.]]
+SCHEDULE_UNIQUE_ID: 110
+schedule:
+[[[[ 0 -1 -1 -1]
+   [ 1  1 -1 -1]
+   [ 2  3  2 -1]
+   [ 0  1  0  3]]]]
+get_tot_comm_units: 14.0
+get_relative_cc_time:
+[[3. 3. 3. 4.]
+ [3. 3. 3. 2.]]
+get_balanced_relative_cc_time: 4.0, 3.0
+[[4. 3. 3. 4.]
+ [4. 4. 3. 3.]]
+SCHEDULE_UNIQUE_ID: 111
+schedule:
+[[[[ 0 -1 -1 -1]
+   [ 1  1 -1 -1]
+   [ 2  3  2 -1]
+   [ 1  0  0  3]]]]
+get_tot_comm_units: 16.0
+get_relative_cc_time:
+[[5. 3. 3. 4.]
+ [3. 3. 3. 2.]]
+get_balanced_relative_cc_time: 5.0, 3.0
+[[5. 4. 3. 4.]
+ [5. 5. 3. 3.]]
+SCHEDULE_UNIQUE_ID: 112
+schedule:
+[[[[ 0 -1 -1 -1]
+   [ 1  1 -1 -1]
+   [ 3  0  2 -1]
+   [ 0  1  2  3]]]]
+get_tot_comm_units: 16.0
+get_relative_cc_time:
+[[4. 3. 2. 4.]
+ [4. 3. 2. 2.]]
+get_balanced_relative_cc_time: 4.0, 3.0
+[[4. 4. 4. 4.]
+ [4. 4. 4. 4.]]
+SCHEDULE_UNIQUE_ID: 113
+schedule:
+[[[[ 0 -1 -1 -1]
+   [ 1  1 -1 -1]
+   [ 3  0  2 -1]
+   [ 0  2  1  3]]]]
+get_tot_comm_units: 20.0
+get_relative_cc_time:
+[[4. 5. 4. 4.]
+ [4. 3. 4. 2.]]
+get_balanced_relative_cc_time: 5.0, 3.0
+[[5. 5. 5. 5.]
+ [5. 5. 5. 5.]]
+SCHEDULE_UNIQUE_ID: 114
+schedule:
+[[[[ 0 -1 -1 -1]
+   [ 1  1 -1 -1]
+   [ 3  0  2 -1]
+   [ 1  0  2  3]]]]
+get_tot_comm_units: 16.0
+get_relative_cc_time:
+[[4. 3. 2. 4.]
+ [4. 3. 2. 2.]]
+get_balanced_relative_cc_time: 4.0, 3.0
+[[4. 4. 4. 4.]
+ [4. 4. 4. 4.]]
+SCHEDULE_UNIQUE_ID: 115
+schedule:
+[[[[ 0 -1 -1 -1]
+   [ 1  1 -1 -1]
+   [ 3  0  2 -1]
+   [ 1  2  0  3]]]]
+get_tot_comm_units: 20.0
+get_relative_cc_time:
+[[6. 3. 4. 4.]
+ [4. 3. 4. 2.]]
+get_balanced_relative_cc_time: 6.0, 3.0
+[[6. 5. 5. 4.]
+ [6. 6. 6. 2.]]
+SCHEDULE_UNIQUE_ID: 116
+schedule:
+[[[[ 0 -1 -1 -1]
+   [ 1  1 -1 -1]
+   [ 3  0  2 -1]
+   [ 2  0  1  3]]]]
+get_tot_comm_units: 20.0
+get_relative_cc_time:
+[[4. 5. 4. 4.]
+ [4. 3. 4. 2.]]
+get_balanced_relative_cc_time: 5.0, 3.0
+[[5. 5. 5. 5.]
+ [5. 5. 5. 5.]]
+SCHEDULE_UNIQUE_ID: 117
+schedule:
+[[[[ 0 -1 -1 -1]
+   [ 1  1 -1 -1]
+   [ 3  0  2 -1]
+   [ 2  1  0  3]]]]
+get_tot_comm_units: 20.0
+get_relative_cc_time:
+[[6. 3. 4. 4.]
+ [4. 3. 4. 2.]]
+get_balanced_relative_cc_time: 6.0, 3.0
+[[6. 5. 5. 4.]
+ [6. 6. 6. 2.]]
+SCHEDULE_UNIQUE_ID: 118
+schedule:
+[[[[ 0 -1 -1 -1]
+   [ 1  1 -1 -1]
+   [ 3  1  2 -1]
+   [ 0  0  2  3]]]]
+get_tot_comm_units: 14.0
+get_relative_cc_time:
+[[3. 3. 2. 4.]
+ [3. 3. 2. 2.]]
+get_balanced_relative_cc_time: 4.0, 3.0
+[[4. 4. 2. 4.]
+ [4. 4. 4. 2.]]
+SCHEDULE_UNIQUE_ID: 119
+schedule:
+[[[[ 0 -1 -1 -1]
+   [ 1  1 -1 -1]
+   [ 3  1  2 -1]
+   [ 0  2  0  3]]]]
+get_tot_comm_units: 16.0
+get_relative_cc_time:
+[[3. 3. 4. 4.]
+ [3. 3. 4. 2.]]
+get_balanced_relative_cc_time: 4.0, 3.0
+[[4. 4. 4. 4.]
+ [4. 4. 4. 4.]]
+SCHEDULE_UNIQUE_ID: 120
+schedule:
+[[[[ 0 -1 -1 -1]
+   [ 1  1 -1 -1]
+   [ 3  1  2 -1]
+   [ 2  0  0  3]]]]
+get_tot_comm_units: 18.0
+get_relative_cc_time:
+[[5. 3. 4. 4.]
+ [3. 3. 4. 2.]]
+get_balanced_relative_cc_time: 5.0, 3.0
+[[5. 4. 5. 4.]
+ [5. 5. 5. 3.]]
+SCHEDULE_UNIQUE_ID: 121
+schedule:
+[[[[ 0 -1 -1 -1]
+   [ 1  1 -1 -1]
+   [ 3  2  2 -1]
+   [ 0  0  1  3]]]]
+get_tot_comm_units: 16.0
+get_relative_cc_time:
+[[3. 5. 3. 4.]
+ [3. 3. 3. 2.]]
+get_balanced_relative_cc_time: 5.0, 3.0
+[[4. 5. 3. 4.]
+ [5. 5. 4. 2.]]
+SCHEDULE_UNIQUE_ID: 122
+schedule:
+[[[[ 0 -1 -1 -1]
+   [ 1  1 -1 -1]
+   [ 3  2  2 -1]
+   [ 0  1  0  3]]]]
+get_tot_comm_units: 14.0
+get_relative_cc_time:
+[[3. 3. 3. 4.]
+ [3. 3. 3. 2.]]
+get_balanced_relative_cc_time: 4.0, 3.0
+[[4. 3. 3. 4.]
+ [4. 4. 3. 3.]]
+SCHEDULE_UNIQUE_ID: 123
+schedule:
+[[[[ 0 -1 -1 -1]
+   [ 1  1 -1 -1]
+   [ 3  2  2 -1]
+   [ 1  0  0  3]]]]
+get_tot_comm_units: 16.0
+get_relative_cc_time:
+[[5. 3. 3. 4.]
+ [3. 3. 3. 2.]]
+get_balanced_relative_cc_time: 5.0, 3.0
+[[5. 4. 3. 4.]
+ [5. 5. 4. 2.]]
+SCHEDULE_UNIQUE_ID: 124
+schedule:
+[[[[ 0 -1 -1 -1]
+   [ 2  1 -1 -1]
+   [ 0  0  2 -1]
+   [ 1  1  3  3]]]]
+get_tot_comm_units: 14.0
+get_relative_cc_time:
+[[3. 4. 4. 3.]
+ [3. 4. 4. 1.]]
+get_balanced_relative_cc_time: 4.333333492279053, 3.0
+[[3.        4.        4.        3.       ]
+ [4.3333335 4.3333335 4.3333335 1.       ]]
+SCHEDULE_UNIQUE_ID: 125
+schedule:
+[[[[ 0 -1 -1 -1]
+   [ 2  1 -1 -1]
+   [ 0  0  2 -1]
+   [ 1  3  1  3]]]]
+get_tot_comm_units: 16.0
+get_relative_cc_time:
+[[3. 6. 4. 3.]
+ [3. 4. 4. 1.]]
+get_balanced_relative_cc_time: 6.0, 3.0
+[[3. 6. 4. 3.]
+ [6. 5. 4. 1.]]
+SCHEDULE_UNIQUE_ID: 126
+schedule:
+[[[[ 0 -1 -1 -1]
+   [ 2  1 -1 -1]
+   [ 0  0  2 -1]
+   [ 3  1  1  3]]]]
+get_tot_comm_units: 14.0
+get_relative_cc_time:
+[[3. 4. 4. 3.]
+ [3. 4. 4. 1.]]
+get_balanced_relative_cc_time: 4.0, 3.0
+[[3. 4. 4. 3.]
+ [4. 4. 4. 2.]]
+SCHEDULE_UNIQUE_ID: 127
+schedule:
+[[[[ 0 -1 -1 -1]
+   [ 2  1 -1 -1]
+   [ 0  1  2 -1]
+   [ 0  1  3  3]]]]
+get_tot_comm_units: 14.0
+get_relative_cc_time:
+[[2. 3. 4. 3.]
+ [4. 3. 4. 1.]]
+get_balanced_relative_cc_time: 4.0, 3.0
+[[4. 3. 4. 3.]
+ [4. 4. 4. 2.]]
+SCHEDULE_UNIQUE_ID: 128
+schedule:
+[[[[ 0 -1 -1 -1]
+   [ 2  1 -1 -1]
+   [ 0  1  2 -1]
+   [ 0  3  1  3]]]]
+get_tot_comm_units: 16.0
+get_relative_cc_time:
+[[2. 5. 4. 3.]
+ [4. 5. 4. 1.]]
+get_balanced_relative_cc_time: 5.0, 3.0
+[[4. 5. 4. 3.]
+ [5. 5. 4. 2.]]
+SCHEDULE_UNIQUE_ID: 129
+schedule:
+[[[[ 0 -1 -1 -1]
+   [ 2  1 -1 -1]
+   [ 0  1  2 -1]
+   [ 1  0  3  3]]]]
+get_tot_comm_units: 18.0
+get_relative_cc_time:
+[[4. 5. 4. 3.]
+ [4. 5. 4. 1.]]
+get_balanced_relative_cc_time: 5.333333492279053, 3.0
+[[5.3333335 5.3333335 4.        3.333333 ]
+ [5.3333335 5.3333335 5.3333335 2.       ]]
+SCHEDULE_UNIQUE_ID: 130
+schedule:
+[[[[ 0 -1 -1 -1]
+   [ 2  1 -1 -1]
+   [ 0  1  2 -1]
+   [ 1  3  0  3]]]]
+get_tot_comm_units: 18.0
+get_relative_cc_time:
+[[4. 5. 4. 3.]
+ [4. 5. 4. 1.]]
+get_balanced_relative_cc_time: 5.333333492279053, 3.0
+[[5.3333335 5.3333335 4.        3.333333 ]
+ [5.3333335 5.3333335 5.3333335 2.       ]]
+SCHEDULE_UNIQUE_ID: 131
+schedule:
+[[[[ 0 -1 -1 -1]
+   [ 2  1 -1 -1]
+   [ 0  1  2 -1]
+   [ 3  0  1  3]]]]
+get_tot_comm_units: 18.0
+get_relative_cc_time:
+[[4. 5. 4. 3.]
+ [4. 5. 4. 1.]]
+get_balanced_relative_cc_time: 5.333333492279053, 3.0
+[[5.3333335 5.3333335 4.        3.333333 ]
+ [5.3333335 5.3333335 5.3333335 2.       ]]
+SCHEDULE_UNIQUE_ID: 132
+schedule:
+[[[[ 0 -1 -1 -1]
+   [ 2  1 -1 -1]
+   [ 0  1  2 -1]
+   [ 3  1  0  3]]]]
+get_tot_comm_units: 16.0
+get_relative_cc_time:
+[[4. 3. 4. 3.]
+ [4. 3. 4. 1.]]
+get_balanced_relative_cc_time: 4.0, 3.0
+[[4. 4. 4. 4.]
+ [4. 4. 4. 4.]]
+SCHEDULE_UNIQUE_ID: 133
+schedule:
+[[[[ 0 -1 -1 -1]
+   [ 2  1 -1 -1]
+   [ 0  3  2 -1]
+   [ 0  1  1  3]]]]
+get_tot_comm_units: 16.0
+get_relative_cc_time:
+[[2. 4. 4. 4.]
+ [4. 4. 4. 2.]]
+get_balanced_relative_cc_time: 4.0, 3.0
+[[4. 4. 4. 4.]
+ [4. 4. 4. 4.]]
+SCHEDULE_UNIQUE_ID: 134
+schedule:
+[[[[ 0 -1 -1 -1]
+   [ 2  1 -1 -1]
+   [ 0  3  2 -1]
+   [ 1  0  1  3]]]]
+get_tot_comm_units: 20.0
+get_relative_cc_time:
+[[4. 6. 4. 4.]
+ [4. 4. 4. 2.]]
+get_balanced_relative_cc_time: 6.0, 3.0
+[[6. 6. 4. 4.]
+ [6. 6. 5. 3.]]
+SCHEDULE_UNIQUE_ID: 135
+schedule:
+[[[[ 0 -1 -1 -1]
+   [ 2  1 -1 -1]
+   [ 0  3  2 -1]
+   [ 1  1  0  3]]]]
+get_tot_comm_units: 18.0
+get_relative_cc_time:
+[[4. 4. 4. 4.]
+ [4. 4. 4. 2.]]
+get_balanced_relative_cc_time: 4.666666507720947, 3.0
+[[4.6666665 4.6666665 4.3333335 4.3333335]
+ [4.6666665 4.6666665 4.6666665 4.       ]]
+SCHEDULE_UNIQUE_ID: 136
+schedule:
+[[[[ 0 -1 -1 -1]
+   [ 2  1 -1 -1]
+   [ 1  0  2 -1]
+   [ 0  1  3  3]]]]
+get_tot_comm_units: 18.0
+get_relative_cc_time:
+[[4. 5. 4. 3.]
+ [4. 5. 4. 1.]]
+get_balanced_relative_cc_time: 5.333333492279053, 3.0
+[[5.3333335 5.3333335 4.        3.333333 ]
+ [5.3333335 5.3333335 5.3333335 2.       ]]
+SCHEDULE_UNIQUE_ID: 137
+schedule:
+[[[[ 0 -1 -1 -1]
+   [ 2  1 -1 -1]
+   [ 1  0  2 -1]
+   [ 0  3  1  3]]]]
+get_tot_comm_units: 20.0
+get_relative_cc_time:
+[[4. 7. 4. 3.]
+ [4. 5. 4. 1.]]
+get_balanced_relative_cc_time: 7.0, 3.0
+[[6. 7. 4. 3.]
+ [7. 7. 4. 2.]]
+SCHEDULE_UNIQUE_ID: 138
+schedule:
+[[[[ 0 -1 -1 -1]
+   [ 2  1 -1 -1]
+   [ 1  0  2 -1]
+   [ 1  0  3  3]]]]
+get_tot_comm_units: 18.0
+get_relative_cc_time:
+[[4. 5. 4. 3.]
+ [4. 5. 4. 1.]]
+get_balanced_relative_cc_time: 5.333333492279053, 3.0
+[[5.3333335 5.3333335 4.        3.333333 ]
+ [5.3333335 5.3333335 5.3333335 2.       ]]
+SCHEDULE_UNIQUE_ID: 139
+schedule:
+[[[[ 0 -1 -1 -1]
+   [ 2  1 -1 -1]
+   [ 1  0  2 -1]
+   [ 1  3  0  3]]]]
+get_tot_comm_units: 20.0
+get_relative_cc_time:
+[[6. 5. 4. 3.]
+ [4. 5. 4. 1.]]
+get_balanced_relative_cc_time: 6.0, 3.0
+[[6. 6. 4. 4.]
+ [6. 6. 4. 4.]]
+SCHEDULE_UNIQUE_ID: 140
+schedule:
+[[[[ 0 -1 -1 -1]
+   [ 2  1 -1 -1]
+   [ 1  0  2 -1]
+   [ 3  0  1  3]]]]
+get_tot_comm_units: 20.0
+get_relative_cc_time:
+[[4. 7. 4. 3.]
+ [4. 5. 4. 1.]]
+get_balanced_relative_cc_time: 7.0, 3.0
+[[6. 7. 4. 3.]
+ [7. 7. 5. 1.]]
+SCHEDULE_UNIQUE_ID: 141
+schedule:
+[[[[ 0 -1 -1 -1]
+   [ 2  1 -1 -1]
+   [ 1  0  2 -1]
+   [ 3  1  0  3]]]]
+get_tot_comm_units: 20.0
+get_relative_cc_time:
+[[6. 5. 4. 3.]
+ [4. 5. 4. 1.]]
+get_balanced_relative_cc_time: 6.0, 3.0
+[[6. 6. 4. 4.]
+ [6. 6. 6. 2.]]
+SCHEDULE_UNIQUE_ID: 142
+schedule:
+[[[[ 0 -1 -1 -1]
+   [ 2  1 -1 -1]
+   [ 1  1  2 -1]
+   [ 0  0  3  3]]]]
+get_tot_comm_units: 14.0
+get_relative_cc_time:
+[[3. 4. 4. 3.]
+ [3. 4. 4. 1.]]
+get_balanced_relative_cc_time: 4.333333492279053, 3.0
+[[3.        4.        4.        3.       ]
+ [4.3333335 4.3333335 4.3333335 1.       ]]
+SCHEDULE_UNIQUE_ID: 143
+schedule:
+[[[[ 0 -1 -1 -1]
+   [ 2  1 -1 -1]
+   [ 1  1  2 -1]
+   [ 0  3  0  3]]]]
+get_tot_comm_units: 14.0
+get_relative_cc_time:
+[[3. 4. 4. 3.]
+ [3. 4. 4. 1.]]
+get_balanced_relative_cc_time: 4.333333492279053, 3.0
+[[3.        4.        4.        3.       ]
+ [4.3333335 4.3333335 4.3333335 1.       ]]
+SCHEDULE_UNIQUE_ID: 144
+schedule:
+[[[[ 0 -1 -1 -1]
+   [ 2  1 -1 -1]
+   [ 1  1  2 -1]
+   [ 3  0  0  3]]]]
+get_tot_comm_units: 16.0
+get_relative_cc_time:
+[[5. 4. 4. 3.]
+ [3. 4. 4. 1.]]
+get_balanced_relative_cc_time: 5.0, 3.0
+[[5. 4. 4. 3.]
+ [5. 5. 5. 1.]]
+SCHEDULE_UNIQUE_ID: 145
+schedule:
+[[[[ 0 -1 -1 -1]
+   [ 2  1 -1 -1]
+   [ 1  3  2 -1]
+   [ 0  0  1  3]]]]
+get_tot_comm_units: 20.0
+get_relative_cc_time:
+[[3. 7. 4. 4.]
+ [3. 5. 4. 2.]]
+get_balanced_relative_cc_time: 7.0, 3.0
+[[4. 7. 5. 4.]
+ [7. 7. 4. 2.]]
+SCHEDULE_UNIQUE_ID: 146
+schedule:
+[[[[ 0 -1 -1 -1]
+   [ 2  1 -1 -1]
+   [ 1  3  2 -1]
+   [ 0  1  0  3]]]]
+get_tot_comm_units: 18.0
+get_relative_cc_time:
+[[3. 5. 4. 4.]
+ [3. 5. 4. 2.]]
+get_balanced_relative_cc_time: 5.0, 3.0
+[[4. 5. 5. 4.]
+ [5. 5. 5. 3.]]
+SCHEDULE_UNIQUE_ID: 147
+schedule:
+[[[[ 0 -1 -1 -1]
+   [ 2  1 -1 -1]
+   [ 1  3  2 -1]
+   [ 1  0  0  3]]]]
+get_tot_comm_units: 20.0
+get_relative_cc_time:
+[[5. 5. 4. 4.]
+ [3. 5. 4. 2.]]
+get_balanced_relative_cc_time: 5.0, 3.0
+[[5. 5. 5. 5.]
+ [5. 5. 5. 5.]]
+SCHEDULE_UNIQUE_ID: 148
+schedule:
+[[[[ 0 -1 -1 -1]
+   [ 2  1 -1 -1]
+   [ 3  0  2 -1]
+   [ 0  1  1  3]]]]
+get_tot_comm_units: 18.0
+get_relative_cc_time:
+[[4. 4. 4. 4.]
+ [4. 4. 4. 2.]]
+get_balanced_relative_cc_time: 4.5, 3.0
+[[4.5 4.5 4.5 4.5]
+ [4.5 4.5 4.5 4.5]]
+SCHEDULE_UNIQUE_ID: 149
+schedule:
+[[[[ 0 -1 -1 -1]
+   [ 2  1 -1 -1]
+   [ 3  0  2 -1]
+   [ 1  0  1  3]]]]
+get_tot_comm_units: 20.0
+get_relative_cc_time:
+[[4. 6. 4. 4.]
+ [4. 4. 4. 2.]]
+get_balanced_relative_cc_time: 6.0, 3.0
+[[6. 6. 4. 4.]
+ [6. 6. 6. 2.]]
+SCHEDULE_UNIQUE_ID: 150
+schedule:
+[[[[ 0 -1 -1 -1]
+   [ 2  1 -1 -1]
+   [ 3  0  2 -1]
+   [ 1  1  0  3]]]]
+get_tot_comm_units: 20.0
+get_relative_cc_time:
+[[6. 4. 4. 4.]
+ [4. 4. 4. 2.]]
+get_balanced_relative_cc_time: 6.0, 3.0
+[[6. 5. 5. 4.]
+ [6. 6. 6. 2.]]
+SCHEDULE_UNIQUE_ID: 151
+schedule:
+[[[[ 0 -1 -1 -1]
+   [ 2  1 -1 -1]
+   [ 3  1  2 -1]
+   [ 0  0  1  3]]]]
+get_tot_comm_units: 18.0
+get_relative_cc_time:
+[[3. 5. 4. 4.]
+ [3. 5. 4. 2.]]
+get_balanced_relative_cc_time: 5.0, 3.0
+[[4. 5. 5. 4.]
+ [5. 5. 5. 3.]]
+SCHEDULE_UNIQUE_ID: 152
+schedule:
+[[[[ 0 -1 -1 -1]
+   [ 2  1 -1 -1]
+   [ 3  1  2 -1]
+   [ 0  1  0  3]]]]
+get_tot_comm_units: 16.0
+get_relative_cc_time:
+[[3. 3. 4. 4.]
+ [3. 3. 4. 2.]]
+get_balanced_relative_cc_time: 4.0, 3.0
+[[4. 4. 4. 4.]
+ [4. 4. 4. 4.]]
+SCHEDULE_UNIQUE_ID: 153
+schedule:
+[[[[ 0 -1 -1 -1]
+   [ 2  1 -1 -1]
+   [ 3  1  2 -1]
+   [ 1  0  0  3]]]]
+get_tot_comm_units: 20.0
+get_relative_cc_time:
+[[5. 5. 4. 4.]
+ [3. 5. 4. 2.]]
+get_balanced_relative_cc_time: 5.0, 3.0
+[[5. 5. 5. 5.]
+ [5. 5. 5. 5.]]
+SCHEDULE_UNIQUE_ID: 154
+schedule:
+[[[[ 0 -1 -1 -1]
+   [ 3  1 -1 -1]
+   [ 0  0  2 -1]
+   [ 1  1  2  3]]]]
+get_tot_comm_units: 14.0
+get_relative_cc_time:
+[[3. 4. 2. 4.]
+ [3. 4. 2. 2.]]
+get_balanced_relative_cc_time: 4.0, 3.0
+[[3. 4. 3. 4.]
+ [4. 4. 3. 3.]]
+SCHEDULE_UNIQUE_ID: 155
+schedule:
+[[[[ 0 -1 -1 -1]
+   [ 3  1 -1 -1]
+   [ 0  0  2 -1]
+   [ 1  2  1  3]]]]
+get_tot_comm_units: 18.0
+get_relative_cc_time:
+[[3. 6. 4. 4.]
+ [3. 4. 4. 2.]]
+get_balanced_relative_cc_time: 6.0, 3.0
+[[3. 6. 5. 4.]
+ [6. 6. 4. 2.]]
+SCHEDULE_UNIQUE_ID: 156
+schedule:
+[[[[ 0 -1 -1 -1]
+   [ 3  1 -1 -1]
+   [ 0  0  2 -1]
+   [ 2  1  1  3]]]]
+get_tot_comm_units: 16.0
+get_relative_cc_time:
+[[3. 4. 4. 4.]
+ [3. 4. 4. 2.]]
+get_balanced_relative_cc_time: 4.333333492279053, 3.0
+[[3.        4.3333335 4.3333335 4.3333335]
+ [4.        4.        4.        4.       ]]
+SCHEDULE_UNIQUE_ID: 157
+schedule:
+[[[[ 0 -1 -1 -1]
+   [ 3  1 -1 -1]
+   [ 0  1  2 -1]
+   [ 0  1  2  3]]]]
+get_tot_comm_units: 14.0
+get_relative_cc_time:
+[[2. 3. 2. 4.]
+ [4. 3. 2. 2.]]
+get_balanced_relative_cc_time: 4.0, 3.0
+[[4. 4. 2. 4.]
+ [4. 4. 4. 2.]]
+SCHEDULE_UNIQUE_ID: 158
+schedule:
+[[[[ 0 -1 -1 -1]
+   [ 3  1 -1 -1]
+   [ 0  1  2 -1]
+   [ 0  2  1  3]]]]
+get_tot_comm_units: 18.0
+get_relative_cc_time:
+[[2. 5. 4. 4.]
+ [4. 5. 4. 2.]]
+get_balanced_relative_cc_time: 5.0, 3.0
+[[5. 5. 4. 4.]
+ [5. 5. 5. 3.]]
+SCHEDULE_UNIQUE_ID: 159
+schedule:
+[[[[ 0 -1 -1 -1]
+   [ 3  1 -1 -1]
+   [ 0  1  2 -1]
+   [ 1  0  2  3]]]]
+get_tot_comm_units: 18.0
+get_relative_cc_time:
+[[4. 5. 2. 4.]
+ [4. 5. 2. 2.]]
+get_balanced_relative_cc_time: 5.0, 3.0
+[[5. 5. 4. 4.]
+ [5. 5. 5. 3.]]
+SCHEDULE_UNIQUE_ID: 160
+schedule:
+[[[[ 0 -1 -1 -1]
+   [ 3  1 -1 -1]
+   [ 0  1  2 -1]
+   [ 1  2  0  3]]]]
+get_tot_comm_units: 20.0
+get_relative_cc_time:
+[[4. 5. 4. 4.]
+ [4. 5. 4. 2.]]
+get_balanced_relative_cc_time: 5.0, 3.0
+[[5. 5. 5. 5.]
+ [5. 5. 5. 5.]]
+SCHEDULE_UNIQUE_ID: 161
+schedule:
+[[[[ 0 -1 -1 -1]
+   [ 3  1 -1 -1]
+   [ 0  1  2 -1]
+   [ 2  0  1  3]]]]
+get_tot_comm_units: 20.0
+get_relative_cc_time:
+[[4. 5. 4. 4.]
+ [4. 5. 4. 2.]]
+get_balanced_relative_cc_time: 5.333333492279053, 3.0
+[[5.3333335 5.3333335 5.333333  4.       ]
+ [5.3333335 5.3333335 5.3333335 4.       ]]
+SCHEDULE_UNIQUE_ID: 162
+schedule:
+[[[[ 0 -1 -1 -1]
+   [ 3  1 -1 -1]
+   [ 0  1  2 -1]
+   [ 2  1  0  3]]]]
+get_tot_comm_units: 18.0
+get_relative_cc_time:
+[[4. 3. 4. 4.]
+ [4. 3. 4. 2.]]
+get_balanced_relative_cc_time: 4.5, 3.0
+[[4.5 4.5 4.5 4.5]
+ [4.5 4.5 4.5 4.5]]
+SCHEDULE_UNIQUE_ID: 163
+schedule:
+[[[[ 0 -1 -1 -1]
+   [ 3  1 -1 -1]
+   [ 0  2  2 -1]
+   [ 0  1  1  3]]]]
+get_tot_comm_units: 14.0
+get_relative_cc_time:
+[[2. 4. 3. 4.]
+ [4. 4. 3. 2.]]
+get_balanced_relative_cc_time: 4.0, 3.0
+[[3. 4. 3. 4.]
+ [4. 4. 3. 3.]]
+SCHEDULE_UNIQUE_ID: 164
+schedule:
+[[[[ 0 -1 -1 -1]
+   [ 3  1 -1 -1]
+   [ 0  2  2 -1]
+   [ 1  0  1  3]]]]
+get_tot_comm_units: 18.0
+get_relative_cc_time:
+[[4. 6. 3. 4.]
+ [4. 4. 3. 2.]]
+get_balanced_relative_cc_time: 6.0, 3.0
+[[5. 6. 3. 4.]
+ [6. 6. 4. 2.]]
+SCHEDULE_UNIQUE_ID: 165
+schedule:
+[[[[ 0 -1 -1 -1]
+   [ 3  1 -1 -1]
+   [ 0  2  2 -1]
+   [ 1  1  0  3]]]]
+get_tot_comm_units: 16.0
+get_relative_cc_time:
+[[4. 4. 3. 4.]
+ [4. 4. 3. 2.]]
+get_balanced_relative_cc_time: 4.333333492279053, 3.0
+[[4.3333335 4.3333335 3.        4.3333335]
+ [4.3333335 4.3333335 3.        4.3333335]]
+SCHEDULE_UNIQUE_ID: 166
+schedule:
+[[[[ 0 -1 -1 -1]
+   [ 3  1 -1 -1]
+   [ 1  0  2 -1]
+   [ 0  1  2  3]]]]
+get_tot_comm_units: 18.0
+get_relative_cc_time:
+[[4. 5. 2. 4.]
+ [4. 5. 2. 2.]]
+get_balanced_relative_cc_time: 5.0, 3.0
+[[5. 5. 4. 4.]
+ [5. 5. 5. 3.]]
+SCHEDULE_UNIQUE_ID: 167
+schedule:
+[[[[ 0 -1 -1 -1]
+   [ 3  1 -1 -1]
+   [ 1  0  2 -1]
+   [ 0  2  1  3]]]]
+get_tot_comm_units: 22.0
+get_relative_cc_time:
+[[4. 7. 4. 4.]
+ [4. 5. 4. 2.]]
+get_balanced_relative_cc_time: 7.0, 3.0
+[[7. 7. 4. 4.]
+ [7. 7. 6. 2.]]
+SCHEDULE_UNIQUE_ID: 168
+schedule:
+[[[[ 0 -1 -1 -1]
+   [ 3  1 -1 -1]
+   [ 1  0  2 -1]
+   [ 1  0  2  3]]]]
+get_tot_comm_units: 18.0
+get_relative_cc_time:
+[[4. 5. 2. 4.]
+ [4. 5. 2. 2.]]
+get_balanced_relative_cc_time: 5.0, 3.0
+[[5. 5. 4. 4.]
+ [5. 5. 5. 3.]]
+SCHEDULE_UNIQUE_ID: 169
+schedule:
+[[[[ 0 -1 -1 -1]
+   [ 3  1 -1 -1]
+   [ 1  0  2 -1]
+   [ 1  2  0  3]]]]
+get_tot_comm_units: 22.0
+get_relative_cc_time:
+[[6. 5. 4. 4.]
+ [4. 5. 4. 2.]]
+get_balanced_relative_cc_time: 6.0, 3.0
+[[6. 6. 6. 4.]
+ [6. 6. 6. 4.]]
+SCHEDULE_UNIQUE_ID: 170
+schedule:
+[[[[ 0 -1 -1 -1]
+   [ 3  1 -1 -1]
+   [ 1  0  2 -1]
+   [ 2  0  1  3]]]]
+get_tot_comm_units: 22.0
+get_relative_cc_time:
+[[4. 7. 4. 4.]
+ [4. 5. 4. 2.]]
+get_balanced_relative_cc_time: 7.0, 3.0
+[[7. 7. 4. 4.]
+ [7. 7. 6. 2.]]
+SCHEDULE_UNIQUE_ID: 171
+schedule:
+[[[[ 0 -1 -1 -1]
+   [ 3  1 -1 -1]
+   [ 1  0  2 -1]
+   [ 2  1  0  3]]]]
+get_tot_comm_units: 22.0
+get_relative_cc_time:
+[[6. 5. 4. 4.]
+ [4. 5. 4. 2.]]
+get_balanced_relative_cc_time: 6.0, 3.0
+[[6. 6. 6. 4.]
+ [6. 6. 6. 4.]]
+SCHEDULE_UNIQUE_ID: 172
+schedule:
+[[[[ 0 -1 -1 -1]
+   [ 3  1 -1 -1]
+   [ 1  1  2 -1]
+   [ 0  0  2  3]]]]
+get_tot_comm_units: 14.0
+get_relative_cc_time:
+[[3. 4. 2. 4.]
+ [3. 4. 2. 2.]]
+get_balanced_relative_cc_time: 4.0, 3.0
+[[4. 4. 2. 4.]
+ [4. 4. 3. 3.]]
+SCHEDULE_UNIQUE_ID: 173
+schedule:
+[[[[ 0 -1 -1 -1]
+   [ 3  1 -1 -1]
+   [ 1  1  2 -1]
+   [ 0  2  0  3]]]]
+get_tot_comm_units: 16.0
+get_relative_cc_time:
+[[3. 4. 4. 4.]
+ [3. 4. 4. 2.]]
+get_balanced_relative_cc_time: 4.0, 3.0
+[[4. 4. 4. 4.]
+ [4. 4. 4. 4.]]
+SCHEDULE_UNIQUE_ID: 174
+schedule:
+[[[[ 0 -1 -1 -1]
+   [ 3  1 -1 -1]
+   [ 1  1  2 -1]
+   [ 2  0  0  3]]]]
+get_tot_comm_units: 18.0
+get_relative_cc_time:
+[[5. 4. 4. 4.]
+ [3. 4. 4. 2.]]
+get_balanced_relative_cc_time: 5.0, 3.0
+[[5. 4. 5. 4.]
+ [5. 5. 5. 3.]]
+SCHEDULE_UNIQUE_ID: 175
+schedule:
+[[[[ 0 -1 -1 -1]
+   [ 3  1 -1 -1]
+   [ 1  2  2 -1]
+   [ 0  0  1  3]]]]
+get_tot_comm_units: 18.0
+get_relative_cc_time:
+[[3. 7. 3. 4.]
+ [3. 5. 3. 2.]]
+get_balanced_relative_cc_time: 7.0, 3.0
+[[4. 7. 3. 4.]
+ [7. 6. 3. 2.]]
+SCHEDULE_UNIQUE_ID: 176
+schedule:
+[[[[ 0 -1 -1 -1]
+   [ 3  1 -1 -1]
+   [ 1  2  2 -1]
+   [ 0  1  0  3]]]]
+get_tot_comm_units: 16.0
+get_relative_cc_time:
+[[3. 5. 3. 4.]
+ [3. 5. 3. 2.]]
+get_balanced_relative_cc_time: 5.0, 3.0
+[[4. 5. 3. 4.]
+ [5. 5. 3. 3.]]
+SCHEDULE_UNIQUE_ID: 177
+schedule:
+[[[[ 0 -1 -1 -1]
+   [ 3  1 -1 -1]
+   [ 1  2  2 -1]
+   [ 1  0  0  3]]]]
+get_tot_comm_units: 18.0
+get_relative_cc_time:
+[[5. 5. 3. 4.]
+ [3. 5. 3. 2.]]
+get_balanced_relative_cc_time: 5.0, 3.0
+[[5. 5. 3. 5.]
+ [5. 5. 5. 3.]]
+SCHEDULE_UNIQUE_ID: 178
+schedule:
+[[[[ 0 -1 -1 -1]
+   [ 3  1 -1 -1]
+   [ 2  0  2 -1]
+   [ 0  1  1  3]]]]
+get_tot_comm_units: 16.0
+get_relative_cc_time:
+[[4. 4. 3. 4.]
+ [4. 4. 3. 2.]]
+get_balanced_relative_cc_time: 4.333333492279053, 3.0
+[[4.3333335 4.3333335 3.        4.3333335]
+ [4.        4.        4.        4.       ]]
+SCHEDULE_UNIQUE_ID: 179
+schedule:
+[[[[ 0 -1 -1 -1]
+   [ 3  1 -1 -1]
+   [ 2  0  2 -1]
+   [ 1  0  1  3]]]]
+get_tot_comm_units: 18.0
+get_relative_cc_time:
+[[4. 6. 3. 4.]
+ [4. 4. 3. 2.]]
+get_balanced_relative_cc_time: 6.0, 3.0
+[[5. 6. 3. 4.]
+ [6. 6. 4. 2.]]
+SCHEDULE_UNIQUE_ID: 180
+schedule:
+[[[[ 0 -1 -1 -1]
+   [ 3  1 -1 -1]
+   [ 2  0  2 -1]
+   [ 1  1  0  3]]]]
+get_tot_comm_units: 18.0
+get_relative_cc_time:
+[[6. 4. 3. 4.]
+ [4. 4. 3. 2.]]
+get_balanced_relative_cc_time: 6.0, 3.0
+[[6. 5. 3. 4.]
+ [6. 6. 4. 2.]]
+SCHEDULE_UNIQUE_ID: 181
+schedule:
+[[[[ 0 -1 -1 -1]
+   [ 3  1 -1 -1]
+   [ 2  1  2 -1]
+   [ 0  0  1  3]]]]
+get_tot_comm_units: 16.0
+get_relative_cc_time:
+[[3. 5. 3. 4.]
+ [3. 5. 3. 2.]]
+get_balanced_relative_cc_time: 5.0, 3.0
+[[4. 5. 3. 4.]
+ [5. 5. 3. 3.]]
+SCHEDULE_UNIQUE_ID: 182
+schedule:
+[[[[ 0 -1 -1 -1]
+   [ 3  1 -1 -1]
+   [ 2  1  2 -1]
+   [ 0  1  0  3]]]]
+get_tot_comm_units: 14.0
+get_relative_cc_time:
+[[3. 3. 3. 4.]
+ [3. 3. 3. 2.]]
+get_balanced_relative_cc_time: 4.0, 3.0
+[[4. 3. 3. 4.]
+ [4. 4. 4. 2.]]
+SCHEDULE_UNIQUE_ID: 183
+schedule:
+[[[[ 0 -1 -1 -1]
+   [ 3  1 -1 -1]
+   [ 2  1  2 -1]
+   [ 1  0  0  3]]]]
+get_tot_comm_units: 18.0
+get_relative_cc_time:
+[[5. 5. 3. 4.]
+ [3. 5. 3. 2.]]
+get_balanced_relative_cc_time: 5.0, 3.0
+[[5. 5. 3. 5.]
+ [5. 5. 5. 3.]]
++ set +x

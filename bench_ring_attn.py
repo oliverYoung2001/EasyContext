@@ -1034,13 +1034,13 @@ def run_all_inter_attn(args, ncclcomm_global, gloo_global_group):
     # PROC_INFO['world_size'] = PROC_INFO['node_num'] * PROC_INFO['tasks_per_node']
     # # modify finished
     
-    # modified PROC_INFO for debug, version2:  1 * 8 -> 4 * 2
-    assert PROC_INFO['node_num'] == 1 and PROC_INFO['tasks_per_node'] == 8
-    PROC_INFO['node_num'] = 4
-    PROC_INFO['tasks_per_node'] = 2
-    PROC_INFO['nodeid'] = PROC_INFO['rank'] // PROC_INFO['tasks_per_node']
-    PROC_INFO['local_rank'] = PROC_INFO['rank'] % PROC_INFO['tasks_per_node']
-    # modify finished
+    # # modified PROC_INFO for debug, version2:  1 * 8 -> 4 * 2
+    # assert PROC_INFO['node_num'] == 1 and PROC_INFO['tasks_per_node'] == 8
+    # PROC_INFO['node_num'] = 4
+    # PROC_INFO['tasks_per_node'] = 2
+    # PROC_INFO['nodeid'] = PROC_INFO['rank'] // PROC_INFO['tasks_per_node']
+    # PROC_INFO['local_rank'] = PROC_INFO['rank'] % PROC_INFO['tasks_per_node']
+    # # modify finished
     
     # # modified PROC_INFO for debug, version3:  1 * 8 -> 8 * 1
     # assert PROC_INFO['node_num'] == 1 and PROC_INFO['tasks_per_node'] == 8
@@ -1060,8 +1060,8 @@ def run_all_inter_attn(args, ncclcomm_global, gloo_global_group):
     bs = 1
     D = 128
     causals = [
-        # False,
-        True,
+        False,
+        # True,
     ]
     SPs = (node_num, local_size)
     
@@ -1081,8 +1081,8 @@ def run_all_inter_attn(args, ncclcomm_global, gloo_global_group):
     # WARMUP, NUM_ITER = 1, 2 # later, bad performance
     
     # S_BOUND = [256, 64 * 1024]
-    S_BOUND = [256, 32 * 1024]  # lower-bound and upper-bound of S per GPU, for (4, 8)
-    # S_BOUND = [256, 16 * 1024]  # lower-bound and upper-bound of S per GPU, for (8, 8)
+    # S_BOUND = [256, 32 * 1024]  # lower-bound and upper-bound of S per GPU, for (4, 8)
+    S_BOUND = [256, 16 * 1024]  # lower-bound and upper-bound of S per GPU, for (8, 8) causal and (4, 8) noncausal
     # S_BOUND = [1 * 1024, 16 * 1024] # for debug
     # S_BOUND = [32 * 1024, 32 * 1024]
     

@@ -1,0 +1,299 @@
++ export CUDA_DEVICE_MAX_CONNECTIONS=32
++ CUDA_DEVICE_MAX_CONNECTIONS=32
++ srun -p arch -N 4 --ntasks-per-node=8 --gres=gpu:8 --mem 256G -K -w g3025,g3026,g3027,g3028 -c 16 ./scripts/bench_ring_attn.sh python bench_ring_attn.py
+srun: job 18406 queued and waiting for resources
+srun: job 18406 has been allocated resources
+torch distributed is already initialized, skipping initialization ...
+************ Finish sequence pralell group Initialization. ***********
+Sqkvs: [256, 512, 1024, 2048, 4096, 8192, 16384]
+total_size: 30299652096
+causal=False, fob=0:
+da_config: SP=(4,8),Sg=(256,256),S=(8192,8192),Nh=(1,1),bs=1,D=128,causal=False,hierarchy=1:
+YXs: [(1, 4), (2, 2), (4, 1)]
+# ring_flash_attn_func, fwd
+mfu: 0.072 Tflops/s, hfu: 0.072 Tflops/s, 67.491 iter/s, 1.482e-02 s/iter, (7.321, 0.001, 0.059) sec
+# orchestrated_attn_func
+mfu: 1.87 Tflops/s, hfu: 1.87 Tflops/s, 1741.747 iter/s, 5.741e-04 s/iter, (6.244, 0.001, 0.002) sec
+mfu: 1.803 Tflops/s, hfu: 1.803 Tflops/s, 1679.092 iter/s, 5.956e-04 s/iter, (0.180, 0.001, 0.002) sec
+mfu: 2.326 Tflops/s, hfu: 2.326 Tflops/s, 2166.190 iter/s, 4.616e-04 s/iter, (0.182, 0.001, 0.002) sec
+mfu: 2.603 Tflops/s, hfu: 2.603 Tflops/s, 2424.689 iter/s, 4.124e-04 s/iter, (0.575, 0.001, 0.002) sec
+mfu: 2.189 Tflops/s, hfu: 2.189 Tflops/s, 2038.453 iter/s, 4.906e-04 s/iter, (0.182, 0.001, 0.002) sec
+mfu: 2.365 Tflops/s, hfu: 2.365 Tflops/s, 2202.876 iter/s, 4.540e-04 s/iter, (0.181, 0.001, 0.002) sec
+da_config: SP=(4,8),Sg=(512,512),S=(16384,16384),Nh=(1,1),bs=1,D=128,causal=False,hierarchy=1:
+YXs: [(1, 4), (2, 2), (4, 1)]
+# ring_flash_attn_func, fwd
+mfu: 0.335 Tflops/s, hfu: 0.335 Tflops/s, 78.114 iter/s, 1.280e-02 s/iter, (0.028, 0.001, 0.051) sec
+# orchestrated_attn_func
+mfu: 6.647 Tflops/s, hfu: 6.647 Tflops/s, 1547.738 iter/s, 6.461e-04 s/iter, (0.180, 0.001, 0.003) sec
+mfu: 6.345 Tflops/s, hfu: 6.345 Tflops/s, 1477.262 iter/s, 6.769e-04 s/iter, (0.181, 0.001, 0.003) sec
+mfu: 6.654 Tflops/s, hfu: 6.654 Tflops/s, 1549.254 iter/s, 6.455e-04 s/iter, (0.181, 0.001, 0.003) sec
+mfu: 6.631 Tflops/s, hfu: 6.631 Tflops/s, 1543.839 iter/s, 6.477e-04 s/iter, (0.182, 0.001, 0.003) sec
+mfu: 8.671 Tflops/s, hfu: 8.671 Tflops/s, 2018.962 iter/s, 4.953e-04 s/iter, (0.180, 0.001, 0.002) sec
+mfu: 11.181 Tflops/s, hfu: 11.181 Tflops/s, 2603.190 iter/s, 3.841e-04 s/iter, (0.183, 0.001, 0.002) sec
+da_config: SP=(4,8),Sg=(1024,1024),S=(32768,32768),Nh=(1,1),bs=1,D=128,causal=False,hierarchy=1:
+YXs: [(1, 4), (2, 2), (4, 1)]
+# ring_flash_attn_func, fwd
+mfu: 1.214 Tflops/s, hfu: 1.214 Tflops/s, 70.642 iter/s, 1.416e-02 s/iter, (0.040, 0.001, 0.057) sec
+# orchestrated_attn_func
+mfu: 21.35 Tflops/s, hfu: 21.35 Tflops/s, 1242.705 iter/s, 8.047e-04 s/iter, (0.183, 0.001, 0.003) sec
+mfu: 20.684 Tflops/s, hfu: 20.684 Tflops/s, 1203.949 iter/s, 8.306e-04 s/iter, (0.180, 0.001, 0.003) sec
+mfu: 25.954 Tflops/s, hfu: 25.954 Tflops/s, 1510.702 iter/s, 6.619e-04 s/iter, (0.180, 0.001, 0.003) sec
+mfu: 22.48 Tflops/s, hfu: 22.48 Tflops/s, 1308.517 iter/s, 7.642e-04 s/iter, (0.180, 0.001, 0.003) sec
+mfu: 24.293 Tflops/s, hfu: 24.293 Tflops/s, 1414.027 iter/s, 7.072e-04 s/iter, (0.180, 0.001, 0.003) sec
+mfu: 34.021 Tflops/s, hfu: 34.021 Tflops/s, 1980.261 iter/s, 5.050e-04 s/iter, (0.180, 0.001, 0.002) sec
+da_config: SP=(4,8),Sg=(2048,2048),S=(65536,65536),Nh=(1,1),bs=1,D=128,causal=False,hierarchy=1:
+YXs: [(1, 4), (2, 2), (4, 1)]
+# ring_flash_attn_func, fwd
+mfu: 4.782 Tflops/s, hfu: 4.782 Tflops/s, 69.583 iter/s, 1.437e-02 s/iter, (0.033, 0.001, 0.057) sec
+# orchestrated_attn_func
+mfu: 53.422 Tflops/s, hfu: 53.422 Tflops/s, 777.392 iter/s, 1.286e-03 s/iter, (0.182, 0.001, 0.005) sec
+mfu: 53.458 Tflops/s, hfu: 53.458 Tflops/s, 777.920 iter/s, 1.285e-03 s/iter, (0.182, 0.000, 0.005) sec
+mfu: 61.186 Tflops/s, hfu: 61.186 Tflops/s, 890.377 iter/s, 1.123e-03 s/iter, (0.182, 0.001, 0.004) sec
+mfu: 55.443 Tflops/s, hfu: 55.443 Tflops/s, 806.806 iter/s, 1.239e-03 s/iter, (0.180, 0.001, 0.005) sec
+mfu: 55.989 Tflops/s, hfu: 55.989 Tflops/s, 814.752 iter/s, 1.227e-03 s/iter, (0.185, 0.001, 0.005) sec
+mfu: 64.041 Tflops/s, hfu: 64.041 Tflops/s, 931.925 iter/s, 1.073e-03 s/iter, (3.624, 0.001, 0.004) sec
+da_config: SP=(4,8),Sg=(4096,4096),S=(131072,131072),Nh=(1,1),bs=1,D=128,causal=False,hierarchy=1:
+YXs: [(1, 4), (2, 2), (4, 1)]
+# ring_flash_attn_func, fwd
+mfu: 18.524 Tflops/s, hfu: 18.524 Tflops/s, 67.389 iter/s, 1.484e-02 s/iter, (0.035, 0.001, 0.059) sec
+# orchestrated_attn_func
+mfu: 99.71 Tflops/s, hfu: 99.71 Tflops/s, 362.744 iter/s, 2.757e-03 s/iter, (0.186, 0.001, 0.011) sec
+mfu: 101.916 Tflops/s, hfu: 101.916 Tflops/s, 370.767 iter/s, 2.697e-03 s/iter, (0.184, 0.001, 0.011) sec
+mfu: 100.472 Tflops/s, hfu: 100.472 Tflops/s, 365.514 iter/s, 2.736e-03 s/iter, (0.185, 0.001, 0.011) sec
+mfu: 110.092 Tflops/s, hfu: 110.092 Tflops/s, 400.513 iter/s, 2.497e-03 s/iter, (3.295, 0.001, 0.010) sec
+mfu: 114.476 Tflops/s, hfu: 114.476 Tflops/s, 416.460 iter/s, 2.401e-03 s/iter, (0.184, 0.001, 0.010) sec
+mfu: 125.749 Tflops/s, hfu: 125.749 Tflops/s, 457.473 iter/s, 2.186e-03 s/iter, (0.183, 0.001, 0.009) sec
+da_config: SP=(4,8),Sg=(8192,8192),S=(262144,262144),Nh=(1,1),bs=1,D=128,causal=False,hierarchy=1:
+YXs: [(1, 4), (2, 2), (4, 1)]
+# ring_flash_attn_func, fwd
+mfu: 75.349 Tflops/s, hfu: 75.349 Tflops/s, 68.530 iter/s, 1.459e-02 s/iter, (0.033, 0.001, 0.058) sec
+# orchestrated_attn_func
+mfu: 157.641 Tflops/s, hfu: 157.641 Tflops/s, 143.374 iter/s, 6.975e-03 s/iter, (0.194, 0.001, 0.028) sec
+mfu: 158.856 Tflops/s, hfu: 158.856 Tflops/s, 144.479 iter/s, 6.921e-03 s/iter, (0.194, 0.001, 0.028) sec
+mfu: 163.322 Tflops/s, hfu: 163.322 Tflops/s, 148.541 iter/s, 6.732e-03 s/iter, (0.194, 0.001, 0.027) sec
+mfu: 159.04 Tflops/s, hfu: 159.04 Tflops/s, 144.646 iter/s, 6.913e-03 s/iter, (0.192, 0.001, 0.028) sec
+mfu: 164.622 Tflops/s, hfu: 164.622 Tflops/s, 149.722 iter/s, 6.679e-03 s/iter, (0.192, 0.001, 0.027) sec
+mfu: 178.008 Tflops/s, hfu: 178.008 Tflops/s, 161.897 iter/s, 6.177e-03 s/iter, (0.197, 0.001, 0.025) sec
+da_config: SP=(4,8),Sg=(16384,16384),S=(524288,524288),Nh=(1,1),bs=1,D=128,causal=False,hierarchy=1:
+YXs: [(1, 4), (2, 2), (4, 1)]
+# ring_flash_attn_func, fwd
+mfu: 122.146 Tflops/s, hfu: 122.146 Tflops/s, 27.773 iter/s, 3.601e-02 s/iter, (0.074, 0.001, 0.144) sec
+# orchestrated_attn_func
+mfu: 196.088 Tflops/s, hfu: 196.088 Tflops/s, 44.585 iter/s, 2.243e-02 s/iter, (0.224, 0.000, 0.090) sec
+mfu: 195.206 Tflops/s, hfu: 195.206 Tflops/s, 44.385 iter/s, 2.253e-02 s/iter, (0.224, 0.001, 0.090) sec
+mfu: 194.402 Tflops/s, hfu: 194.402 Tflops/s, 44.202 iter/s, 2.262e-02 s/iter, (0.225, 0.001, 0.090) sec
+mfu: 198.715 Tflops/s, hfu: 198.715 Tflops/s, 45.183 iter/s, 2.213e-02 s/iter, (0.223, 0.001, 0.089) sec
+mfu: 205.133 Tflops/s, hfu: 205.133 Tflops/s, 46.642 iter/s, 2.144e-02 s/iter, (0.222, 0.001, 0.086) sec
+mfu: 206.016 Tflops/s, hfu: 206.016 Tflops/s, 46.843 iter/s, 2.135e-02 s/iter, (0.222, 0.001, 0.085) sec
+da_config: SP=(4,8),Sg=(256,256),S=(8192,8192),Nh=(32,32),bs=1,D=128,causal=False,hierarchy=1:
+YXs: [(1, 4), (2, 2), (4, 1)]
+# ring_flash_attn_func, fwd
+mfu: 2.48 Tflops/s, hfu: 2.48 Tflops/s, 72.188 iter/s, 1.385e-02 s/iter, (0.035, 0.001, 0.055) sec
+# orchestrated_attn_func
+mfu: 18.89 Tflops/s, hfu: 18.89 Tflops/s, 549.784 iter/s, 1.819e-03 s/iter, (14.002, 0.001, 0.007) sec
+mfu: 21.926 Tflops/s, hfu: 21.926 Tflops/s, 638.133 iter/s, 1.567e-03 s/iter, (0.185, 0.001, 0.006) sec
+mfu: 19.24 Tflops/s, hfu: 19.24 Tflops/s, 559.956 iter/s, 1.786e-03 s/iter, (0.188, 0.001, 0.007) sec
+mfu: 17.797 Tflops/s, hfu: 17.797 Tflops/s, 517.952 iter/s, 1.931e-03 s/iter, (12.823, 0.001, 0.008) sec
+mfu: 19.664 Tflops/s, hfu: 19.664 Tflops/s, 572.308 iter/s, 1.747e-03 s/iter, (0.186, 0.001, 0.007) sec
+mfu: 22.159 Tflops/s, hfu: 22.159 Tflops/s, 644.915 iter/s, 1.551e-03 s/iter, (0.185, 0.001, 0.006) sec
+da_config: SP=(4,8),Sg=(512,512),S=(16384,16384),Nh=(32,32),bs=1,D=128,causal=False,hierarchy=1:
+YXs: [(1, 4), (2, 2), (4, 1)]
+# ring_flash_attn_func, fwd
+mfu: 10.285 Tflops/s, hfu: 10.285 Tflops/s, 74.830 iter/s, 1.336e-02 s/iter, (0.031, 0.001, 0.053) sec
+# orchestrated_attn_func
+mfu: 45.945 Tflops/s, hfu: 45.945 Tflops/s, 334.293 iter/s, 2.991e-03 s/iter, (0.186, 0.001, 0.012) sec
+mfu: 56.939 Tflops/s, hfu: 56.939 Tflops/s, 414.283 iter/s, 2.414e-03 s/iter, (0.186, 0.001, 0.010) sec
+mfu: 50.831 Tflops/s, hfu: 50.831 Tflops/s, 369.842 iter/s, 2.704e-03 s/iter, (0.189, 0.001, 0.011) sec
+mfu: 45.92 Tflops/s, hfu: 45.92 Tflops/s, 334.115 iter/s, 2.993e-03 s/iter, (0.188, 0.001, 0.012) sec
+mfu: 54.318 Tflops/s, hfu: 54.318 Tflops/s, 395.217 iter/s, 2.530e-03 s/iter, (0.186, 0.001, 0.010) sec
+mfu: 47.875 Tflops/s, hfu: 47.875 Tflops/s, 348.335 iter/s, 2.871e-03 s/iter, (0.191, 0.001, 0.011) sec
+da_config: SP=(4,8),Sg=(1024,1024),S=(32768,32768),Nh=(32,32),bs=1,D=128,causal=False,hierarchy=1:
+YXs: [(1, 4), (2, 2), (4, 1)]
+# ring_flash_attn_func, fwd
+mfu: 21.894 Tflops/s, hfu: 21.894 Tflops/s, 39.825 iter/s, 2.511e-02 s/iter, (0.080, 0.001, 0.100) sec
+# orchestrated_attn_func
+mfu: 109.463 Tflops/s, hfu: 109.463 Tflops/s, 199.111 iter/s, 5.022e-03 s/iter, (0.196, 0.001, 0.020) sec
+mfu: 125.531 Tflops/s, hfu: 125.531 Tflops/s, 228.339 iter/s, 4.379e-03 s/iter, (0.190, 0.001, 0.018) sec
+mfu: 105.345 Tflops/s, hfu: 105.345 Tflops/s, 191.622 iter/s, 5.219e-03 s/iter, (0.193, 0.000, 0.021) sec
+mfu: 101.506 Tflops/s, hfu: 101.506 Tflops/s, 184.638 iter/s, 5.416e-03 s/iter, (0.192, 0.001, 0.022) sec
+mfu: 126.047 Tflops/s, hfu: 126.047 Tflops/s, 229.278 iter/s, 4.362e-03 s/iter, (0.193, 0.001, 0.017) sec
+mfu: 110.303 Tflops/s, hfu: 110.303 Tflops/s, 200.639 iter/s, 4.984e-03 s/iter, (0.195, 0.001, 0.020) sec
+da_config: SP=(4,8),Sg=(2048,2048),S=(65536,65536),Nh=(32,32),bs=1,D=128,causal=False,hierarchy=1:
+YXs: [(1, 4), (2, 2), (4, 1)]
+# ring_flash_attn_func, fwd
+mfu: 40.529 Tflops/s, hfu: 40.529 Tflops/s, 18.430 iter/s, 5.426e-02 s/iter, (0.113, 0.001, 0.217) sec
+# orchestrated_attn_func
+mfu: 214.034 Tflops/s, hfu: 214.034 Tflops/s, 97.332 iter/s, 1.027e-02 s/iter, (0.202, 0.001, 0.041) sec
+mfu: 229.048 Tflops/s, hfu: 229.048 Tflops/s, 104.159 iter/s, 9.601e-03 s/iter, (0.203, 0.001, 0.038) sec
+mfu: 212.198 Tflops/s, hfu: 212.198 Tflops/s, 96.496 iter/s, 1.036e-02 s/iter, (0.203, 0.001, 0.041) sec
+mfu: 213.17 Tflops/s, hfu: 213.17 Tflops/s, 96.939 iter/s, 1.032e-02 s/iter, (0.204, 0.001, 0.041) sec
+mfu: 283.234 Tflops/s, hfu: 283.234 Tflops/s, 128.800 iter/s, 7.764e-03 s/iter, (0.200, 0.001, 0.031) sec
+mfu: 221.601 Tflops/s, hfu: 221.601 Tflops/s, 100.772 iter/s, 9.923e-03 s/iter, (0.206, 0.001, 0.040) sec
+da_config: SP=(4,8),Sg=(4096,4096),S=(131072,131072),Nh=(32,32),bs=1,D=128,causal=False,hierarchy=1:
+YXs: [(1, 4), (2, 2), (4, 1)]
+# ring_flash_attn_func, fwd
+mfu: 69.177 Tflops/s, hfu: 69.177 Tflops/s, 7.865 iter/s, 1.272e-01 s/iter, (0.262, 0.001, 0.509) sec
+# orchestrated_attn_func
+mfu: 447.332 Tflops/s, hfu: 447.332 Tflops/s, 50.856 iter/s, 1.966e-02 s/iter, (0.255, 0.001, 0.079) sec
+mfu: 460.422 Tflops/s, hfu: 460.422 Tflops/s, 52.344 iter/s, 1.910e-02 s/iter, (0.219, 0.001, 0.076) sec
+mfu: 439.809 Tflops/s, hfu: 439.809 Tflops/s, 50.000 iter/s, 2.000e-02 s/iter, (0.223, 0.001, 0.080) sec
+mfu: 437.214 Tflops/s, hfu: 437.214 Tflops/s, 49.706 iter/s, 2.012e-02 s/iter, (0.227, 0.001, 0.080) sec
+mfu: 574.651 Tflops/s, hfu: 574.651 Tflops/s, 65.330 iter/s, 1.531e-02 s/iter, (0.216, 0.001, 0.061) sec
+mfu: 406.405 Tflops/s, hfu: 406.405 Tflops/s, 46.203 iter/s, 2.164e-02 s/iter, (0.330, 0.001, 0.087) sec
+da_config: SP=(4,8),Sg=(8192,8192),S=(262144,262144),Nh=(32,32),bs=1,D=128,causal=False,hierarchy=1:
+YXs: [(1, 4), (2, 2), (4, 1)]
+# ring_flash_attn_func, fwd
+mfu: 104.561 Tflops/s, hfu: 104.561 Tflops/s, 2.972 iter/s, 3.365e-01 s/iter, (0.673, 0.001, 1.346) sec
+# orchestrated_attn_func
+mfu: 918.74 Tflops/s, hfu: 918.74 Tflops/s, 26.112 iter/s, 3.830e-02 s/iter, (0.272, 0.001, 0.153) sec
+mfu: 994.349 Tflops/s, hfu: 994.349 Tflops/s, 28.261 iter/s, 3.538e-02 s/iter, (0.254, 0.001, 0.142) sec
+mfu: 888.472 Tflops/s, hfu: 888.472 Tflops/s, 25.252 iter/s, 3.960e-02 s/iter, (0.262, 0.001, 0.158) sec
+mfu: 894.902 Tflops/s, hfu: 894.902 Tflops/s, 25.435 iter/s, 3.932e-02 s/iter, (0.262, 0.001, 0.157) sec
+mfu: 1218.373 Tflops/s, hfu: 1218.373 Tflops/s, 34.628 iter/s, 2.888e-02 s/iter, (0.246, 0.001, 0.116) sec
+mfu: 943.231 Tflops/s, hfu: 943.231 Tflops/s, 26.808 iter/s, 3.730e-02 s/iter, (0.260, 0.001, 0.149) sec
+da_config: SP=(4,8),Sg=(16384,16384),S=(524288,524288),Nh=(32,32),bs=1,D=128,causal=False,hierarchy=1:
+YXs: [(1, 4), (2, 2), (4, 1)]
+# ring_flash_attn_func, fwd
+mfu: 137.831 Tflops/s, hfu: 137.831 Tflops/s, 0.979 iter/s, 1.021e+00 s/iter, (2.037, 0.001, 4.084) sec
+# orchestrated_attn_func
+mfu: 1839.252 Tflops/s, hfu: 1839.252 Tflops/s, 13.069 iter/s, 7.652e-02 s/iter, (0.353, 0.001, 0.306) sec
+mfu: 2054.728 Tflops/s, hfu: 2054.728 Tflops/s, 14.600 iter/s, 6.849e-02 s/iter, (0.321, 0.001, 0.274) sec
+mfu: 1811.078 Tflops/s, hfu: 1811.078 Tflops/s, 12.868 iter/s, 7.771e-02 s/iter, (0.341, 0.001, 0.311) sec
+mfu: 1825.32 Tflops/s, hfu: 1825.32 Tflops/s, 12.970 iter/s, 7.710e-02 s/iter, (0.335, 0.001, 0.308) sec
+mfu: 2476.83 Tflops/s, hfu: 2476.83 Tflops/s, 17.599 iter/s, 5.682e-02 s/iter, (0.300, 0.001, 0.227) sec
+mfu: 1635.713 Tflops/s, hfu: 1635.713 Tflops/s, 11.622 iter/s, 8.604e-02 s/iter, (0.368, 0.001, 0.344) sec
+causal=False, fob=1:
+da_config: SP=(4,8),Sg=(256,256),S=(8192,8192),Nh=(1,1),bs=1,D=128,causal=False,hierarchy=1:
+YXs: [(1, 4), (2, 2), (4, 1)]
+# ring_flash_attn_func, bwd
+mfu: 0.119 Tflops/s, hfu: 0.149 Tflops/s, 55.495 iter/s, 1.802e-02 s/iter, (0.043, 0.001, 0.072) sec
+# orchestrated_attn_func
+mfu: 2.434 Tflops/s, hfu: 3.043 Tflops/s, 1133.633 iter/s, 8.821e-04 s/iter, (0.189, 0.001, 0.004) sec
+mfu: 2.169 Tflops/s, hfu: 2.712 Tflops/s, 1010.158 iter/s, 9.899e-04 s/iter, (0.180, 0.000, 0.004) sec
+mfu: 2.723 Tflops/s, hfu: 3.404 Tflops/s, 1268.173 iter/s, 7.885e-04 s/iter, (0.181, 0.000, 0.003) sec
+mfu: 2.965 Tflops/s, hfu: 3.706 Tflops/s, 1380.758 iter/s, 7.242e-04 s/iter, (0.181, 0.001, 0.003) sec
+mfu: 3.223 Tflops/s, hfu: 4.029 Tflops/s, 1500.780 iter/s, 6.663e-04 s/iter, (0.180, 0.001, 0.003) sec
+mfu: 3.137 Tflops/s, hfu: 3.921 Tflops/s, 1460.707 iter/s, 6.846e-04 s/iter, (0.180, 0.001, 0.003) sec
+da_config: SP=(4,8),Sg=(512,512),S=(16384,16384),Nh=(1,1),bs=1,D=128,causal=False,hierarchy=1:
+YXs: [(1, 4), (2, 2), (4, 1)]
+# ring_flash_attn_func, bwd
+mfu: 0.479 Tflops/s, hfu: 0.598 Tflops/s, 55.739 iter/s, 1.794e-02 s/iter, (0.039, 0.001, 0.072) sec
+# orchestrated_attn_func
+mfu: 7.751 Tflops/s, hfu: 9.688 Tflops/s, 902.299 iter/s, 1.108e-03 s/iter, (0.182, 0.001, 0.004) sec
+mfu: 7.723 Tflops/s, hfu: 9.653 Tflops/s, 899.022 iter/s, 1.112e-03 s/iter, (0.181, 0.001, 0.004) sec
+mfu: 8.032 Tflops/s, hfu: 10.04 Tflops/s, 935.069 iter/s, 1.069e-03 s/iter, (0.182, 0.001, 0.004) sec
+mfu: 9.238 Tflops/s, hfu: 11.547 Tflops/s, 1075.389 iter/s, 9.299e-04 s/iter, (0.180, 0.001, 0.004) sec
+mfu: 8.6 Tflops/s, hfu: 10.75 Tflops/s, 1001.145 iter/s, 9.989e-04 s/iter, (0.183, 0.001, 0.004) sec
+mfu: 9.901 Tflops/s, hfu: 12.376 Tflops/s, 1152.637 iter/s, 8.676e-04 s/iter, (0.182, 0.001, 0.003) sec
+da_config: SP=(4,8),Sg=(1024,1024),S=(32768,32768),Nh=(1,1),bs=1,D=128,causal=False,hierarchy=1:
+YXs: [(1, 4), (2, 2), (4, 1)]
+# ring_flash_attn_func, bwd
+mfu: 1.876 Tflops/s, hfu: 2.345 Tflops/s, 54.596 iter/s, 1.832e-02 s/iter, (0.044, 0.001, 0.073) sec
+# orchestrated_attn_func
+mfu: 22.462 Tflops/s, hfu: 28.077 Tflops/s, 653.728 iter/s, 1.530e-03 s/iter, (0.183, 0.001, 0.006) sec
+mfu: 22.268 Tflops/s, hfu: 27.835 Tflops/s, 648.088 iter/s, 1.543e-03 s/iter, (0.182, 0.001, 0.006) sec
+mfu: 21.616 Tflops/s, hfu: 27.019 Tflops/s, 629.095 iter/s, 1.590e-03 s/iter, (0.181, 0.001, 0.006) sec
+mfu: 29.481 Tflops/s, hfu: 36.851 Tflops/s, 858.004 iter/s, 1.165e-03 s/iter, (0.181, 0.001, 0.005) sec
+mfu: 25.336 Tflops/s, hfu: 31.67 Tflops/s, 737.367 iter/s, 1.356e-03 s/iter, (0.181, 0.001, 0.005) sec
+mfu: 24.572 Tflops/s, hfu: 30.715 Tflops/s, 715.136 iter/s, 1.398e-03 s/iter, (0.181, 0.001, 0.006) sec
+da_config: SP=(4,8),Sg=(2048,2048),S=(65536,65536),Nh=(1,1),bs=1,D=128,causal=False,hierarchy=1:
+YXs: [(1, 4), (2, 2), (4, 1)]
+# ring_flash_attn_func, bwd
+mfu: 7.541 Tflops/s, hfu: 9.427 Tflops/s, 54.870 iter/s, 1.822e-02 s/iter, (0.043, 0.001, 0.073) sec
+# orchestrated_attn_func
+mfu: 47.223 Tflops/s, hfu: 59.028 Tflops/s, 343.591 iter/s, 2.910e-03 s/iter, (0.188, 0.001, 0.012) sec
+mfu: 46.51 Tflops/s, hfu: 58.138 Tflops/s, 338.405 iter/s, 2.955e-03 s/iter, (0.185, 0.001, 0.012) sec
+mfu: 46.468 Tflops/s, hfu: 58.085 Tflops/s, 338.100 iter/s, 2.958e-03 s/iter, (0.186, 0.001, 0.012) sec
+mfu: 54.142 Tflops/s, hfu: 67.677 Tflops/s, 393.934 iter/s, 2.538e-03 s/iter, (0.184, 0.001, 0.010) sec
+mfu: 58.714 Tflops/s, hfu: 73.392 Tflops/s, 427.199 iter/s, 2.341e-03 s/iter, (0.183, 0.001, 0.009) sec
+mfu: 55.636 Tflops/s, hfu: 69.545 Tflops/s, 404.807 iter/s, 2.470e-03 s/iter, (0.192, 0.001, 0.010) sec
+da_config: SP=(4,8),Sg=(4096,4096),S=(131072,131072),Nh=(1,1),bs=1,D=128,causal=False,hierarchy=1:
+YXs: [(1, 4), (2, 2), (4, 1)]
+# ring_flash_attn_func, bwd
+mfu: 26.155 Tflops/s, hfu: 32.694 Tflops/s, 47.576 iter/s, 2.102e-02 s/iter, (0.047, 0.001, 0.084) sec
+# orchestrated_attn_func
+mfu: 83.245 Tflops/s, hfu: 104.056 Tflops/s, 151.421 iter/s, 6.604e-03 s/iter, (0.196, 0.001, 0.026) sec
+mfu: 82.542 Tflops/s, hfu: 103.178 Tflops/s, 150.143 iter/s, 6.660e-03 s/iter, (0.192, 0.001, 0.027) sec
+mfu: 81.815 Tflops/s, hfu: 102.269 Tflops/s, 148.821 iter/s, 6.719e-03 s/iter, (0.192, 0.001, 0.027) sec
+mfu: 94.493 Tflops/s, hfu: 118.116 Tflops/s, 171.882 iter/s, 5.818e-03 s/iter, (0.197, 0.001, 0.023) sec
+mfu: 103.006 Tflops/s, hfu: 128.757 Tflops/s, 187.366 iter/s, 5.337e-03 s/iter, (0.190, 0.001, 0.021) sec
+mfu: 97.481 Tflops/s, hfu: 121.852 Tflops/s, 177.318 iter/s, 5.640e-03 s/iter, (0.190, 0.001, 0.023) sec
+da_config: SP=(4,8),Sg=(8192,8192),S=(262144,262144),Nh=(1,1),bs=1,D=128,causal=False,hierarchy=1:
+YXs: [(1, 4), (2, 2), (4, 1)]
+# ring_flash_attn_func, bwd
+mfu: 82.985 Tflops/s, hfu: 103.731 Tflops/s, 37.737 iter/s, 2.650e-02 s/iter, (0.055, 0.001, 0.106) sec
+# orchestrated_attn_func
+mfu: 126.582 Tflops/s, hfu: 158.228 Tflops/s, 57.563 iter/s, 1.737e-02 s/iter, (0.216, 0.001, 0.069) sec
+mfu: 125.744 Tflops/s, hfu: 157.18 Tflops/s, 57.182 iter/s, 1.749e-02 s/iter, (0.214, 0.001, 0.070) sec
+mfu: 126.596 Tflops/s, hfu: 158.245 Tflops/s, 57.569 iter/s, 1.737e-02 s/iter, (0.215, 0.001, 0.069) sec
+mfu: 127.887 Tflops/s, hfu: 159.859 Tflops/s, 58.156 iter/s, 1.719e-02 s/iter, (0.215, 0.001, 0.069) sec
+mfu: 128.972 Tflops/s, hfu: 161.216 Tflops/s, 58.650 iter/s, 1.705e-02 s/iter, (0.214, 0.001, 0.068) sec
+mfu: 124.446 Tflops/s, hfu: 155.558 Tflops/s, 56.592 iter/s, 1.767e-02 s/iter, (0.216, 0.001, 0.071) sec
+da_config: SP=(4,8),Sg=(16384,16384),S=(524288,524288),Nh=(1,1),bs=1,D=128,causal=False,hierarchy=1:
+YXs: [(1, 4), (2, 2), (4, 1)]
+# ring_flash_attn_func, bwd
+mfu: 92.345 Tflops/s, hfu: 115.431 Tflops/s, 10.498 iter/s, 9.525e-02 s/iter, (0.192, 0.001, 0.381) sec
+# orchestrated_attn_func
+mfu: 144.132 Tflops/s, hfu: 180.165 Tflops/s, 16.386 iter/s, 6.103e-02 s/iter, (0.308, 0.001, 0.244) sec
+mfu: 142.252 Tflops/s, hfu: 177.815 Tflops/s, 16.172 iter/s, 6.183e-02 s/iter, (0.301, 0.001, 0.247) sec
+mfu: 142.443 Tflops/s, hfu: 178.053 Tflops/s, 16.194 iter/s, 6.175e-02 s/iter, (0.304, 0.001, 0.247) sec
+mfu: 141.643 Tflops/s, hfu: 177.053 Tflops/s, 16.103 iter/s, 6.210e-02 s/iter, (0.302, 0.001, 0.248) sec
+mfu: 146.843 Tflops/s, hfu: 183.554 Tflops/s, 16.694 iter/s, 5.990e-02 s/iter, (0.300, 0.001, 0.240) sec
+mfu: 144.102 Tflops/s, hfu: 180.127 Tflops/s, 16.382 iter/s, 6.104e-02 s/iter, (0.301, 0.001, 0.244) sec
+da_config: SP=(4,8),Sg=(256,256),S=(8192,8192),Nh=(32,32),bs=1,D=128,causal=False,hierarchy=1:
+YXs: [(1, 4), (2, 2), (4, 1)]
+# ring_flash_attn_func, bwd
+mfu: 3.393 Tflops/s, hfu: 4.241 Tflops/s, 49.375 iter/s, 2.025e-02 s/iter, (0.046, 0.001, 0.081) sec
+# orchestrated_attn_func
+mfu: 31.304 Tflops/s, hfu: 39.131 Tflops/s, 455.539 iter/s, 2.195e-03 s/iter, (0.193, 0.000, 0.009) sec
+mfu: 26.203 Tflops/s, hfu: 32.754 Tflops/s, 381.302 iter/s, 2.623e-03 s/iter, (0.186, 0.001, 0.010) sec
+mfu: 24.858 Tflops/s, hfu: 31.072 Tflops/s, 361.726 iter/s, 2.765e-03 s/iter, (0.188, 0.001, 0.011) sec
+da_config: SP=(4,8),Sg=(512,512),S=(16384,16384),Nh=(32,32),bs=1,D=128,causal=False,hierarchy=1:
+YXs: [(1, 4), (2, 2), (4, 1)]
+# ring_flash_attn_func, bwd
+mfu: 7.431 Tflops/s, hfu: 9.289 Tflops/s, 27.036 iter/s, 3.699e-02 s/iter, (0.087, 0.001, 0.148) sec
+# orchestrated_attn_func
+mfu: 65.165 Tflops/s, hfu: 81.456 Tflops/s, 237.069 iter/s, 4.218e-03 s/iter, (0.192, 0.000, 0.017) sec
+mfu: 68.725 Tflops/s, hfu: 85.906 Tflops/s, 250.018 iter/s, 4.000e-03 s/iter, (0.190, 0.000, 0.016) sec
+mfu: 57.434 Tflops/s, hfu: 71.792 Tflops/s, 208.942 iter/s, 4.786e-03 s/iter, (0.195, 0.000, 0.019) sec
+da_config: SP=(4,8),Sg=(1024,1024),S=(32768,32768),Nh=(32,32),bs=1,D=128,causal=False,hierarchy=1:
+YXs: [(1, 4), (2, 2), (4, 1)]
+# ring_flash_attn_func, bwd
+mfu: 15.183 Tflops/s, hfu: 18.978 Tflops/s, 13.809 iter/s, 7.242e-02 s/iter, (0.151, 0.001, 0.290) sec
+# orchestrated_attn_func
+mfu: 144.133 Tflops/s, hfu: 180.166 Tflops/s, 131.088 iter/s, 7.628e-03 s/iter, (0.206, 0.001, 0.031) sec
+mfu: 123.162 Tflops/s, hfu: 153.952 Tflops/s, 112.015 iter/s, 8.927e-03 s/iter, (0.202, 0.001, 0.036) sec
+mfu: 111.443 Tflops/s, hfu: 139.304 Tflops/s, 101.357 iter/s, 9.866e-03 s/iter, (0.203, 0.001, 0.039) sec
+da_config: SP=(4,8),Sg=(2048,2048),S=(65536,65536),Nh=(32,32),bs=1,D=128,causal=False,hierarchy=1:
+YXs: [(1, 4), (2, 2), (4, 1)]
+# ring_flash_attn_func, bwd
+mfu: 30.29 Tflops/s, hfu: 37.863 Tflops/s, 6.887 iter/s, 1.452e-01 s/iter, (0.298, 0.001, 0.581) sec
+# orchestrated_attn_func
+mfu: 295.295 Tflops/s, hfu: 369.118 Tflops/s, 67.142 iter/s, 1.489e-02 s/iter, (0.246, 0.001, 0.060) sec
+mfu: 256.275 Tflops/s, hfu: 320.344 Tflops/s, 58.270 iter/s, 1.716e-02 s/iter, (0.217, 0.001, 0.069) sec
+mfu: 225.083 Tflops/s, hfu: 281.354 Tflops/s, 51.178 iter/s, 1.954e-02 s/iter, (0.223, 0.001, 0.078) sec
+da_config: SP=(4,8),Sg=(4096,4096),S=(131072,131072),Nh=(32,32),bs=1,D=128,causal=False,hierarchy=1:
+YXs: [(1, 4), (2, 2), (4, 1)]
+# ring_flash_attn_func, bwd
+mfu: 56.241 Tflops/s, hfu: 70.301 Tflops/s, 3.197 iter/s, 3.128e-01 s/iter, (0.641, 0.001, 1.251) sec
+# orchestrated_attn_func
+mfu: 579.311 Tflops/s, hfu: 724.139 Tflops/s, 32.930 iter/s, 3.037e-02 s/iter, (0.247, 0.000, 0.121) sec
+mfu: 506.244 Tflops/s, hfu: 632.805 Tflops/s, 28.777 iter/s, 3.475e-02 s/iter, (0.255, 0.001, 0.139) sec
+mfu: 453.528 Tflops/s, hfu: 566.91 Tflops/s, 25.780 iter/s, 3.879e-02 s/iter, (0.261, 0.001, 0.155) sec
+da_config: SP=(4,8),Sg=(8192,8192),S=(262144,262144),Nh=(32,32),bs=1,D=128,causal=False,hierarchy=1:
+YXs: [(1, 4), (2, 2), (4, 1)]
+# ring_flash_attn_func, bwd
+mfu: 68.728 Tflops/s, hfu: 85.91 Tflops/s, 0.977 iter/s, 1.024e+00 s/iter, (1.734, 0.001, 4.095) sec
+# orchestrated_attn_func
+mfu: 1214.586 Tflops/s, hfu: 1518.232 Tflops/s, 17.260 iter/s, 5.794e-02 s/iter, (0.303, 0.001, 0.232) sec
+mfu: 1182.527 Tflops/s, hfu: 1478.159 Tflops/s, 16.805 iter/s, 5.951e-02 s/iter, (0.305, 0.001, 0.238) sec
+mfu: 941.639 Tflops/s, hfu: 1177.048 Tflops/s, 13.381 iter/s, 7.473e-02 s/iter, (0.332, 0.001, 0.299) sec
+da_config: SP=(4,8),Sg=(16384,16384),S=(524288,524288),Nh=(32,32),bs=1,D=128,causal=False,hierarchy=1:
+YXs: [(1, 4), (2, 2), (4, 1)]
+# ring_flash_attn_func, bwd
+mfu: 84.334 Tflops/s, hfu: 105.418 Tflops/s, 0.300 iter/s, 3.338e+00 s/iter, (6.546, 0.001, 13.350) sec
+# orchestrated_attn_func
+mfu: 2519.056 Tflops/s, hfu: 3148.82 Tflops/s, 8.949 iter/s, 1.117e-01 s/iter, (0.425, 0.001, 0.447) sec
+mfu: 2648.598 Tflops/s, hfu: 3310.748 Tflops/s, 9.410 iter/s, 1.063e-01 s/iter, (0.395, 0.001, 0.425) sec
+mfu: 1944.534 Tflops/s, hfu: 2430.667 Tflops/s, 6.908 iter/s, 1.448e-01 s/iter, (0.471, 0.001, 0.579) sec
++ set +x

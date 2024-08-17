@@ -1,0 +1,358 @@
++ srun -p arch -N 1 --ntasks-per-node=1 --mem 256G -K python search_algo/main.py
+srun: job 17853 queued and waiting for resources
+srun: job 17853 has been allocated resources
+exp_config: fob=0,plan_type=automatic,hierarchy=None,transform_mode=greedy,plan_path=None
+da_config: SP=(4,8),Sg=(256,256),S=(8192,8192),Nh=(1,1),bs=1,D=128,causal=True,hierarchy=None
+Raw, ILP:
+LP solve time: 0.02968883514404297 s
+objective=5.113e-04
+Fused, ILP:
+LP solve time: 0.0320131778717041 s
+objective=4.662e-04
+Raw, Flexflow:
+end_time=6.410e-04
+Fused, Flexflow:
+end_time=6.410e-04
+da_config: SP=(4,8),Sg=(512,512),S=(16384,16384),Nh=(1,1),bs=1,D=128,causal=True,hierarchy=None
+Raw, ILP:
+LP solve time: 0.029026031494140625 s
+objective=4.670e-04
+Fused, ILP:
+LP solve time: 0.023772001266479492 s
+objective=4.720e-04
+Raw, Flexflow:
+end_time=5.347e-04
+Fused, Flexflow:
+end_time=5.347e-04
+da_config: SP=(4,8),Sg=(1024,1024),S=(32768,32768),Nh=(1,1),bs=1,D=128,causal=True,hierarchy=None
+Raw, ILP:
+LP solve time: 0.02937173843383789 s
+objective=4.354e-04
+Fused, ILP:
+LP solve time: 0.028259992599487305 s
+objective=4.253e-04
+Raw, Flexflow:
+end_time=4.354e-04
+Fused, Flexflow:
+end_time=4.354e-04
+da_config: SP=(4,8),Sg=(2048,2048),S=(65536,65536),Nh=(1,1),bs=1,D=128,causal=True,hierarchy=None
+Raw, ILP:
+LP solve time: 0.02353978157043457 s
+objective=8.158e-04
+Fused, ILP:
+LP solve time: 0.02535533905029297 s
+objective=7.259e-04
+Raw, Flexflow:
+end_time=8.083e-04
+Fused, Flexflow:
+end_time=7.259e-04
+da_config: SP=(4,8),Sg=(4096,4096),S=(131072,131072),Nh=(1,1),bs=1,D=128,causal=True,hierarchy=None
+Raw, ILP:
+LP solve time: 0.02834033966064453 s
+objective=1.853e-03
+Fused, ILP:
+LP solve time: 0.025719642639160156 s
+objective=1.709e-03
+Raw, Flexflow:
+end_time=1.853e-03
+Fused, Flexflow:
+end_time=1.853e-03
+da_config: SP=(4,8),Sg=(8192,8192),S=(262144,262144),Nh=(1,1),bs=1,D=128,causal=True,hierarchy=None
+Raw, ILP:
+LP solve time: 0.02503204345703125 s
+objective=4.915e-03
+Fused, ILP:
+LP solve time: 0.023183345794677734 s
+objective=4.680e-03
+Raw, Flexflow:
+end_time=4.915e-03
+Fused, Flexflow:
+end_time=4.915e-03
+da_config: SP=(4,8),Sg=(16384,16384),S=(524288,524288),Nh=(1,1),bs=1,D=128,causal=True,hierarchy=None
+Raw, ILP:
+LP solve time: 0.029915571212768555 s
+objective=1.672e-02
+Fused, ILP:
+LP solve time: 0.02351069450378418 s
+objective=1.630e-02
+Raw, Flexflow:
+end_time=1.672e-02
+Fused, Flexflow:
+end_time=1.672e-02
+da_config: SP=(4,8),Sg=(32768,32768),S=(1048576,1048576),Nh=(1,1),bs=1,D=128,causal=True,hierarchy=None
+Raw, ILP:
+LP solve time: 0.02631354331970215 s
+objective=5.949e-02
+Fused, ILP:
+LP solve time: 0.025506973266601562 s
+objective=5.871e-02
+Raw, Flexflow:
+end_time=5.949e-02
+Fused, Flexflow:
+end_time=5.949e-02
+da_config: SP=(4,8),Sg=(256,256),S=(8192,8192),Nh=(32,32),bs=1,D=128,causal=True,hierarchy=None
+Raw, ILP:
+LP solve time: 0.02597975730895996 s
+objective=1.140e-03
+Fused, ILP:
+LP solve time: 0.022454023361206055 s
+objective=1.423e-03
+Raw, Flexflow:
+end_time=1.534e-03
+Fused, Flexflow:
+end_time=1.534e-03
+da_config: SP=(4,8),Sg=(512,512),S=(16384,16384),Nh=(32,32),bs=1,D=128,causal=True,hierarchy=None
+Raw, ILP:
+LP solve time: 0.026277542114257812 s
+objective=2.105e-03
+Fused, ILP:
+LP solve time: 0.02483367919921875 s
+objective=2.326e-03
+Raw, Flexflow:
+end_time=2.807e-03
+Fused, Flexflow:
+end_time=2.807e-03
+da_config: SP=(4,8),Sg=(1024,1024),S=(32768,32768),Nh=(32,32),bs=1,D=128,causal=True,hierarchy=None
+Raw, ILP:
+LP solve time: 0.022875070571899414 s
+objective=4.164e-03
+Fused, ILP:
+LP solve time: 0.026033878326416016 s
+objective=4.933e-03
+Raw, Flexflow:
+end_time=5.355e-03
+Fused, Flexflow:
+end_time=5.355e-03
+da_config: SP=(4,8),Sg=(2048,2048),S=(65536,65536),Nh=(32,32),bs=1,D=128,causal=True,hierarchy=None
+Raw, ILP:
+LP solve time: 0.024094104766845703 s
+objective=1.147e-02
+Fused, ILP:
+LP solve time: 0.022044658660888672 s
+objective=1.188e-02
+Raw, Flexflow:
+end_time=1.147e-02
+Fused, Flexflow:
+end_time=1.188e-02
+da_config: SP=(4,8),Sg=(4096,4096),S=(131072,131072),Nh=(32,32),bs=1,D=128,causal=True,hierarchy=None
+Raw, ILP:
+LP solve time: 0.02774190902709961 s
+objective=3.487e-02
+Fused, ILP:
+LP solve time: 0.023618459701538086 s
+objective=3.493e-02
+Raw, Flexflow:
+end_time=3.487e-02
+Fused, Flexflow:
+end_time=3.493e-02
+da_config: SP=(4,8),Sg=(8192,8192),S=(262144,262144),Nh=(32,32),bs=1,D=128,causal=True,hierarchy=None
+Raw, ILP:
+LP solve time: 0.027832746505737305 s
+objective=1.341e-01
+Fused, ILP:
+LP solve time: 0.02368021011352539 s
+objective=1.342e-01
+Raw, Flexflow:
+end_time=1.341e-01
+Fused, Flexflow:
+end_time=1.342e-01
+da_config: SP=(4,8),Sg=(16384,16384),S=(524288,524288),Nh=(32,32),bs=1,D=128,causal=True,hierarchy=None
+Raw, ILP:
+LP solve time: 0.02701568603515625 s
+objective=5.037e-01
+Fused, ILP:
+LP solve time: 0.023220539093017578 s
+objective=5.099e-01
+Raw, Flexflow:
+end_time=5.037e-01
+Fused, Flexflow:
+end_time=5.099e-01
+da_config: SP=(4,8),Sg=(32768,32768),S=(1048576,1048576),Nh=(32,32),bs=1,D=128,causal=True,hierarchy=None
+Raw, ILP:
+LP solve time: 0.02306365966796875 s
+objective=2.051e+00
+Fused, ILP:
+LP solve time: 0.020270586013793945 s
+objective=2.085e+00
+Raw, Flexflow:
+end_time=2.051e+00
+Fused, Flexflow:
+end_time=2.085e+00
+exp_config: fob=1,plan_type=automatic,hierarchy=None,transform_mode=greedy,plan_path=None
+da_config: SP=(4,8),Sg=(256,256),S=(8192,8192),Nh=(1,1),bs=1,D=128,causal=True,hierarchy=0
+Raw, ILP:
+LP solve time: 0.04695773124694824 s
+objective=5.803e-04
+Fused, ILP:
+LP solve time: 0.0485842227935791 s
+objective=6.080e-04
+Raw, Flexflow:
+end_time=7.108e-04
+Fused, Flexflow:
+end_time=7.108e-04
+da_config: SP=(4,8),Sg=(512,512),S=(16384,16384),Nh=(1,1),bs=1,D=128,causal=True,hierarchy=0
+Raw, ILP:
+LP solve time: 0.04223918914794922 s
+objective=6.362e-04
+Fused, ILP:
+LP solve time: 0.04041004180908203 s
+objective=6.017e-04
+Raw, Flexflow:
+end_time=7.147e-04
+Fused, Flexflow:
+end_time=6.362e-04
+da_config: SP=(4,8),Sg=(1024,1024),S=(32768,32768),Nh=(1,1),bs=1,D=128,causal=True,hierarchy=0
+Raw, ILP:
+LP solve time: 0.037479400634765625 s
+objective=8.774e-04
+Fused, ILP:
+LP solve time: 0.04487037658691406 s
+objective=8.774e-04
+Raw, Flexflow:
+end_time=9.774e-04
+Fused, Flexflow:
+end_time=8.774e-04
+da_config: SP=(4,8),Sg=(2048,2048),S=(65536,65536),Nh=(1,1),bs=1,D=128,causal=True,hierarchy=0
+Raw, ILP:
+LP solve time: 0.05251312255859375 s
+objective=1.879e-03
+Fused, ILP:
+LP solve time: 0.03951263427734375 s
+objective=1.879e-03
+Raw, Flexflow:
+end_time=2.022e-03
+Fused, Flexflow:
+end_time=1.879e-03
+da_config: SP=(4,8),Sg=(4096,4096),S=(131072,131072),Nh=(1,1),bs=1,D=128,causal=True,hierarchy=0
+Raw, ILP:
+LP solve time: 0.06135296821594238 s
+objective=4.515e-03
+Fused, ILP:
+LP solve time: 0.04227638244628906 s
+objective=4.515e-03
+Raw, Flexflow:
+end_time=4.749e-03
+Fused, Flexflow:
+end_time=4.515e-03
+da_config: SP=(4,8),Sg=(8192,8192),S=(262144,262144),Nh=(1,1),bs=1,D=128,causal=True,hierarchy=0
+Raw, ILP:
+LP solve time: 0.0629117488861084 s
+objective=1.271e-02
+Fused, ILP:
+LP solve time: 0.042853593826293945 s
+objective=1.271e-02
+Raw, Flexflow:
+end_time=1.313e-02
+Fused, Flexflow:
+end_time=1.271e-02
+da_config: SP=(4,8),Sg=(16384,16384),S=(524288,524288),Nh=(1,1),bs=1,D=128,causal=True,hierarchy=0
+Raw, ILP:
+LP solve time: 0.06569385528564453 s
+objective=4.565e-02
+Fused, ILP:
+LP solve time: 0.045606374740600586 s
+objective=4.565e-02
+Raw, Flexflow:
+end_time=4.644e-02
+Fused, Flexflow:
+end_time=4.565e-02
+da_config: SP=(4,8),Sg=(32768,32768),S=(1048576,1048576),Nh=(1,1),bs=1,D=128,causal=True,hierarchy=0
+Raw, ILP:
+LP solve time: 0.06842660903930664 s
+objective=1.696e-01
+Fused, ILP:
+LP solve time: 0.04419398307800293 s
+objective=1.696e-01
+Raw, Flexflow:
+end_time=1.711e-01
+Fused, Flexflow:
+end_time=1.696e-01
+da_config: SP=(4,8),Sg=(256,256),S=(8192,8192),Nh=(32,32),bs=1,D=128,causal=True,hierarchy=0
+Raw, ILP:
+LP solve time: 0.04062485694885254 s
+objective=2.298e-03
+Fused, ILP:
+LP solve time: 0.04290771484375 s
+objective=2.402e-03
+Raw, Flexflow:
+end_time=2.490e-03
+Fused, Flexflow:
+end_time=2.490e-03
+da_config: SP=(4,8),Sg=(512,512),S=(16384,16384),Nh=(32,32),bs=1,D=128,causal=True,hierarchy=0
+Raw, ILP:
+LP solve time: 0.04468226432800293 s
+objective=4.632e-03
+Fused, ILP:
+LP solve time: 0.046730756759643555 s
+objective=4.720e-03
+Raw, Flexflow:
+end_time=5.031e-03
+Fused, Flexflow:
+end_time=5.031e-03
+da_config: SP=(4,8),Sg=(1024,1024),S=(32768,32768),Nh=(32,32),bs=1,D=128,causal=True,hierarchy=0
+Raw, ILP:
+LP solve time: 0.061072587966918945 s
+objective=1.033e-02
+Fused, ILP:
+LP solve time: 0.05150723457336426 s
+objective=1.064e-02
+Raw, Flexflow:
+end_time=1.116e-02
+Fused, Flexflow:
+end_time=1.116e-02
+da_config: SP=(4,8),Sg=(2048,2048),S=(65536,65536),Nh=(32,32),bs=1,D=128,causal=True,hierarchy=0
+Raw, ILP:
+LP solve time: 0.044918060302734375 s
+objective=2.821e-02
+Fused, ILP:
+LP solve time: 0.0457148551940918 s
+objective=2.898e-02
+Raw, Flexflow:
+end_time=3.113e-02
+Fused, Flexflow:
+end_time=2.898e-02
+da_config: SP=(4,8),Sg=(4096,4096),S=(131072,131072),Nh=(32,32),bs=1,D=128,causal=True,hierarchy=0
+Raw, ILP:
+LP solve time: 0.06612443923950195 s
+objective=1.027e-01
+Fused, ILP:
+LP solve time: 0.0408327579498291 s
+objective=1.061e-01
+Raw, Flexflow:
+end_time=1.085e-01
+Fused, Flexflow:
+end_time=1.061e-01
+da_config: SP=(4,8),Sg=(8192,8192),S=(262144,262144),Nh=(32,32),bs=1,D=128,causal=True,hierarchy=0
+Raw, ILP:
+LP solve time: 0.07770681381225586 s
+objective=3.922e-01
+Fused, ILP:
+LP solve time: 0.0444340705871582 s
+objective=4.016e-01
+Raw, Flexflow:
+end_time=4.036e-01
+Fused, Flexflow:
+end_time=4.016e-01
+da_config: SP=(4,8),Sg=(16384,16384),S=(524288,524288),Nh=(32,32),bs=1,D=128,causal=True,hierarchy=0
+Raw, ILP:
+LP solve time: 0.08388900756835938 s
+objective=1.603e+00
+Fused, ILP:
+LP solve time: 0.0460820198059082 s
+objective=1.675e+00
+Raw, Flexflow:
+end_time=1.626e+00
+Fused, Flexflow:
+end_time=1.675e+00
+da_config: SP=(4,8),Sg=(32768,32768),S=(1048576,1048576),Nh=(32,32),bs=1,D=128,causal=True,hierarchy=0
+Raw, ILP:
+LP solve time: 0.06039929389953613 s
+objective=6.503e+00
+Fused, ILP:
+LP solve time: 0.04846930503845215 s
+objective=6.587e+00
+Raw, Flexflow:
+end_time=6.548e+00
+Fused, Flexflow:
+end_time=6.587e+00
++ set +x

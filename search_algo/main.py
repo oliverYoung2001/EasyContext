@@ -89,6 +89,84 @@ def get_configs():
             da_configs.append(Dist_Attn_Config((SP0, SP1), (Sq * tot_sp, Skv * tot_sp), (Nhq, Ng), bs, D, causal, hierarchy))
     return da_configs
 
+def get_exp_configs_for_search_workload_table():
+    plan_type = 'automatic'
+    # plan_type = 'manual'  # for noncausal !!!
+    # plan_type = 'ablation1'
+    MAX_QUEUE_SIZE = 100
+    fobs = [
+        # 0,
+        1,
+    ]
+    # hierarchy = 0  # 0: intra-machine, 1: inter-machine
+    hierarchy = None    # define in exps !!!
+    transform_mode = 'bf'       # Enumerate all possible transformations
+    transform_mode = 'greedy'   # Apply transformations greedily
+    exp_configs = []
+    for fob in fobs:
+        exp_configs.append(Evaluation_Configs(plan_type, MAX_QUEUE_SIZE, fob, hierarchy=hierarchy, transform_mode=transform_mode))
+    return exp_configs
+
+def get_configs_for_search_workload_table():
+    hierarchy = None
+    
+    # for Intra:
+    SP0, SP1 = 1, 1
+    # SP0, SP1 = 1, 2
+    SP0, SP1 = 1, 4
+    SP0, SP1 = 1, 8
+    # Sq = Skv = 16 * 1024   # 16k
+    # Sq = Skv = 8 * 1024   # 8k
+    
+    
+    # for Inter:
+    # SP0, SP1 = 1, 8
+    # SP0, SP1 = 2, 8
+    # # SP0, SP1 = 3, 8
+    # SP0, SP1 = 4, 8
+    # # # SP0, SP1 = 6, 8
+    # # SP0, SP1 = 8, 8
+    # # SP0, SP1 = 16, 8
+
+    Sq = Skv = 256   # S per GPU
+    Sq = Skv = 512   # S per GPU
+    # Sq = Skv = 1 * 1024   # S per GPU
+    # Sq = Skv = 2 * 1024   # S per GPU
+    # Sq = Skv = 4 * 1024   # S per GPU
+    Sq = Skv = 8 * 1024   # S per GPU
+    Ss = [
+        # 256, 
+        # 512, 
+        1 * 1024, 
+        # 2 * 1024, 
+        # 4 * 1024, 
+        # 8 * 1024, 
+        # 16 * 1024, 
+        # 32 * 1024,    # fused failed on 8 * 8!!!
+        # 64 * 1024,    # fused failed !!!
+    ]    # S per GPU
+    # Ss = [16 * 1024]    # S per GPU
+
+    # Nhq = Ng = 32
+    # # Nhq = Ng = 1
+    Nhs = [
+        # 1,
+        32,
+    ]
+    bs = 1
+    D = 128
+    causal = False
+    causal = True
+    
+    tot_sp = SP0 * SP1
+    da_configs = []
+    for Nh in Nhs:
+        Nhq = Ng = Nh
+        for S in Ss:
+            Sq = Skv = S
+            da_configs.append(Dist_Attn_Config((SP0, SP1), (Sq * tot_sp, Skv * tot_sp), (Nhq, Ng), bs, D, causal, hierarchy))
+    return da_configs
+
 def show_schedule(schedule: Dist_Attn_Schedule, fob, name):
     print(f'{name}, schedule:\n{schedule.schedule_table}', flush=True)
     print(f'fob: {fob}, get_e2e_time(): {schedule.get_e2e_time()[fob]:.3e}, get_absolute_cc_time:{schedule.get_absolute_cc_time()[fob]}')
@@ -128,11 +206,11 @@ def run_cc_optimal_exp(exp_config: Evaluation_Configs, da_config: Dist_Attn_Conf
     # return
     return
 
-def run_exp(exp_config: Evaluation_Configs, da_config: Dist_Attn_Config):
+def search_workload_table(exp_config: Evaluation_Configs, da_config: Dist_Attn_Config):
     fob = exp_config.fob
-    hierarchy = da_config.hierarchy
-    print(f'plan_name: {da_config.get_plan_name(fob=0)}', flush=True)
-    m_config = get_profile_data(da_config.SP)
+    hierarchy = da_config.hierarchy = 1
+    print(f'plan_name: {da_config.get_plan_name(fob=fob)}', flush=True)
+    m_config = get_profile_data(da_config.SP, hierarchy=hierarchy)
     
     # # for debugging Parallel Graph Transformation Engine
     # schedules = get_cc_optimal_schedule(da_config, m_config)
@@ -297,6 +375,13 @@ def generate_intra_execution_plans(exp_config: Evaluation_Configs, da_config: Di
             pickle.dump(execute_plan, f)
  
 def main():
+    da_configs = get_configs_for_search_workload_table()
+    exp_configs = get_exp_configs_for_search_workload_table()
+    for da_config in da_configs:
+        for exp_config in exp_configs:
+            search_workload_table(exp_config, da_config)
+    
+    return
     da_configs = get_configs()
     exp_configs = get_exp_configs()
     if isinstance(da_configs, Dist_Attn_Config):

@@ -16,8 +16,8 @@ def get_configs():
     Sq = Skv = 2 * 1024   # 2k
     SP0, SP1 = 1, 3
     Sq = Skv = 3 * 1024   # 3k
-    # SP0, SP1 = 1, 4
-    # Sq = Skv = 4 * 1024   # 4k
+    SP0, SP1 = 1, 4
+    Sq = Skv = 4 * 1024   # 4k
     # SP0, SP1 = 1, 5
     # Sq = Skv = 5 * 1024   # 5k
     # SP0, SP1 = 1, 8
@@ -185,6 +185,7 @@ class Brute_Force_Search_Engine():
         # [TODO]: support bs_split == 2
         # search for fwd
         self.fob = 0    # fwd
+        self.fob = 1    # bwd
         self.reset_before_search()
         # try:
         if True:

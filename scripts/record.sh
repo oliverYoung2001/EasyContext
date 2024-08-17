@@ -24,5 +24,22 @@
 # use mode='test'
 
 # Run the inter-attention w/o causal results
-./scripts/wrapper_qy.sh 2>&1 | tee ./results/wrapper_inter_SP=4,8_causal=False.log
+./scripts/wrapper_qy.sh 2>&1 | tee ./results_exp/wrapper_inter_SP=4,8_causal=False.log
 # use mode='test'
+
+# End to End: HACK
+
+
+# Ablation 1: Workload Allocation. Searching results vs expert-designed results
+
+
+# Ablation 2: Non-fused vs min(Non-fused, Fused)
+# parse "wrapper_intra_SP=8_all.log", Nh=1, noncausal, SP=(1,8), Sg=..., Fob=0/1, max(non-fused) vs max(all)
+
+# Ablation 3: ILP vs Flexflow
+# parse "SP=1,4_Sg=1k_causal_ablation01.log" or "SP=1,4_Sg=1k_causal_ablation1.log"
+
+# Searching of Computation Workload Allocation Engine:
+./scripts/search_engine_qy.sh 2>&1 | tee ./results_exp/search_engine_qy_N=?_locality_fob=?.log
+
+srun -p arch -N 4 --ntasks-per-node=8 --gres=gpu:8 --mem 256G -K  -c 16 hostname

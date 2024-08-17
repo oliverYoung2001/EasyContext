@@ -1,0 +1,509 @@
++ srun -p arch -N 1 --ntasks-per-node=1 --mem 256G -K python search_algo/main.py
+srun: job 17210 queued and waiting for resources
+srun: job 17210 has been allocated resources
+exp_config: fob=0,plan_type=automatic,hierarchy=0,transform_mode=greedy,plan_path=None
+da_config: SP=(1,8),Sg=(256,256),S=(2048,2048),Nh=(1,1),bs=1,D=128,causal=False,hierarchy=0
+Raw, ILP:
+LP solve time: 0.008428812026977539 s
+schedule:
+[[[[0]]]]
+fob: 0, get_e2e_time(): 6.749e-05, get_absolute_cc_time:[6.749e-05 0.000e+00]
+(0, 0, 0, 0, 0): 0.000e+00, 6.749e-05, 6.749e-05
+Streams:
+node0, comp: 1
+(0, 0, 0, 0, 0): 0.000e+00, 6.749e-05, 6.749e-05
+node0, send: 0
+node0, recv: 0
+objective=6.749e-05
+Fused, ILP:
+No Transformations Selected !!!
+Raw, Flexflow:
+schedule:
+[[[[0]]]]
+fob: 0, get_e2e_time(): 6.749e-05, get_absolute_cc_time:[6.749e-05 0.000e+00]
+(0, 0, 0, 0, 0): 0.000e+00, 6.749e-05, 6.749e-05
+Streams:
+node0, comp: 1
+(0, 0, 0, 0, 0): 0.000e+00, 6.749e-05, 6.749e-05
+node0, send: 0
+node0, recv: 0
+end_time=6.749e-05
+Fused, Flexflow:
+No Transformations Selected !!!
+da_config: SP=(1,8),Sg=(512,512),S=(4096,4096),Nh=(1,1),bs=1,D=128,causal=False,hierarchy=0
+Raw, ILP:
+LP solve time: 0.007697582244873047 s
+schedule:
+[[[[0]]]]
+fob: 0, get_e2e_time(): 8.921e-05, get_absolute_cc_time:[8.921e-05 0.000e+00]
+(0, 0, 0, 0, 0): 0.000e+00, 8.921e-05, 8.921e-05
+Streams:
+node0, comp: 1
+(0, 0, 0, 0, 0): 0.000e+00, 8.921e-05, 8.921e-05
+node0, send: 0
+node0, recv: 0
+objective=8.921e-05
+Fused, ILP:
+No Transformations Selected !!!
+Raw, Flexflow:
+schedule:
+[[[[0]]]]
+fob: 0, get_e2e_time(): 8.921e-05, get_absolute_cc_time:[8.921e-05 0.000e+00]
+(0, 0, 0, 0, 0): 0.000e+00, 8.921e-05, 8.921e-05
+Streams:
+node0, comp: 1
+(0, 0, 0, 0, 0): 0.000e+00, 8.921e-05, 8.921e-05
+node0, send: 0
+node0, recv: 0
+end_time=8.921e-05
+Fused, Flexflow:
+No Transformations Selected !!!
+da_config: SP=(1,8),Sg=(1024,1024),S=(8192,8192),Nh=(1,1),bs=1,D=128,causal=False,hierarchy=0
+Raw, ILP:
+LP solve time: 0.007437944412231445 s
+schedule:
+[[[[0]]]]
+fob: 0, get_e2e_time(): 1.189e-04, get_absolute_cc_time:[0.0001189 0.       ]
+(0, 0, 0, 0, 0): 0.000e+00, 1.189e-04, 1.189e-04
+Streams:
+node0, comp: 1
+(0, 0, 0, 0, 0): 0.000e+00, 1.189e-04, 1.189e-04
+node0, send: 0
+node0, recv: 0
+objective=1.189e-04
+Fused, ILP:
+No Transformations Selected !!!
+Raw, Flexflow:
+schedule:
+[[[[0]]]]
+fob: 0, get_e2e_time(): 1.189e-04, get_absolute_cc_time:[0.0001189 0.       ]
+(0, 0, 0, 0, 0): 0.000e+00, 1.189e-04, 1.189e-04
+Streams:
+node0, comp: 1
+(0, 0, 0, 0, 0): 0.000e+00, 1.189e-04, 1.189e-04
+node0, send: 0
+node0, recv: 0
+end_time=1.189e-04
+Fused, Flexflow:
+No Transformations Selected !!!
+da_config: SP=(1,8),Sg=(2048,2048),S=(16384,16384),Nh=(1,1),bs=1,D=128,causal=False,hierarchy=0
+Raw, ILP:
+LP solve time: 0.0074160099029541016 s
+schedule:
+[[[[0]]]]
+fob: 0, get_e2e_time(): 2.361e-04, get_absolute_cc_time:[0.0002361 0.       ]
+(0, 0, 0, 0, 0): 0.000e+00, 2.361e-04, 2.361e-04
+Streams:
+node0, comp: 1
+(0, 0, 0, 0, 0): 0.000e+00, 2.361e-04, 2.361e-04
+node0, send: 0
+node0, recv: 0
+objective=2.361e-04
+Fused, ILP:
+No Transformations Selected !!!
+Raw, Flexflow:
+schedule:
+[[[[0]]]]
+fob: 0, get_e2e_time(): 2.361e-04, get_absolute_cc_time:[0.0002361 0.       ]
+(0, 0, 0, 0, 0): 0.000e+00, 2.361e-04, 2.361e-04
+Streams:
+node0, comp: 1
+(0, 0, 0, 0, 0): 0.000e+00, 2.361e-04, 2.361e-04
+node0, send: 0
+node0, recv: 0
+end_time=2.361e-04
+Fused, Flexflow:
+No Transformations Selected !!!
+da_config: SP=(1,8),Sg=(4096,4096),S=(32768,32768),Nh=(1,1),bs=1,D=128,causal=False,hierarchy=0
+Raw, ILP:
+LP solve time: 0.007295131683349609 s
+schedule:
+[[[[0]]]]
+fob: 0, get_e2e_time(): 5.698e-04, get_absolute_cc_time:[0.0005698 0.       ]
+(0, 0, 0, 0, 0): 0.000e+00, 5.698e-04, 5.698e-04
+Streams:
+node0, comp: 1
+(0, 0, 0, 0, 0): 0.000e+00, 5.698e-04, 5.698e-04
+node0, send: 0
+node0, recv: 0
+objective=5.698e-04
+Fused, ILP:
+No Transformations Selected !!!
+Raw, Flexflow:
+schedule:
+[[[[0]]]]
+fob: 0, get_e2e_time(): 5.698e-04, get_absolute_cc_time:[0.0005698 0.       ]
+(0, 0, 0, 0, 0): 0.000e+00, 5.698e-04, 5.698e-04
+Streams:
+node0, comp: 1
+(0, 0, 0, 0, 0): 0.000e+00, 5.698e-04, 5.698e-04
+node0, send: 0
+node0, recv: 0
+end_time=5.698e-04
+Fused, Flexflow:
+No Transformations Selected !!!
+da_config: SP=(1,8),Sg=(8192,8192),S=(65536,65536),Nh=(1,1),bs=1,D=128,causal=False,hierarchy=0
+Raw, ILP:
+LP solve time: 0.0073740482330322266 s
+schedule:
+[[[[0]]]]
+fob: 0, get_e2e_time(): 1.560e-03, get_absolute_cc_time:[0.00156 0.     ]
+(0, 0, 0, 0, 0): 0.000e+00, 1.560e-03, 1.560e-03
+Streams:
+node0, comp: 1
+(0, 0, 0, 0, 0): 0.000e+00, 1.560e-03, 1.560e-03
+node0, send: 0
+node0, recv: 0
+objective=1.560e-03
+Fused, ILP:
+No Transformations Selected !!!
+Raw, Flexflow:
+schedule:
+[[[[0]]]]
+fob: 0, get_e2e_time(): 1.560e-03, get_absolute_cc_time:[0.00156 0.     ]
+(0, 0, 0, 0, 0): 0.000e+00, 1.560e-03, 1.560e-03
+Streams:
+node0, comp: 1
+(0, 0, 0, 0, 0): 0.000e+00, 1.560e-03, 1.560e-03
+node0, send: 0
+node0, recv: 0
+end_time=1.560e-03
+Fused, Flexflow:
+No Transformations Selected !!!
+da_config: SP=(1,8),Sg=(16384,16384),S=(131072,131072),Nh=(1,1),bs=1,D=128,causal=False,hierarchy=0
+Raw, ILP:
+LP solve time: 0.0073871612548828125 s
+schedule:
+[[[[0]]]]
+fob: 0, get_e2e_time(): 5.434e-03, get_absolute_cc_time:[0.005434 0.      ]
+(0, 0, 0, 0, 0): 0.000e+00, 5.434e-03, 5.434e-03
+Streams:
+node0, comp: 1
+(0, 0, 0, 0, 0): 0.000e+00, 5.434e-03, 5.434e-03
+node0, send: 0
+node0, recv: 0
+objective=5.434e-03
+Fused, ILP:
+No Transformations Selected !!!
+Raw, Flexflow:
+schedule:
+[[[[0]]]]
+fob: 0, get_e2e_time(): 5.434e-03, get_absolute_cc_time:[0.005434 0.      ]
+(0, 0, 0, 0, 0): 0.000e+00, 5.434e-03, 5.434e-03
+Streams:
+node0, comp: 1
+(0, 0, 0, 0, 0): 0.000e+00, 5.434e-03, 5.434e-03
+node0, send: 0
+node0, recv: 0
+end_time=5.434e-03
+Fused, Flexflow:
+No Transformations Selected !!!
+da_config: SP=(1,8),Sg=(32768,32768),S=(262144,262144),Nh=(1,1),bs=1,D=128,causal=False,hierarchy=0
+Raw, ILP:
+LP solve time: 0.007315158843994141 s
+schedule:
+[[[[0]]]]
+fob: 0, get_e2e_time(): 1.957e-02, get_absolute_cc_time:[0.01957 0.     ]
+(0, 0, 0, 0, 0): 0.000e+00, 1.957e-02, 1.957e-02
+Streams:
+node0, comp: 1
+(0, 0, 0, 0, 0): 0.000e+00, 1.957e-02, 1.957e-02
+node0, send: 0
+node0, recv: 0
+objective=1.957e-02
+Fused, ILP:
+No Transformations Selected !!!
+Raw, Flexflow:
+schedule:
+[[[[0]]]]
+fob: 0, get_e2e_time(): 1.957e-02, get_absolute_cc_time:[0.01957 0.     ]
+(0, 0, 0, 0, 0): 0.000e+00, 1.957e-02, 1.957e-02
+Streams:
+node0, comp: 1
+(0, 0, 0, 0, 0): 0.000e+00, 1.957e-02, 1.957e-02
+node0, send: 0
+node0, recv: 0
+end_time=1.957e-02
+Fused, Flexflow:
+No Transformations Selected !!!
+da_config: SP=(1,8),Sg=(65536,65536),S=(524288,524288),Nh=(1,1),bs=1,D=128,causal=False,hierarchy=0
+Raw, ILP:
+LP solve time: 0.007362842559814453 s
+schedule:
+[[[[0]]]]
+fob: 0, get_e2e_time(): 7.621e-02, get_absolute_cc_time:[0.07621 0.     ]
+(0, 0, 0, 0, 0): 0.000e+00, 7.621e-02, 7.621e-02
+Streams:
+node0, comp: 1
+(0, 0, 0, 0, 0): 0.000e+00, 7.621e-02, 7.621e-02
+node0, send: 0
+node0, recv: 0
+objective=7.621e-02
+Fused, ILP:
+No Transformations Selected !!!
+Raw, Flexflow:
+schedule:
+[[[[0]]]]
+fob: 0, get_e2e_time(): 7.621e-02, get_absolute_cc_time:[0.07621 0.     ]
+(0, 0, 0, 0, 0): 0.000e+00, 7.621e-02, 7.621e-02
+Streams:
+node0, comp: 1
+(0, 0, 0, 0, 0): 0.000e+00, 7.621e-02, 7.621e-02
+node0, send: 0
+node0, recv: 0
+end_time=7.621e-02
+Fused, Flexflow:
+No Transformations Selected !!!
+da_config: SP=(1,8),Sg=(256,256),S=(2048,2048),Nh=(32,32),bs=1,D=128,causal=False,hierarchy=0
+Raw, ILP:
+LP solve time: 0.007197141647338867 s
+schedule:
+[[[[0]]]]
+fob: 0, get_e2e_time(): 2.551e-04, get_absolute_cc_time:[0.0002551 0.       ]
+(0, 0, 0, 0, 0): 0.000e+00, 2.551e-04, 2.551e-04
+Streams:
+node0, comp: 1
+(0, 0, 0, 0, 0): 0.000e+00, 2.551e-04, 2.551e-04
+node0, send: 0
+node0, recv: 0
+objective=2.551e-04
+Fused, ILP:
+No Transformations Selected !!!
+Raw, Flexflow:
+schedule:
+[[[[0]]]]
+fob: 0, get_e2e_time(): 2.551e-04, get_absolute_cc_time:[0.0002551 0.       ]
+(0, 0, 0, 0, 0): 0.000e+00, 2.551e-04, 2.551e-04
+Streams:
+node0, comp: 1
+(0, 0, 0, 0, 0): 0.000e+00, 2.551e-04, 2.551e-04
+node0, send: 0
+node0, recv: 0
+end_time=2.551e-04
+Fused, Flexflow:
+No Transformations Selected !!!
+da_config: SP=(1,8),Sg=(512,512),S=(4096,4096),Nh=(32,32),bs=1,D=128,causal=False,hierarchy=0
+Raw, ILP:
+LP solve time: 0.007176876068115234 s
+schedule:
+[[[[0]]]]
+fob: 0, get_e2e_time(): 4.934e-04, get_absolute_cc_time:[0.0004934 0.       ]
+(0, 0, 0, 0, 0): 0.000e+00, 4.934e-04, 4.934e-04
+Streams:
+node0, comp: 1
+(0, 0, 0, 0, 0): 0.000e+00, 4.934e-04, 4.934e-04
+node0, send: 0
+node0, recv: 0
+objective=4.934e-04
+Fused, ILP:
+No Transformations Selected !!!
+Raw, Flexflow:
+schedule:
+[[[[0]]]]
+fob: 0, get_e2e_time(): 4.934e-04, get_absolute_cc_time:[0.0004934 0.       ]
+(0, 0, 0, 0, 0): 0.000e+00, 4.934e-04, 4.934e-04
+Streams:
+node0, comp: 1
+(0, 0, 0, 0, 0): 0.000e+00, 4.934e-04, 4.934e-04
+node0, send: 0
+node0, recv: 0
+end_time=4.934e-04
+Fused, Flexflow:
+No Transformations Selected !!!
+da_config: SP=(1,8),Sg=(1024,1024),S=(8192,8192),Nh=(32,32),bs=1,D=128,causal=False,hierarchy=0
+Raw, ILP:
+LP solve time: 0.0073394775390625 s
+schedule:
+[[[[0]]]]
+fob: 0, get_e2e_time(): 1.096e-03, get_absolute_cc_time:[0.001096 0.      ]
+(0, 0, 0, 0, 0): 0.000e+00, 1.096e-03, 1.096e-03
+Streams:
+node0, comp: 1
+(0, 0, 0, 0, 0): 0.000e+00, 1.096e-03, 1.096e-03
+node0, send: 0
+node0, recv: 0
+objective=1.096e-03
+Fused, ILP:
+No Transformations Selected !!!
+Raw, Flexflow:
+schedule:
+[[[[0]]]]
+fob: 0, get_e2e_time(): 1.096e-03, get_absolute_cc_time:[0.001096 0.      ]
+(0, 0, 0, 0, 0): 0.000e+00, 1.096e-03, 1.096e-03
+Streams:
+node0, comp: 1
+(0, 0, 0, 0, 0): 0.000e+00, 1.096e-03, 1.096e-03
+node0, send: 0
+node0, recv: 0
+end_time=1.096e-03
+Fused, Flexflow:
+No Transformations Selected !!!
+da_config: SP=(1,8),Sg=(2048,2048),S=(16384,16384),Nh=(32,32),bs=1,D=128,causal=False,hierarchy=0
+Raw, ILP:
+LP solve time: 0.007277727127075195 s
+schedule:
+[[[[0]]]]
+fob: 0, get_e2e_time(): 3.323e-03, get_absolute_cc_time:[0.003323 0.      ]
+(0, 0, 0, 0, 0): 0.000e+00, 3.323e-03, 3.323e-03
+Streams:
+node0, comp: 1
+(0, 0, 0, 0, 0): 0.000e+00, 3.323e-03, 3.323e-03
+node0, send: 0
+node0, recv: 0
+objective=3.323e-03
+Fused, ILP:
+No Transformations Selected !!!
+Raw, Flexflow:
+schedule:
+[[[[0]]]]
+fob: 0, get_e2e_time(): 3.323e-03, get_absolute_cc_time:[0.003323 0.      ]
+(0, 0, 0, 0, 0): 0.000e+00, 3.323e-03, 3.323e-03
+Streams:
+node0, comp: 1
+(0, 0, 0, 0, 0): 0.000e+00, 3.323e-03, 3.323e-03
+node0, send: 0
+node0, recv: 0
+end_time=3.323e-03
+Fused, Flexflow:
+No Transformations Selected !!!
+da_config: SP=(1,8),Sg=(4096,4096),S=(32768,32768),Nh=(32,32),bs=1,D=128,causal=False,hierarchy=0
+Raw, ILP:
+LP solve time: 0.007235527038574219 s
+schedule:
+[[[[0]]]]
+fob: 0, get_e2e_time(): 1.065e-02, get_absolute_cc_time:[0.01065 0.     ]
+(0, 0, 0, 0, 0): 0.000e+00, 1.065e-02, 1.065e-02
+Streams:
+node0, comp: 1
+(0, 0, 0, 0, 0): 0.000e+00, 1.065e-02, 1.065e-02
+node0, send: 0
+node0, recv: 0
+objective=1.065e-02
+Fused, ILP:
+No Transformations Selected !!!
+Raw, Flexflow:
+schedule:
+[[[[0]]]]
+fob: 0, get_e2e_time(): 1.065e-02, get_absolute_cc_time:[0.01065 0.     ]
+(0, 0, 0, 0, 0): 0.000e+00, 1.065e-02, 1.065e-02
+Streams:
+node0, comp: 1
+(0, 0, 0, 0, 0): 0.000e+00, 1.065e-02, 1.065e-02
+node0, send: 0
+node0, recv: 0
+end_time=1.065e-02
+Fused, Flexflow:
+No Transformations Selected !!!
+da_config: SP=(1,8),Sg=(8192,8192),S=(65536,65536),Nh=(32,32),bs=1,D=128,causal=False,hierarchy=0
+Raw, ILP:
+LP solve time: 0.0074770450592041016 s
+schedule:
+[[[[0]]]]
+fob: 0, get_e2e_time(): 4.278e-02, get_absolute_cc_time:[0.04278 0.     ]
+(0, 0, 0, 0, 0): 0.000e+00, 4.278e-02, 4.278e-02
+Streams:
+node0, comp: 1
+(0, 0, 0, 0, 0): 0.000e+00, 4.278e-02, 4.278e-02
+node0, send: 0
+node0, recv: 0
+objective=4.278e-02
+Fused, ILP:
+No Transformations Selected !!!
+Raw, Flexflow:
+schedule:
+[[[[0]]]]
+fob: 0, get_e2e_time(): 4.278e-02, get_absolute_cc_time:[0.04278 0.     ]
+(0, 0, 0, 0, 0): 0.000e+00, 4.278e-02, 4.278e-02
+Streams:
+node0, comp: 1
+(0, 0, 0, 0, 0): 0.000e+00, 4.278e-02, 4.278e-02
+node0, send: 0
+node0, recv: 0
+end_time=4.278e-02
+Fused, Flexflow:
+No Transformations Selected !!!
+da_config: SP=(1,8),Sg=(16384,16384),S=(131072,131072),Nh=(32,32),bs=1,D=128,causal=False,hierarchy=0
+Raw, ILP:
+LP solve time: 0.007939338684082031 s
+schedule:
+[[[[0]]]]
+fob: 0, get_e2e_time(): 1.641e-01, get_absolute_cc_time:[0.1641 0.    ]
+(0, 0, 0, 0, 0): 0.000e+00, 1.641e-01, 1.641e-01
+Streams:
+node0, comp: 1
+(0, 0, 0, 0, 0): 0.000e+00, 1.641e-01, 1.641e-01
+node0, send: 0
+node0, recv: 0
+objective=1.641e-01
+Fused, ILP:
+No Transformations Selected !!!
+Raw, Flexflow:
+schedule:
+[[[[0]]]]
+fob: 0, get_e2e_time(): 1.641e-01, get_absolute_cc_time:[0.1641 0.    ]
+(0, 0, 0, 0, 0): 0.000e+00, 1.641e-01, 1.641e-01
+Streams:
+node0, comp: 1
+(0, 0, 0, 0, 0): 0.000e+00, 1.641e-01, 1.641e-01
+node0, send: 0
+node0, recv: 0
+end_time=1.641e-01
+Fused, Flexflow:
+No Transformations Selected !!!
+da_config: SP=(1,8),Sg=(32768,32768),S=(262144,262144),Nh=(32,32),bs=1,D=128,causal=False,hierarchy=0
+Raw, ILP:
+LP solve time: 0.0073583126068115234 s
+schedule:
+[[[[0]]]]
+fob: 0, get_e2e_time(): 6.759e-01, get_absolute_cc_time:[0.6759 0.    ]
+(0, 0, 0, 0, 0): 0.000e+00, 6.759e-01, 6.759e-01
+Streams:
+node0, comp: 1
+(0, 0, 0, 0, 0): 0.000e+00, 6.759e-01, 6.759e-01
+node0, send: 0
+node0, recv: 0
+objective=6.759e-01
+Fused, ILP:
+No Transformations Selected !!!
+Raw, Flexflow:
+schedule:
+[[[[0]]]]
+fob: 0, get_e2e_time(): 6.759e-01, get_absolute_cc_time:[0.6759 0.    ]
+(0, 0, 0, 0, 0): 0.000e+00, 6.759e-01, 6.759e-01
+Streams:
+node0, comp: 1
+(0, 0, 0, 0, 0): 0.000e+00, 6.759e-01, 6.759e-01
+node0, send: 0
+node0, recv: 0
+end_time=6.759e-01
+Fused, Flexflow:
+No Transformations Selected !!!
+da_config: SP=(1,8),Sg=(65536,65536),S=(524288,524288),Nh=(32,32),bs=1,D=128,causal=False,hierarchy=0
+Raw, ILP:
+LP solve time: 0.007837057113647461 s
+schedule:
+[[[[0]]]]
+fob: 0, get_e2e_time(): 2.735e+00, get_absolute_cc_time:[2.735 0.   ]
+(0, 0, 0, 0, 0): 0.000e+00, 2.735e+00, 2.735e+00
+Streams:
+node0, comp: 1
+(0, 0, 0, 0, 0): 0.000e+00, 2.735e+00, 2.735e+00
+node0, send: 0
+node0, recv: 0
+objective=2.735e+00
+Fused, ILP:
+No Transformations Selected !!!
+Raw, Flexflow:
+schedule:
+[[[[0]]]]
+fob: 0, get_e2e_time(): 2.735e+00, get_absolute_cc_time:[2.735 0.   ]
+(0, 0, 0, 0, 0): 0.000e+00, 2.735e+00, 2.735e+00
+Streams:
+node0, comp: 1
+(0, 0, 0, 0, 0): 0.000e+00, 2.735e+00, 2.735e+00
+node0, send: 0
+node0, recv: 0
+end_time=2.735e+00
+Fused, Flexflow:
+No Transformations Selected !!!
++ set +x
