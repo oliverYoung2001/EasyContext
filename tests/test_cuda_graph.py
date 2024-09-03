@@ -108,6 +108,11 @@ def test_cuda_graph_with_add():
     global USE_TORCH_PROFILER
     a = torch.tensor([1, 2], dtype=torch.int32, device='cuda')
     b = torch.tensor([3, 4], dtype=torch.int32, device='cuda')
+    # WarnUp before cuda graph capture
+    WARMUP_CUDAGRAPH = 11
+    for _ in range(WARMUP_CUDAGRAPH):
+        c = a + b
+    
     g = torch.cuda.CUDAGraph()
     global GRAPH_STREAM
     with torch.cuda.graph(g, stream=GRAPH_STREAM):
@@ -124,26 +129,27 @@ def test_cuda_graph_with_add():
         DIR_NAME = f'./prof_results/tb_cg'
         os.makedirs(DIR_NAME, exist_ok=True)
         
-        with torch.profiler.profile():  # workaround of issue 75504 of PyTorch
-            pass
+        # with torch.profiler.profile():  # workaround of issue 75504 of PyTorch
+        #     pass
         with torch.profiler.profile(
-            activities=[torch.profiler.ProfilerActivity.CPU, torch.profiler.ProfilerActivity.CUDA],
-            schedule=torch.profiler.schedule(wait=WAIT, warmup=WARMUP, active=ACTIVE, repeat=REPEAT),
-            on_trace_ready=torch.profiler.tensorboard_trace_handler(
-                dir_name=DIR_NAME, 
-                worker_name=TRACE_NAME,
-            ),
-            record_shapes=True,
-            profile_memory=True,
-            with_stack=True,
+            # activities=[torch.profiler.ProfilerActivity.CPU, torch.profiler.ProfilerActivity.CUDA],
+            # schedule=torch.profiler.schedule(wait=WAIT, warmup=WARMUP, active=ACTIVE, repeat=REPEAT),
+            # on_trace_ready=torch.profiler.tensorboard_trace_handler(
+            #     dir_name=DIR_NAME, 
+            #     worker_name=TRACE_NAME,
+            # ),
+            # record_shapes=True,
+            # profile_memory=True,
+            # with_stack=True,
         ) as prof:
             for iter in range(TOTAL_TURNS):
                 g.replay()
                 # a.copy_(torch.tensor([- 1, - 2], dtype=torch.int32, device='cuda'))
                 # g.replay()
-                if (iter + 1) % BARRIER_FREQ == 0:
-                    torch.cuda.synchronize()
+                # if (iter + 1) % BARRIER_FREQ == 0:
+                #     torch.cuda.synchronize()
                     # torch.distributed.barrier()
+                torch.cuda.synchronize()
                 prof.step()
     else:
         # print(f'c: {c}')

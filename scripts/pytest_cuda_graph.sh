@@ -87,8 +87,10 @@ set -x
 $RUNNER_CMD \
 -c 16 \
 $NSIGHT_CMD \
-pytest ./tests/test_cuda_graph.py \
-    -s \
+python ./tests/test_cuda_graph_mini.py \
+    
+# pytest ./tests/test_cuda_graph.py \
+#     -s \
     
 set +x
 exit 0
