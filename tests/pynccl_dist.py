@@ -148,15 +148,15 @@ def worker_fn_with_cudagraph_multistreams():
     
     with torch.no_grad():
         graph = torch.cuda.CUDAGraph()
-        pynccl_comm = PyNcclCommunicator(get_world_group().cpu_group,
+        pynccl_comm = PyNcclCommunicator(get_world_group().cpu_group, ranks=list(range(world_size)),
                                          device=get_world_group().device)
         # ring pattern groups:
         for r in range(world_size):
             peer_r = (r + 1) % world_size
             ranks = sorted([r, peer_r])
-            new_group = torch.distributed.new_group(ranks, backend='gloo')
+            # new_group = torch.distributed.new_group(ranks, backend='gloo')
             if rank in ranks:
-                pycomm = PyNcclCommunicator(new_group, device=rank)
+                pycomm = PyNcclCommunicator(get_world_group().cpu_group, ranks=ranks, device=rank)
                 if r == rank:
                     send_comm = pycomm
                 else:
@@ -180,7 +180,7 @@ def worker_fn_with_cudagraph_multistreams():
         torch.cuda.synchronize()
         
         use_cudagraph = False
-        # use_cudagraph = True
+        use_cudagraph = True
         if use_cudagraph:
             with torch.profiler.profile():  # workaround of issue 75504 of PyTorch
                 pass
@@ -202,6 +202,8 @@ def worker_fn_with_cudagraph_multistreams():
         # WAIT, WARMUP, ACTIVE, REPEAT = BARRIER_FREQ * 0, BARRIER_FREQ * 0, BARRIER_FREQ * 1, 1
         TOTAL_TURNS = (WAIT + WARMUP + ACTIVE) * (REPEAT)
         TRACE_NAME = f'test_cudagraph_w{world_size}_r{rank}'
+        TB_DIR = f'./prof_results/tb_cg'
+        os.makedirs(TB_DIR, exist_ok=True)
         
         # for iter in range(TOTAL_TURNS):
         #     # torch.distributed.all_reduce(sync_tensor, async_op=False)    # for sync and alignment
@@ -215,7 +217,7 @@ def worker_fn_with_cudagraph_multistreams():
             activities=[torch.profiler.ProfilerActivity.CPU, torch.profiler.ProfilerActivity.CUDA],
             schedule=torch.profiler.schedule(wait=WAIT, warmup=WARMUP, active=ACTIVE, repeat=REPEAT),
             on_trace_ready=torch.profiler.tensorboard_trace_handler(
-                dir_name=f'tb_cg', 
+                dir_name=TB_DIR, 
                 worker_name=TRACE_NAME,
             ),
             record_shapes=True,

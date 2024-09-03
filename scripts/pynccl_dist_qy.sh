@@ -17,8 +17,8 @@ HOST="g3021"
 HOST="g3015"
 # PARTITION=arch
 # HOST="g3024"
-# PARTITION=hit
-# HOST="g4004"
+PARTITION=hit
+HOST="g4008"
 
 
 HOST=None

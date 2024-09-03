@@ -37,9 +37,9 @@ fi
 
 # echo "USE_NSYS: $USE_NSYS"
 NSIGHT_CMD=""
-if [ $USE_NSYS == "True" ]
-then
-    NSIGHT_CMD="nsys profile --output=${NSYS_DIR}/${TRACE_NAME}_w${WORLD_SIZE}_r${RANK}_$(date "+%Y%m%d-%H%M%S")"
-fi
+# if [ $USE_NSYS == "True" ]
+# then
+#     NSIGHT_CMD="nsys profile --output=${NSYS_DIR}/${TRACE_NAME}_w${WORLD_SIZE}_r${RANK}_$(date "+%Y%m%d-%H%M%S")"
+# fi
 
 exec ${NSIGHT_CMD} $@ # 2>&1 | tee logs/out/$RANK
